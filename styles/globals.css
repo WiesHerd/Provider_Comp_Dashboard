@@ -1,0 +1,44 @@
+.adjustment-row:hover {
+  background-color: #F3F4F6;
+}
+
+.ag-theme-alpine {
+  --ag-row-hover-color: transparent;
+  --ag-selected-row-background-color: transparent;
+  --ag-header-background-color: #f8fafc;
+  --ag-odd-row-background-color: #ffffff;
+  --ag-even-row-background-color: #ffffff;
+  --ag-border-color: #e2e8f0;
+  --ag-header-font-weight: 600;
+  --ag-header-font-size: 16px;
+}
+
+/* Remove any gap between Dec and YTD columns */
+.ag-pinned-right-cols-container {
+  margin-left: 0 !important;
+} 
+
+/* Style for header rows */
+.header-row {
+  background-color: #f8fafc !important;
+  font-weight: 600;
+  font-size: 1.125rem;
+}
+
+/* Style for variance values */
+.variance-positive {
+  color: #16a34a !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+}
+
+.variance-negative {
+  color: #dc2626 !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+}
+
+.variance-neutral {
+  font-weight: 600 !important;
+  font-size: 16px !important;
+} 

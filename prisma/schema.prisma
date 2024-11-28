@@ -1,0 +1,86 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Provider {
+  id                  String               @id @default(cuid())
+  employeeId          String               @unique
+  firstName           String
+  lastName            String
+  specialty           String?
+  annualSalary        Float
+  annualWRVUTarget    Float?
+  conversionFactor    Float                @default(45.00)
+  fte                 Float                @default(1.0)
+  hireDate           DateTime
+  compensationChanges CompensationChange[]
+  wrvuAdjustments    WRVUAdjustment[]
+  targetAdjustments  TargetAdjustment[]
+  additionalPayments AdditionalPayment[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+}
+
+model CompensationChange {
+  id               String    @id @default(cuid())
+  effectiveDate    DateTime
+  previousSalary   Float
+  newSalary        Float
+  previousFTE      Float
+  newFTE           Float
+  conversionFactor Float
+  reason           String?
+  providerId       String
+  provider         Provider  @relation(fields: [providerId], references: [id])
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([providerId, effectiveDate])
+}
+
+model WRVUAdjustment {
+  id          String   @id @default(cuid())
+  name        String
+  amount      Float
+  month       String
+  year        Int
+  providerId  String
+  provider    Provider @relation(fields: [providerId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([providerId, year, month])
+}
+
+model TargetAdjustment {
+  id          String   @id @default(cuid())
+  name        String
+  amount      Float
+  month       String
+  year        Int
+  providerId  String
+  provider    Provider @relation(fields: [providerId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([providerId, year, month])
+}
+
+model AdditionalPayment {
+  id          String   @id @default(cuid())
+  name        String
+  amount      Float
+  month       String
+  year        Int
+  providerId  String
+  provider    Provider @relation(fields: [providerId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([providerId, year, month])
+}

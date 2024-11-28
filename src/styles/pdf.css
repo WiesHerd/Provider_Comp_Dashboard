@@ -1,0 +1,39 @@
+@media print {
+  .pdf-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 30px;
+    background-color: white !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  .pdf-section table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .pdf-section th,
+  .pdf-section td {
+    padding: 8px;
+    border: 1px solid #e2e8f0;
+    text-align: left;
+  }
+  
+  .pdf-section th {
+    background-color: #f8fafc !important;
+    font-weight: 600;
+  }
+  
+  /* Hide elements we don't want in PDF */
+  .pdf-section button,
+  .pdf-section .action-buttons {
+    display: none !important;
+  }
+  
+  /* Ensure charts render properly */
+  .pdf-section canvas {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+} 
