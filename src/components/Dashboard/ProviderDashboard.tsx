@@ -57,12 +57,15 @@ const formatNumber = (value: number): string => {
   }).format(value);
 };
 
-const formatCurrency = (value: number): string => {
+const formatCurrency = (value: number | null | undefined): string => {
   if (value === undefined || value === null) return '$0.00';
+  
+  // Force en-US locale and fixed decimal places
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
 };
 
@@ -381,6 +384,9 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
   const [currentCF, setCurrentCF] = useState(provider?.conversionFactor || 45.00);
   const [editingChangeId, setEditingChangeId] = useState<string | null>(null);
   const [newSalary, setNewSalary] = useState<number>(0);
+  const [newFTE, setNewFTE] = useState(1.0);
+  const [effectiveDate, setEffectiveDate] = useState('');
+  const [changeReason, setChangeReason] = useState('');
   
   // Add gridApi ref
   const gridApi = useRef<any>(null);
@@ -390,29 +396,26 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
     gridApi.current = params.api;
   };
 
-  const handleCompensationChange = (change: CompensationChange) => {
-    if (editingChangeId) {
-      // Update existing record
-      setCompensationHistory(prev => 
-        prev.map(item => 
-          item.id === editingChangeId ? change : item
-        )
-      );
-    } else {
-      // Add new record
-      setCompensationHistory(prev => [...prev, change]);
-    }
-    
-    // Update the current salary and FTE
-    setCurrentSalary(change.newSalary);
-    if (change.newFTE) {
-      setCurrentFTE(change.newFTE);
-    }
+  const handleCompensationChange = (data: CompensationChange) => {
+    setCompensationHistory(prev => {
+      if (editingChangeId) {
+        return prev.map(change => 
+          change.id === editingChangeId ? { ...data, id: editingChangeId } : change
+        );
+      }
+      return [...prev, { ...data, id: `change-${Date.now()}` }];
+    });
 
-    // Reset editing state
-    setEditingChangeId(null);
-    
-    // ... rest of your update logic ...
+    // Make sure to reset all the state
+    setIsCompChangeModalOpen(false);  // Close the modal
+    setEditingChangeId(null);        // Reset editing state
+    setCurrentSalary(0);             // Reset form values
+    setNewSalary(0);
+    setCurrentFTE(0);
+    setNewFTE(0);
+    setCurrentCF(45.00);
+    setEffectiveDate('');
+    setChangeReason('');
   };
 
   const handleOpenAdjustmentModal = (type: 'wrvu' | 'target' | 'additionalPay') => {
@@ -797,11 +800,13 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
       field: month.toLowerCase(),
       headerName: month,
       headerClass: 'ag-right-aligned-header',
-      valueFormatter: (params: any) => formatCurrency(params.value),
+      valueFormatter: (params: any) => {
+        if (params.value === undefined || params.value === null) return '$0.00';
+        return formatCurrency(params.value);
+      },
       cellStyle: params => ({
         textAlign: 'right',
-        fontWeight: params.data.component === 'Total Comp.' ? '600' : 'normal',
-        backgroundColor: params.data.component === 'Net Incentive (80%)' ? '#F8FAFC' : 'white'
+        fontWeight: params.data.component === 'Total Comp.' ? '600' : 'normal'
       })
     })),
     // Add YTD column
@@ -816,8 +821,7 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
       valueFormatter: (params: any) => formatCurrency(params.value),
       cellStyle: params => ({
         textAlign: 'right',
-        fontWeight: params.data.component === 'Total Comp.' ? '600' : 'normal',
-        backgroundColor: params.data.component === 'Net Incentive (80%)' ? '#F8FAFC' : 'white'
+        fontWeight: params.data.component === 'Total Comp.' ? '600' : 'normal'
       })
     }
   ];
@@ -1521,7 +1525,10 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
         currentSalary={currentSalary}
         newSalary={newSalary}
         currentFTE={currentFTE}
+        newFTE={newFTE}
         currentCF={currentCF}
+        effectiveDate={effectiveDate}
+        reason={changeReason}
         editingChange={editingChangeId ? compensationHistory.find(c => c.id === editingChangeId) : undefined}
       />
     </>
