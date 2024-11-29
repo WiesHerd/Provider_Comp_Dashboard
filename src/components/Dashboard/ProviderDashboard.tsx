@@ -74,8 +74,8 @@ const targetMonthlyData = Object.fromEntries(months.map((m) => [m.toLowerCase(),
 // Define baseGridConfig once with all needed properties
 const baseGridConfig = {
   domLayout: 'autoHeight',
-  rowHeight: 56,
-  headerHeight: 56,
+  rowHeight: 48,
+  headerHeight: 48,
   suppressColumnVirtualisation: true,
   suppressRowVirtualisation: true,
   defaultColDef: {
@@ -84,10 +84,8 @@ const baseGridConfig = {
     suppressMenu: true,
     suppressSizeToFit: false,
     flex: 1,
-    cellStyle: {
-      padding: '12px 16px',
-      borderBottom: '1px solid #E2E8F0',
-    },
+    cellClass: 'ag-cell-vertically-aligned',
+    headerClass: 'ag-header-cell-right',
   },
   suppressKeyboardEvent: (params: any) => {
     const { event } = params;
@@ -798,34 +796,30 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
     ...months.map(month => ({
       field: month.toLowerCase(),
       headerName: month,
-      minWidth: 130,
       headerClass: 'ag-right-aligned-header',
-      cellStyle: { textAlign: 'right' },
-      editable: (params: any) => {
-        // Make cell editable only for additional payment rows
-        return params.data.component !== 'Base Salary' && 
-               params.data.component !== 'Incentive (100%)' &&
-               params.data.component !== 'Holdback (20%)' &&
-               params.data.component !== 'Net Incentive (80%)' &&
-               params.data.component !== 'Total Comp.';
+      valueFormatter: (params: any) => formatCurrency(params.value),
+      cellStyle: params => ({
+        textAlign: 'right',
+        fontWeight: params.data.component === 'Total Comp.' ? '600' : 'normal',
+        backgroundColor: params.data.component === 'Net Incentive (80%)' ? '#F8FAFC' : 'white'
+      })
+    })),
+    // Add YTD column
+    {
+      field: 'ytd',
+      headerName: 'YTD',
+      valueGetter: (params: any) => {
+        return months.reduce((sum, month) => {
+          return sum + (params.data[month.toLowerCase()] || 0);
+        }, 0);
       },
-      valueFormatter: (params: any) => {
-        if (params.value === undefined || isNaN(params.value)) {
-          return formatCurrency(0);
-        }
-        return formatCurrency(params.value);
-      },
-      valueSetter: (params: any) => {
-        const newValue = Number(params.newValue);
-        if (!isNaN(newValue)) {
-          params.data[params.column.colId] = newValue;
-          // Update the grid data
-          handleAdditionalPayUpdate(params.data.component, params.column.colId, newValue);
-          return true;
-        }
-        return false;
-      }
-    }))
+      valueFormatter: (params: any) => formatCurrency(params.value),
+      cellStyle: params => ({
+        textAlign: 'right',
+        fontWeight: params.data.component === 'Total Comp.' ? '600' : 'normal',
+        backgroundColor: params.data.component === 'Net Incentive (80%)' ? '#F8FAFC' : 'white'
+      })
+    }
   ];
 
   // Add these calculations near the top of your component
@@ -1164,6 +1158,29 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
     setIsCompChangeModalOpen(true);
     setCurrentFTE(provider?.fte || 1.0); // Set the current FTE from provider data
   };
+
+  // Add this CSS to your global styles or component styles
+  const gridStyles = `
+    .ag-cell-vertically-aligned {
+      line-height: 48px !important;  // Match the rowHeight
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+    }
+    .ag-header-cell-right .ag-header-cell-label {
+      justify-content: flex-end;
+      padding-right: 16px;
+    }
+  `;
+
+  // Add the styles to your component
+  useEffect(() => {
+    const styleSheet = document.createElement('style');
+    styleSheet.innerText = gridStyles;
+    document.head.appendChild(styleSheet);
+    return () => {
+      document.head.removeChild(styleSheet);
+    };
+  }, []);
 
   return (
     <>
