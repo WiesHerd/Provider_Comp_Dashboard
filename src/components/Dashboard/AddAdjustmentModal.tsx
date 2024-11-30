@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from '@/components/ui/modal';
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -10,87 +10,54 @@ interface AddAdjustmentModalProps {
   type: 'wrvu' | 'target' | 'additionalPay';
 }
 
-const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose, onAdd, type }) => {
+const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose, onAdd, type, editingData }) => {
   const [amount, setAmount] = useState<number>(0);
   const [month, setMonth] = useState<string>('');
   const [description, setDescription] = useState('');
   const [payType, setPayType] = useState<string>('');
   const [name, setName] = useState('');
+  const [monthlyAmounts, setMonthlyAmounts] = useState<{ [key: string]: number }>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (type === 'additionalPay') {
-      console.log('1. Modal - Starting submission for Additional Pay');
-      console.log('2. Modal - Name:', name);
-      console.log('3. Modal - Description:', description);
-      console.log('4. Modal - Month:', month);
-      console.log('5. Modal - Amount:', amount);
-
-      // Create monthly values
-      const monthlyValues = months.reduce((acc, month) => ({
-        ...acc,
-        [month.toLowerCase()]: 0
-      }), {});
-
-      console.log('1. Monthly Values Created:', monthlyValues);
-      console.log('2. Selected Month:', month);
-      console.log('3. Amount:', amount);
-
-      const payloadData = {
-        type: 'additionalPay',
-        name: name,
-        description: description,
-        ...monthlyValues,
-        [month.toLowerCase()]: Number(amount)
-      };
-
-      console.log('6. Modal - Final payload:', payloadData);
-      onAdd(payloadData);
-    } else if (type === 'wrvu') {
-      // Create an object with all months
-      const monthlyValues = months.reduce((acc, month) => ({
-        ...acc,
-        [month.toLowerCase()]: 0
-      }), {});
-
-      onAdd({
-        type: 'wrvu',
-        name: name,
-        description: description,
-        ...monthlyValues, // Initialize all months with 0
-        [month.toLowerCase()]: Number(amount) // Set the selected month's value
+  useEffect(() => {
+    if (editingData) {
+      setName(editingData.component || '');
+      setDescription(editingData.description || '');
+      const amounts = {};
+      months.forEach(month => {
+        amounts[month] = editingData[month.toLowerCase()] || '';
       });
-    } else if (type === 'target') {
-      // Add target adjustment handling
-      const monthlyValues = months.reduce((acc, month) => ({
-        ...acc,
-        [month.toLowerCase()]: 0
-      }), {});
-
-      onAdd({
-        type: 'target',
-        name: name,
-        description: description,
-        ...monthlyValues,
-        [month.toLowerCase()]: Number(amount)
-      });
+      setMonthlyAmounts(amounts);
+    } else {
+      setName('');
+      setDescription('');
+      setMonthlyAmounts({});
     }
-    
-    // Reset form
-    setName('');
-    setAmount(0);
-    setMonth('');
-    setDescription('');
-    setPayType('');
-    onClose();
+  }, [editingData]);
+
+  const handleSubmit = () => {
+    const amounts = {};
+    months.forEach(month => {
+      amounts[month.toLowerCase()] = parseFloat(monthlyAmounts[month]) || 0;
+    });
+
+    const data = {
+      ...(editingData || {}),
+      component: editingData ? editingData.component : name,
+      name: name,
+      description: description,
+      type: 'additionalPay',
+      ...amounts
+    };
+
+    onAdd(data);
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="p-6">
         <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">
-          {type === 'wrvu' ? 'Add wRVU Adjustment' : 
+          {editingData ? 'Edit Additional Pay' : 
+           type === 'wrvu' ? 'Add wRVU Adjustment' : 
            type === 'target' ? 'Add Target Adjustment' : 
            'Add Additional Pay'}
         </h3>
@@ -125,35 +92,24 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Month
-                  </label>
-                  <select
-                    value={month}
-                    onChange={(e) => setMonth(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select month</option>
-                    {months.map((m) => (
-                      <option key={m} value={m.toLowerCase()}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Amount
-                  </label>
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter amount"
-                  />
-                </div>
+                {months.map(month => (
+                  <div key={month} className="flex items-center">
+                    <label className="w-20">{month}</label>
+                    <input
+                      type="number"
+                      value={monthlyAmounts[month] || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setMonthlyAmounts(prev => ({
+                          ...prev,
+                          [month]: value
+                        }));
+                      }}
+                      className="w-full p-2 border rounded"
+                      placeholder="0.00"
+                    />
+                  </div>
+                ))}
               </div>
             </>
           )}
@@ -229,7 +185,7 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose
             onClick={handleSubmit}
             className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
           >
-            Add Adjustment
+            {editingData ? 'Save Changes' : 'Add Adjustment'}
           </button>
         </div>
       </div>

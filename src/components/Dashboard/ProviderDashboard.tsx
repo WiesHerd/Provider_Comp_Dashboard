@@ -7,7 +7,7 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import AddAdjustmentModal from './AddAdjustmentModal';
 import WRVUChart from './WRVUChart';
 import WRVUGauge from './WRVUGauge';
-import { ChevronDownIcon, ChevronUpIcon, DocumentArrowDownIcon, CurrencyDollarIcon, ChartBarIcon, TrashIcon, CogIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon, ChevronUpIcon, DocumentArrowDownIcon, CurrencyDollarIcon, ChartBarIcon, TrashIcon, PencilIcon, PlusIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -387,6 +387,8 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
   const [newFTE, setNewFTE] = useState(1.0);
   const [effectiveDate, setEffectiveDate] = useState('');
   const [changeReason, setChangeReason] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<any>(null);
   
   // Add gridApi ref
   const gridApi = useRef<any>(null);
@@ -568,41 +570,30 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
 
   // This is the function being called from the modal
   const handleAddAdjustment = (data: any) => {
-    console.log('7. Dashboard - Received data:', data);
-    
-    if (data.type === 'additionalPay') {
-      console.log('8. Dashboard - Processing Additional Pay');
-      console.log('9. Dashboard - Current additionalPayments:', additionalPayments);
-      
-      // Use your existing code here, just add logs
-      setAdditionalPayments(prev => {
-        console.log('10. Dashboard - Previous payments:', prev);
-        const newState = [...prev, data];
-        console.log('11. Dashboard - New state:', newState);
-        return newState;
-      });
-    } else if (data.type === 'wrvu') {
-      const newAdjustment = {
-        ...data,
-        id: `adj-${Date.now()}`,
-        isAdjustment: true,
-        type: 'wrvu',
-        metric: data.name || 'Adjustment',
-        ...Object.fromEntries(months.map(m => [m.toLowerCase(), 0])) // Initialize all months to 0
-      };
-      setAdjustments(prev => [...prev, newAdjustment]);
+    if (isEditing && editingPayment) {
+      // Handle edit - preserve the component name and update values
+      setAdditionalPayments(prev => 
+        prev.map(payment => 
+          payment.component === editingPayment.component 
+            ? { 
+                ...payment, // Preserve existing properties
+                ...data,    // Update with new values
+                component: payment.component // Ensure component name stays the same
+              } 
+            : payment
+        )
+      );
     } else {
-      const newAdjustment = {
-        ...data,
-        id: `target-adj-${Date.now()}`,
-        isAdjustment: true,
-        type: 'target',
-        metric: data.name || 'Target Adjustment',
-        ...Object.fromEntries(months.map(m => [m.toLowerCase(), 0])) // Initialize all months to 0
-      };
-      setTargetAdjustments(prev => [...prev, newAdjustment]);
+      // Handle new addition (existing logic)
+      if (data.type === 'additionalPay') {
+        setAdditionalPayments(prev => [...prev, { ...data, component: data.name }]);
+      }
+      // ... rest of your existing add logic
     }
+    
     setIsAdjustmentModalOpen(false);
+    setIsEditing(false);
+    setEditingPayment(null);
   };
 
   const handleRemoveAdjustment = (id: string) => {
@@ -781,14 +772,28 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
 
         if (isAdditionalPay) {
           return (
-            <div className="flex items-center justify-between w-full">
+            <div className="flex items-center justify-between">
               <span>{params.value}</span>
-              <button
-                onClick={() => handleRemoveAdditionalPay(params.data.component)}
-                className="text-red-500 hover:text-red-700 p-1"
-              >
-                <TrashIcon className="h-4 w-4" />
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditAdditionalPay(params.data);
+                  }}
+                  className="text-blue-600 hover:text-blue-800"
+                >
+                  <PencilIcon className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteAdjustment(params.data);
+                  }}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  <TrashIcon className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           );
         }
@@ -1149,11 +1154,12 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
     setTestValues(Object.fromEntries(months.map(m => [m.toLowerCase(), 0]))); // Reset values
   };
 
-  const handleDeleteAdjustment = (data: any) => {
-    if (data.type === 'wrvu') {
-      setAdjustments(prev => prev.filter(adj => adj.id !== data.id));
-    } else if (data.type === 'target') {
-      setTargetAdjustments(prev => prev.filter(adj => adj.id !== data.id));
+  const handleDeleteAdjustment = (paymentToDelete: any) => {
+    // Add confirmation dialog
+    if (window.confirm('Are you sure you want to delete this additional pay?')) {
+      setAdditionalPayments(prev => 
+        prev.filter(payment => payment.component !== paymentToDelete.component)
+      );
     }
   };
 
@@ -1185,6 +1191,13 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
       document.head.removeChild(styleSheet);
     };
   }, []);
+
+  // Add this new handler function
+  const handleEditAdditionalPay = (payment: any) => {
+    setIsEditing(true);
+    setEditingPayment(payment);
+    setIsAdjustmentModalOpen(true);
+  };
 
   return (
     <>
@@ -1246,14 +1259,13 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
             </button>
             <button
               onClick={() => setActiveView('control')}
-              className={`
-                inline-flex items-center gap-2 px-6 py-4 border-b-2 font-medium text-sm
-                ${activeView === 'control'
+              className={`${
+                activeView === 'control'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }              `}
+              } flex items-center px-3 py-2 text-sm font-medium border-b-2`}
             >
-              <CogIcon className="h-5 w-5" />
+              <Cog6ToothIcon className="h-5 w-5 mr-2" />
               Control Panel
             </button>
           </nav>
@@ -1510,9 +1522,14 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
       {/* Modal rendered at root level */}
       <AddAdjustmentModal
         isOpen={isAdjustmentModalOpen}
-        onClose={() => setIsAdjustmentModalOpen(false)}
+        onClose={() => {
+          setIsAdjustmentModalOpen(false);
+          setIsEditing(false);
+          setEditingPayment(null);
+        }}
         onAdd={handleAddAdjustment}
         type={adjustmentType}
+        editingData={editingPayment}  // This will be undefined for new additions
       />
 
       <CompensationChangeModal
