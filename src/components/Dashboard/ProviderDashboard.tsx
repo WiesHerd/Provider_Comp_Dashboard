@@ -570,27 +570,39 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
 
   // This is the function being called from the modal
   const handleAddAdjustment = (data: any) => {
-    if (isEditing && editingPayment) {
-      // Handle edit - preserve the component name and update values
-      setAdditionalPayments(prev => 
-        prev.map(payment => 
-          payment.component === editingPayment.component 
-            ? { 
-                ...payment, // Preserve existing properties
-                ...data,    // Update with new values
-                component: payment.component // Ensure component name stays the same
-              } 
-            : payment
-        )
-      );
-    } else {
-      // Handle new addition (existing logic)
-      if (data.type === 'additionalPay') {
-        setAdditionalPayments(prev => [...prev, { ...data, component: data.name }]);
+    if (data.type === 'additionalPay') {
+      // Keep existing additional pay logic
+      if (isEditing && editingPayment) {
+        setAdditionalPayments(prev => 
+          prev.map(payment => 
+            payment.component === editingPayment.component 
+              ? { ...payment, ...data }
+              : payment
+          )
+        );
+      } else {
+        setAdditionalPayments(prev => [...prev, data]);
       }
-      // ... rest of your existing add logic
+    } else if (data.type === 'wrvu') {
+      const newAdjustment = {
+        id: editingPayment?.id || Math.random().toString(36).substr(2, 9),
+        metric: data.name,
+        description: data.description,
+        isAdjustment: true,
+        editable: true,
+        ...data.monthlyAmounts,
+        ytd: Object.values(data.monthlyAmounts).reduce((sum, val) => sum + (parseFloat(val) || 0), 0)
+      };
+      
+      if (editingPayment) {
+        setAdjustments(prev => prev.map(adj => 
+          adj.id === editingPayment.id ? newAdjustment : adj
+        ));
+      } else {
+        setAdjustments(prev => [...prev, newAdjustment]);
+      }
     }
-    
+
     setIsAdjustmentModalOpen(false);
     setIsEditing(false);
     setEditingPayment(null);
@@ -615,13 +627,22 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
           return (
             <div className="flex items-center justify-between">
               <span>{params.value}</span>
-              <button
-                onClick={() => handleDeleteAdjustment(params.data)}
-                className="text-red-500 hover:text-red-700 transition-colors"
-                title="Delete adjustment"
-              >
-                <TrashIcon className="h-5 w-5" />
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleEditAdjustment(params.data)}
+                  className="text-blue-500 hover:text-blue-700 transition-colors"
+                  title="Edit adjustment"
+                >
+                  <PencilIcon className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => handleRemoveMetricAdjustment(params.data.id, params.data.type)}
+                  className="text-red-500 hover:text-red-700 transition-colors"
+                  title="Delete adjustment"
+                >
+                  <TrashIcon className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           );
         }
@@ -1193,9 +1214,61 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
   }, []);
 
   // Add this new handler function
-  const handleEditAdditionalPay = (payment: any) => {
+  const handleEditAdditionalPay = (paymentData: any) => {
+    const editData = {
+      id: paymentData.id,
+      component: paymentData.component,
+      name: paymentData.component,
+      description: paymentData.description,
+      type: 'additionalPay',  // Ensure this is set correctly
+      monthlyAmounts: {
+        jan: paymentData.jan || 0,
+        feb: paymentData.feb || 0,
+        mar: paymentData.mar || 0,
+        apr: paymentData.apr || 0,
+        may: paymentData.may || 0,
+        jun: paymentData.jun || 0,
+        jul: paymentData.jul || 0,
+        aug: paymentData.aug || 0,
+        sep: paymentData.sep || 0,
+        oct: paymentData.oct || 0,
+        nov: paymentData.nov || 0,
+        dec: paymentData.dec || 0
+      }
+    };
+
+    setEditingPayment(editData);
+    setAdjustmentType('additionalPay');  // This ensures correct modal title
     setIsEditing(true);
-    setEditingPayment(payment);
+    setIsAdjustmentModalOpen(true);
+  };
+
+  // Update the edit handler to properly set the type
+  const handleEditAdjustment = (adjustmentData: any) => {
+    const editData = {
+      id: adjustmentData.id || Math.random().toString(36).substr(2, 9),
+      name: adjustmentData.metric || 'EMR Go Live', // Ensure we get the metric name
+      description: adjustmentData.description || '',
+      type: 'wrvu',
+      monthlyAmounts: {
+        jan: adjustmentData.jan || 0,
+        feb: adjustmentData.feb || 0,
+        mar: adjustmentData.mar || 0,
+        apr: adjustmentData.apr || 0,
+        may: adjustmentData.may || 0,
+        jun: adjustmentData.jun || 0,
+        jul: adjustmentData.jul || 0,
+        aug: adjustmentData.aug || 0,
+        sep: adjustmentData.sep || 0,
+        oct: adjustmentData.oct || 0,
+        nov: adjustmentData.nov || 0,
+        dec: adjustmentData.dec || 0
+      }
+    };
+
+    setEditingPayment(editData);
+    setAdjustmentType('wrvu');
+    setIsEditing(true);
     setIsAdjustmentModalOpen(true);
   };
 

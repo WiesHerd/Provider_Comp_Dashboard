@@ -18,13 +18,27 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose
   const [name, setName] = useState('');
   const [monthlyAmounts, setMonthlyAmounts] = useState<{ [key: string]: number }>({});
 
+  const getModalTitle = () => {
+    if (type === 'wrvu') {
+      return editingData ? 'Edit wRVU Adjustment' : 'Add wRVU Adjustment';
+    } else if (type === 'target') {
+      return editingData ? 'Edit Target Adjustment' : 'Add Target Adjustment';
+    }
+    return '';
+  };
+
   useEffect(() => {
     if (editingData) {
-      setName(editingData.component || '');
+      setName(editingData.name || '');
       setDescription(editingData.description || '');
+
       const amounts = {};
       months.forEach(month => {
-        amounts[month] = editingData[month.toLowerCase()] || '';
+        const monthKey = month.toLowerCase();
+        const value = editingData[monthKey] || 
+                      editingData.monthlyAmounts?.[monthKey] || 
+                      0;
+        amounts[month] = typeof value === 'string' ? parseFloat(value) : value;
       });
       setMonthlyAmounts(amounts);
     } else {
@@ -35,31 +49,38 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose
   }, [editingData]);
 
   const handleSubmit = () => {
-    const amounts = {};
-    months.forEach(month => {
-      amounts[month.toLowerCase()] = parseFloat(monthlyAmounts[month]) || 0;
-    });
-
-    const data = {
-      ...(editingData || {}),
-      component: editingData ? editingData.component : name,
-      name: name,
-      description: description,
-      type: 'additionalPay',
-      ...amounts
-    };
-
-    onAdd(data);
+    if (type === 'additionalPay') {
+      const data = {
+        ...(editingData || {}),
+        component: editingData ? editingData.component : name,
+        name: name,
+        description: description,
+        type: 'additionalPay',
+        ...months.reduce((acc, month) => ({
+          ...acc,
+          [month.toLowerCase()]: parseFloat(monthlyAmounts[month]) || 0
+        }), {})
+      };
+      onAdd(data);
+    } else {
+      const data = {
+        name: name,
+        description: description,
+        type: type,
+        monthlyAmounts: months.reduce((acc, month) => ({
+          ...acc,
+          [month.toLowerCase()]: parseFloat(monthlyAmounts[month]) || 0
+        }), {})
+      };
+      onAdd(data);
+    }
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="p-6">
         <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">
-          {editingData ? 'Edit Additional Pay' : 
-           type === 'wrvu' ? 'Add wRVU Adjustment' : 
-           type === 'target' ? 'Add Target Adjustment' : 
-           'Add Additional Pay'}
+          {type === 'additionalPay' ? (editingData ? 'Edit Additional Pay' : 'Add Additional Pay') : getModalTitle()}
         </h3>
         
         <div className="space-y-4">
@@ -169,6 +190,27 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter description (optional)"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                {months.map(month => (
+                  <div key={month} className="flex items-center">
+                    <label className="w-20">{month}</label>
+                    <input
+                      type="number"
+                      value={monthlyAmounts[month] || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setMonthlyAmounts(prev => ({
+                          ...prev,
+                          [month]: value
+                        }));
+                      }}
+                      className="w-full p-2 border rounded"
+                      placeholder="0.00"
+                    />
+                  </div>
+                ))}
               </div>
             </>
           )}
