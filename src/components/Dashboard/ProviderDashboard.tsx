@@ -1469,14 +1469,14 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
                   <div className="ag-theme-alpine w-full">
                     <AgGridReact
                       {...baseGridConfig}
-                      columnDefs={compensationColumnDefs}
+                      columnDefs={compensationColumnDefs.map(col => ({
+                        ...col,
+                        minWidth: col.field === 'component' ? 150 : 130,
+                        width: col.field === 'ytd' ? 140 : 130,
+                        suppressSizeToFit: col.field !== 'component',
+                      }))}
                       rowData={getCompensationData()}
                       onGridReady={(params) => {
-                        if (params.api) {
-                          params.api.sizeColumnsToFit();
-                        }
-                      }}
-                      onGridSizeChanged={(params) => {
                         if (params.api) {
                           params.api.sizeColumnsToFit();
                         }
