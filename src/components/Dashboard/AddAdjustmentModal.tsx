@@ -18,18 +18,9 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose
   const [name, setName] = useState('');
   const [monthlyAmounts, setMonthlyAmounts] = useState<{ [key: string]: number }>({});
 
-  const getModalTitle = () => {
-    if (type === 'wrvu') {
-      return editingData ? 'Edit wRVU Adjustment' : 'Add wRVU Adjustment';
-    } else if (type === 'target') {
-      return editingData ? 'Edit Target Adjustment' : 'Add Target Adjustment';
-    }
-    return '';
-  };
-
   useEffect(() => {
     if (editingData) {
-      setName(editingData.name || '');
+      setName(editingData.component || editingData.name || '');
       setDescription(editingData.description || '');
 
       const amounts = {};
@@ -50,6 +41,12 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose
 
   const handleSubmit = () => {
     if (type === 'additionalPay') {
+      console.log('Additional Pay Submit - Input Data:', {
+        name,
+        description,
+        monthlyAmounts
+      });
+      
       const data = {
         ...(editingData || {}),
         component: editingData ? editingData.component : name,
@@ -61,6 +58,8 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose
           [month.toLowerCase()]: parseFloat(monthlyAmounts[month]) || 0
         }), {})
       };
+      
+      console.log('Additional Pay Submit - Prepared Data:', data);
       onAdd(data);
     } else {
       const data = {
@@ -80,7 +79,10 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="p-6">
         <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">
-          {type === 'additionalPay' ? (editingData ? 'Edit Additional Pay' : 'Add Additional Pay') : getModalTitle()}
+          {editingData ? 'Edit Additional Pay' : 
+           type === 'wrvu' ? 'Add wRVU Adjustment' : 
+           type === 'target' ? 'Add Target Adjustment' : 
+           'Add Additional Pay'}
         </h3>
         
         <div className="space-y-4">

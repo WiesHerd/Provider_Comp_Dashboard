@@ -571,17 +571,30 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
   // This is the function being called from the modal
   const handleAddAdjustment = (data: any) => {
     if (data.type === 'additionalPay') {
-      // Keep existing additional pay logic
-      if (isEditing && editingPayment) {
+      if (isEditing) {
+        // Update existing payment
         setAdditionalPayments(prev => 
           prev.map(payment => 
-            payment.component === editingPayment.component 
-              ? { ...payment, ...data }
+            payment.component === editingPayment?.component
+              ? {
+                  ...data,
+                  component: data.name, // Use the name as the component
+                  ytd: Object.values(data)
+                    .filter(val => !isNaN(parseFloat(val)))
+                    .reduce((sum, val) => sum + parseFloat(val), 0)
+                }
               : payment
           )
         );
       } else {
-        setAdditionalPayments(prev => [...prev, data]);
+        // Add new payment
+        setAdditionalPayments(prev => [...prev, {
+          ...data,
+          component: data.name,
+          ytd: Object.values(data)
+            .filter(val => !isNaN(parseFloat(val)))
+            .reduce((sum, val) => sum + parseFloat(val), 0)
+        }]);
       }
     } else if (data.type === 'wrvu') {
       const newAdjustment = {
@@ -609,11 +622,15 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
   };
 
   const handleRemoveAdjustment = (id: string) => {
-    setAdjustments(prev => prev.filter(adj => adj.id !== id));
+    if (window.confirm('Are you sure you want to delete this adjustment?')) {
+      setAdjustments(prev => prev.filter(adj => adj.id !== id));
+    }
   };
 
   const handleRemoveTargetAdjustment = (id: string) => {
-    setTargetAdjustments(prev => prev.filter(adj => adj.id !== id));
+    if (window.confirm('Are you sure you want to delete this target adjustment?')) {
+      setTargetAdjustments(prev => prev.filter(adj => adj.id !== id));
+    }
   };
 
   // Metrics Table Column Definitions
@@ -636,7 +653,12 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
                   <PencilIcon className="h-5 w-5" />
                 </button>
                 <button
-                  onClick={() => handleRemoveMetricAdjustment(params.data.id, params.data.type)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm('Are you sure you want to delete this wRVU adjustment?')) {
+                      handleRemoveAdjustment(params.data.id);
+                    }
+                  }}
                   className="text-red-500 hover:text-red-700 transition-colors"
                   title="Delete adjustment"
                 >
@@ -797,19 +819,13 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
               <span>{params.value}</span>
               <div className="flex gap-2">
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEditAdditionalPay(params.data);
-                  }}
+                  onClick={() => handleEditAdditionalPay(params.data)}
                   className="text-blue-600 hover:text-blue-800"
                 >
                   <PencilIcon className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteAdjustment(params.data);
-                  }}
+                  onClick={() => handleRemoveAdditionalPay(params.data.component)}
                   className="text-red-600 hover:text-red-800"
                 >
                   <TrashIcon className="h-4 w-4" />
@@ -1215,30 +1231,36 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
 
   // Add this new handler function
   const handleEditAdditionalPay = (paymentData: any) => {
+    console.log('Edit Payment Data:', paymentData);
+    
+    // Find the full payment data from additionalPayments state
+    const fullPaymentData = additionalPayments.find(p => p.component === paymentData.component);
+    
     const editData = {
-      id: paymentData.id,
+      id: paymentData.id || Math.random().toString(36).substr(2, 9),
       component: paymentData.component,
       name: paymentData.component,
-      description: paymentData.description,
-      type: 'additionalPay',  // Ensure this is set correctly
-      monthlyAmounts: {
-        jan: paymentData.jan || 0,
-        feb: paymentData.feb || 0,
-        mar: paymentData.mar || 0,
-        apr: paymentData.apr || 0,
-        may: paymentData.may || 0,
-        jun: paymentData.jun || 0,
-        jul: paymentData.jul || 0,
-        aug: paymentData.aug || 0,
-        sep: paymentData.sep || 0,
-        oct: paymentData.oct || 0,
-        nov: paymentData.nov || 0,
-        dec: paymentData.dec || 0
-      }
+      description: fullPaymentData?.description || '', // Get description from full payment data
+      type: 'additionalPay',
+      // Add all months
+      jan: paymentData.jan || 0,
+      feb: paymentData.feb || 0,
+      mar: paymentData.mar || 0,
+      apr: paymentData.apr || 0,
+      may: paymentData.may || 0,
+      jun: paymentData.jun || 0,
+      jul: paymentData.jul || 0,
+      aug: paymentData.aug || 0,
+      sep: paymentData.sep || 0,
+      oct: paymentData.oct || 0,
+      nov: paymentData.nov || 0,
+      dec: paymentData.dec || 0
     };
 
+    console.log('Prepared Edit Data:', editData);
+    
     setEditingPayment(editData);
-    setAdjustmentType('additionalPay');  // This ensures correct modal title
+    setAdjustmentType('additionalPay');
     setIsEditing(true);
     setIsAdjustmentModalOpen(true);
   };
@@ -1270,6 +1292,18 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
     setAdjustmentType('wrvu');
     setIsEditing(true);
     setIsAdjustmentModalOpen(true);
+  };
+
+  const handleSubmitAdjustment = (data: any) => {
+    const newAdjustment = {
+      ...data,
+      id: data.id || Math.random().toString(36).substr(2, 9),
+      description: data.description,  // Make sure description is explicitly included
+    };
+
+    // Update your state/storage with the new adjustment
+    setAdjustments(prev => [...prev, newAdjustment]);
+    // or however you're storing the data
   };
 
   return (
