@@ -1,3 +1,5 @@
+'use client';
+
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, TooltipProps } from 'recharts';
 import { formatNumber } from '@/utils/formatters';
 

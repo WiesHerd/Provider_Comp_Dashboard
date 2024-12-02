@@ -8,6 +8,7 @@ interface AddAdjustmentModalProps {
   onClose: () => void;
   onAdd: (data: any) => void;
   type: 'wrvu' | 'target' | 'additionalPay';
+  editingData?: any;
 }
 
 const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose, onAdd, type, editingData }) => {
@@ -35,9 +36,9 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose
     } else {
       setName('');
       setDescription('');
-      setMonthlyAmounts({});
+      setMonthlyAmounts(months.reduce((acc, month) => ({ ...acc, [month]: 0 }), {}));
     }
-  }, [editingData]);
+  }, [editingData, type, isOpen]);
 
   const handleSubmit = () => {
     if (type === 'additionalPay') {
@@ -73,6 +74,7 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose
       };
       onAdd(data);
     }
+    onClose();
   };
 
   return (
@@ -163,6 +165,27 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose
                   placeholder="Enter description"
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {months.map(month => (
+                  <div key={month} className="flex items-center">
+                    <label className="w-20">{month}</label>
+                    <input
+                      type="number"
+                      value={monthlyAmounts[month] || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setMonthlyAmounts(prev => ({
+                          ...prev,
+                          [month]: value
+                        }));
+                      }}
+                      className="w-full p-2 border rounded"
+                      placeholder="0.00"
+                    />
+                  </div>
+                ))}
+              </div>
             </>
           )}
           
@@ -194,7 +217,7 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="grid grid-cols-2 gap-4">
                 {months.map(month => (
                   <div key={month} className="flex items-center">
                     <label className="w-20">{month}</label>
