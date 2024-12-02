@@ -570,7 +570,48 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
 
   // This is the function being called from the modal
   const handleAddAdjustment = (data: any) => {
-    if (data.type === 'additionalPay') {
+    if (data.type === 'target') {
+      const newTargetAdjustment = {
+        id: editingPayment?.id || Math.random().toString(36).substr(2, 9),
+        metric: data.name,
+        description: data.description,
+        isAdjustment: true,
+        editable: true,
+        type: 'target',
+        ...Object.keys(data.monthlyAmounts).reduce((acc, month) => ({
+          ...acc,
+          [month]: parseFloat(data.monthlyAmounts[month]) || 0
+        }), {}),
+        ytd: Object.values(data.monthlyAmounts)
+          .reduce((sum, val) => sum + (parseFloat(val) || 0), 0)
+      };
+
+      if (editingPayment) {
+        setTargetAdjustments(prev => 
+          prev.map(adj => adj.id === editingPayment.id ? newTargetAdjustment : adj)
+        );
+      } else {
+        setTargetAdjustments(prev => [...prev, newTargetAdjustment]);
+      }
+    } else if (data.type === 'wrvu') {
+      const newAdjustment = {
+        id: editingPayment?.id || Math.random().toString(36).substr(2, 9),
+        metric: data.name,
+        description: data.description,
+        isAdjustment: true,
+        editable: true,
+        ...data.monthlyAmounts,
+        ytd: Object.values(data.monthlyAmounts).reduce((sum, val) => sum + (parseFloat(val) || 0), 0)
+      };
+      
+      if (editingPayment) {
+        setAdjustments(prev => prev.map(adj => 
+          adj.id === editingPayment.id ? newAdjustment : adj
+        ));
+      } else {
+        setAdjustments(prev => [...prev, newAdjustment]);
+      }
+    } else if (data.type === 'additionalPay') {
       if (isEditing) {
         // Update existing payment
         setAdditionalPayments(prev => 
@@ -596,26 +637,8 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
             .reduce((sum, val) => sum + parseFloat(val), 0)
         }]);
       }
-    } else if (data.type === 'wrvu') {
-      const newAdjustment = {
-        id: editingPayment?.id || Math.random().toString(36).substr(2, 9),
-        metric: data.name,
-        description: data.description,
-        isAdjustment: true,
-        editable: true,
-        ...data.monthlyAmounts,
-        ytd: Object.values(data.monthlyAmounts).reduce((sum, val) => sum + (parseFloat(val) || 0), 0)
-      };
-      
-      if (editingPayment) {
-        setAdjustments(prev => prev.map(adj => 
-          adj.id === editingPayment.id ? newAdjustment : adj
-        ));
-      } else {
-        setAdjustments(prev => [...prev, newAdjustment]);
-      }
     }
-
+    
     setIsAdjustmentModalOpen(false);
     setIsEditing(false);
     setEditingPayment(null);
