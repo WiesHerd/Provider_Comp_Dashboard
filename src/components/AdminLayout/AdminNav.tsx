@@ -27,8 +27,7 @@ const AdminNav = () => {
   const filteredGroups = specialtyGroups.map(group => ({
     ...group,
     providers: group.providers.filter(provider => 
-      provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      provider.employeeId.toLowerCase().includes(searchTerm.toLowerCase())
+      provider.name.toLowerCase().includes(searchTerm.toLowerCase())
     )
   })).filter(group => group.providers.length > 0);
 
@@ -92,8 +91,7 @@ const AdminNav = () => {
                 <div className="ml-4 mt-1 space-y-1">
                   {group.providers
                     .filter(provider => 
-                      provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      provider.employeeId.toLowerCase().includes(searchTerm.toLowerCase())
+                      provider.name.toLowerCase().includes(searchTerm.toLowerCase())
                     )
                     .map(provider => (
                       <Link

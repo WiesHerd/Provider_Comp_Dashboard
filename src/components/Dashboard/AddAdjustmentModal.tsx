@@ -16,65 +16,158 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose
   const [month, setMonth] = useState<string>('');
   const [description, setDescription] = useState('');
   const [payType, setPayType] = useState<string>('');
-  const [name, setName] = useState('');
-  const [monthlyAmounts, setMonthlyAmounts] = useState<{ [key: string]: number }>({});
+  const [name, setName] = useState(editingData?.name || '');
+  const [monthlyAmounts, setMonthlyAmounts] = useState({
+    jan: editingData?.monthlyAmounts?.jan || '0',
+    feb: editingData?.monthlyAmounts?.feb || '0',
+    mar: editingData?.monthlyAmounts?.mar || '0',
+    apr: editingData?.monthlyAmounts?.apr || '0',
+    may: editingData?.monthlyAmounts?.may || '0',
+    jun: editingData?.monthlyAmounts?.jun || '0',
+    jul: editingData?.monthlyAmounts?.jul || '0',
+    aug: editingData?.monthlyAmounts?.aug || '0',
+    sep: editingData?.monthlyAmounts?.sep || '0',
+    oct: editingData?.monthlyAmounts?.oct || '0',
+    nov: editingData?.monthlyAmounts?.nov || '0',
+    dec: editingData?.monthlyAmounts?.dec || '0'
+  });
+
+  // Add a reset function
+  const resetForm = () => {
+    console.log('Resetting form state');
+    setName('');
+    setDescription('');
+    setMonthlyAmounts({
+      jan: '0',
+      feb: '0',
+      mar: '0',
+      apr: '0',
+      may: '0',
+      jun: '0',
+      jul: '0',
+      aug: '0',
+      sep: '0',
+      oct: '0',
+      nov: '0',
+      dec: '0'
+    });
+  };
 
   useEffect(() => {
-    if (editingData) {
-      setName(editingData.component || editingData.name || '');
-      setDescription(editingData.description || '');
+    console.group('=== Adjustment Modal Effect ===');
+    console.log('Editing Data:', editingData);
+    console.log('Type:', type);
+    console.log('Is Open:', isOpen);
 
-      const amounts = {};
-      months.forEach(month => {
+    if (!isOpen) {
+      // Reset form when modal closes
+      resetForm();
+      console.log('Modal closed - form reset');
+    } else if (editingData) {
+      console.log('Setting initial form values');
+      console.log('Name:', editingData.name || editingData.metric);
+      console.log('Description:', editingData.description);
+      
+      // Log the monthly amounts transformation
+      console.log('Raw Monthly Values:', editingData);
+      const initialMonthlyAmounts = months.reduce((acc, month) => {
         const monthKey = month.toLowerCase();
-        const value = editingData[monthKey] || 
-                      editingData.monthlyAmounts?.[monthKey] || 
-                      0;
-        amounts[month] = typeof value === 'string' ? parseFloat(value) : value;
-      });
-      setMonthlyAmounts(amounts);
+        // Check both direct property and monthlyAmounts object
+        let value = 0;
+        
+        if (editingData.monthlyAmounts && editingData.monthlyAmounts[month]) {
+          value = editingData.monthlyAmounts[month];
+        } else if (editingData[monthKey] !== undefined) {
+          value = editingData[monthKey];
+        }
+
+        console.log(`Month ${month}:`, { 
+          directValue: editingData[monthKey],
+          monthlyAmountsValue: editingData.monthlyAmounts?.[month],
+          finalValue: value 
+        });
+
+        return {
+          ...acc,
+          [month]: value
+        };
+      }, {});
+      
+      console.log('Initial Monthly Amounts:', initialMonthlyAmounts);
+      setMonthlyAmounts(initialMonthlyAmounts);
+      setName(editingData.name || editingData.metric || '');
+      setDescription(editingData.description || '');
     } else {
-      setName('');
-      setDescription('');
-      setMonthlyAmounts(months.reduce((acc, month) => ({ ...acc, [month]: 0 }), {}));
+      // Reset form when opening for new adjustment
+      resetForm();
+      console.log('New adjustment - form reset');
     }
+    
+    console.groupEnd();
   }, [editingData, type, isOpen]);
 
   const handleSubmit = () => {
-    if (type === 'additionalPay') {
-      console.log('Additional Pay Submit - Input Data:', {
+    console.group('=== Modal Submit Debug ===');
+    console.log('Form Data Before Submit:', {
+      name,
+      description,
+      monthlyAmounts,
+      type
+    });
+    console.log('Original Editing Data:', editingData);
+    
+    // Log the exact monthly amounts being submitted
+    console.log('Monthly Amounts Detail:', {
+      raw: monthlyAmounts,
+      parsed: Object.entries(monthlyAmounts).map(([month, value]) => ({
+        month,
+        value,
+        parsed: parseFloat(value as string) || 0
+      }))
+    });
+
+    try {
+      const data = {
+        ...(editingData?.id ? { id: editingData.id } : {}),
         name,
         description,
-        monthlyAmounts
-      });
-      
-      const data = {
-        ...(editingData || {}),
-        component: editingData ? editingData.component : name,
-        name: name,
-        description: description,
-        type: 'additionalPay',
-        ...months.reduce((acc, month) => ({
-          ...acc,
-          [month.toLowerCase()]: parseFloat(monthlyAmounts[month]) || 0
-        }), {})
+        type,
+        monthlyAmounts: Object.fromEntries(
+          Object.entries(monthlyAmounts).map(([month, value]) => [
+            month.toLowerCase(),
+            parseFloat(value as string) || 0
+          ])
+        )
       };
       
-      console.log('Additional Pay Submit - Prepared Data:', data);
+      console.log('Final Submission Data:', data);
       onAdd(data);
-    } else {
-      const data = {
-        name: name,
-        description: description,
-        type: type,
-        monthlyAmounts: months.reduce((acc, month) => ({
-          ...acc,
-          [month.toLowerCase()]: parseFloat(monthlyAmounts[month]) || 0
-        }), {})
-      };
-      onAdd(data);
+      resetForm(); // Reset form after successful submission
+      onClose();
+    } catch (error) {
+      console.error('Submit Error:', error);
     }
-    onClose();
+    
+    console.groupEnd();
+  };
+
+  // Add logging to the monthly amount change handler
+  const handleMonthlyAmountChange = (month: string, value: string) => {
+    console.group('=== Monthly Amount Change ===');
+    console.log('Month:', month);
+    console.log('New Value:', value);
+    console.log('Current Monthly Amounts:', monthlyAmounts);
+    
+    setMonthlyAmounts(prev => {
+      const updated = {
+        ...prev,
+        [month]: value
+      };
+      console.log('Updated Monthly Amounts:', updated);
+      return updated;
+    });
+    
+    console.groupEnd();
   };
 
   return (
@@ -123,13 +216,7 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose
                     <input
                       type="number"
                       value={monthlyAmounts[month] || ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setMonthlyAmounts(prev => ({
-                          ...prev,
-                          [month]: value
-                        }));
-                      }}
+                      onChange={(e) => handleMonthlyAmountChange(month, e.target.value)}
                       className="w-full p-2 border rounded"
                       placeholder="0.00"
                     />
@@ -173,13 +260,7 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose
                     <input
                       type="number"
                       value={monthlyAmounts[month] || ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setMonthlyAmounts(prev => ({
-                          ...prev,
-                          [month]: value
-                        }));
-                      }}
+                      onChange={(e) => handleMonthlyAmountChange(month, e.target.value)}
                       className="w-full p-2 border rounded"
                       placeholder="0.00"
                     />
@@ -224,13 +305,7 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose
                     <input
                       type="number"
                       value={monthlyAmounts[month] || ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setMonthlyAmounts(prev => ({
-                          ...prev,
-                          [month]: value
-                        }));
-                      }}
+                      onChange={(e) => handleMonthlyAmountChange(month, e.target.value)}
                       className="w-full p-2 border rounded"
                       placeholder="0.00"
                     />

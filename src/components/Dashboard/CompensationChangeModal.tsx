@@ -50,16 +50,14 @@ const CompensationChangeModal: React.FC<CompensationChangeModalProps> = ({
   }, [isOpen, newSalary, newFTE, currentCF, reason, effectiveDate]);
 
   const validateChange = (change: CompensationChange): boolean => {
-    if (!change.effectiveDate) {
-      alert('Effective date is required');
-      return false;
-    }
-    if (change.newSalary < 0) {
-      alert('New salary cannot be negative');
-      return false;
-    }
-    if (change.newFTE < 0 || change.newFTE > 1) {
-      alert('FTE must be between 0 and 1');
+    const errors: string[] = [];
+    
+    if (change.newSalary < 0) errors.push('Salary cannot be negative');
+    if (change.newFTE < 0 || change.newFTE > 1) errors.push('FTE must be between 0 and 1');
+    if (!change.effectiveDate) errors.push('Effective date is required');
+    
+    if (errors.length > 0) {
+      alert(errors.join('\n'));
       return false;
     }
     return true;
