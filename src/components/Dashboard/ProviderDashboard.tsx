@@ -15,7 +15,6 @@ import CompensationHistory from './CompensationHistory';
 import CompensationChangeModal from './CompensationChangeModal';
 import { CompensationChange } from '@/types/compensation';
 
-// Step 1: Types/Interfaces
 interface ProviderDashboardProps {
   provider: {
     firstName: string;
@@ -28,6 +27,7 @@ interface ProviderDashboardProps {
     annualWRVUTarget: number;
     conversionFactor: number;
     hireDate: Date;
+    fte?: number;
   };
 }
 
@@ -39,42 +39,10 @@ interface Provider {
   hireDate: Date;
 }
 
-// For testing purposes, you can initialize with sample data:
-const sampleProvider: Provider = {
-  name: "Dr. Smith",
-  employeeId: "12345",
-  providerType: "Physician",
-  specialty: "Internal Medicine",
-  hireDate: new Date("2023-06-01") // This can be changed for testing different scenarios
-};
-
-// Utility Functions
-const formatNumber = (value: number): string => {
-  if (value === undefined || value === null) return '0.00';
-  return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-};
-
-const formatCurrency = (value: number | null | undefined): string => {
-  if (value === undefined || value === null) return '$0.00';
-  
-  // Force en-US locale and fixed decimal places
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value);
-};
-
-// Constants
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const baseMonthlyData = Object.fromEntries(months.map((m) => [m.toLowerCase(), 400]));
 const targetMonthlyData = Object.fromEntries(months.map((m) => [m.toLowerCase(), 417]));
 
-// Define baseGridConfig once with all needed properties
 const baseGridConfig = {
   domLayout: 'autoHeight',
   rowHeight: 48,
@@ -103,7 +71,6 @@ const baseGridConfig = {
   suppressClickEdit: false
 };
 
-// Custom Styles for Improved Appearance
 const customStyles = `
   .ag-theme-alpine {
     --ag-header-background-color: #cbd5e1;
@@ -124,16 +91,10 @@ const customStyles = `
     color: #1e293b !important;
   }
 
-  .ag-row[row-index="0"] .ag-cell,  /* wRVU Generation row */
-  .ag-row[row-index="3"] .ag-cell { /* wRVU Target row - updated index */
+  .ag-row[row-index="0"] .ag-cell,
+  .ag-row[row-index="3"] .ag-cell {
     background-color: #f1f5f9 !important;
     font-weight: 600;
-  }
-
-  /* Remove specific styling for Target wRVUs */
-  .ag-row[row-index="4"] .ag-cell {
-    background-color: transparent !important;
-    font-weight: normal;
   }
 
   .adjustment-row {
@@ -177,8 +138,7 @@ const customStyles = `
   }
 `;
 
-// Calculation Functions
-const calculateTotalWRVUs = (baseData: any, adjustments: any[]) => {
+function calculateTotalWRVUs(baseData: any, adjustments: any[]) {
   const result = { ...baseData };
   
   months.forEach(month => {
@@ -195,22 +155,18 @@ const calculateTotalWRVUs = (baseData: any, adjustments: any[]) => {
     result[monthKey] = total;
   });
   
-  result.ytd = months.reduce((sum, month) => 
-    sum + (result[month.toLowerCase()] || 0), 0
-  );
+  result.ytd = months.reduce((sum, month) => sum + (result[month.toLowerCase()] || 0), 0);
   
   return result;
-};
+}
 
-const calculateVariance = (totalWRVUs: any, targetData: any) => {
+function calculateVariance(totalWRVUs: any, targetData: any) {
   const result: any = {};
   
-  // Ensure both inputs are objects
   if (!totalWRVUs || !targetData) {
     return result;
   }
 
-  // Calculate variance for each month
   months.forEach((month) => {
     const monthKey = month.toLowerCase();
     const actualValue = Number(totalWRVUs[monthKey]) || 0;
@@ -218,57 +174,21 @@ const calculateVariance = (totalWRVUs: any, targetData: any) => {
     result[monthKey] = actualValue - targetValue;
   });
 
-  // Calculate YTD variance
   result.ytd = months.reduce((sum, month) => {
     const monthKey = month.toLowerCase();
     return sum + (result[monthKey] || 0);
   }, 0);
 
   return result;
-};
+}
 
-const calculateIncentive = (variance: number, conversionFactor: number): number => {
-  // Only calculate incentive for positive variance
+function calculateIncentive(variance: number, conversionFactor: number): number {
   return variance > 0 ? variance * conversionFactor : 0;
-};
+}
 
-// Make sure this function is defined before it's used
-const calculateMonthlyVariances = (actualData: any, targetData: any) => {
-  const variances: { [key: string]: number } = {};
-  
-  months.forEach(month => {
-    const monthKey = month.toLowerCase();
-    const actualValue = actualData[monthKey] || 0;
-    const targetValue = targetData[monthKey] || 0;
-    variances[monthKey] = actualValue - targetValue;
-  });
-  
-  // Calculate YTD variance
-  variances.ytd = actualData.ytd - targetData.ytd;
-  return variances;
-};
-
-// Add this utility function near the other calculation functions
-const calculateHoldback = () => {
-  // Get the compensation data
-  const compensationData = getCompensationData();
-  
-  // Find the Holdback row and get its YTD value
-  const holdbackRow = compensationData.find(row => row.component === 'Holdback (20%)');
-  const holdbackYTD = holdbackRow?.ytd || 0;
-
-  return {
-    amount: Math.abs(holdbackYTD), // Make sure it's a positive number for display
-    total: holdbackYTD,
-    percentage: 20 // Always 20%
-  };
-};
-
-// Add this function alongside other calculation functions
-const calculateTotalTargets = (baseTargetData: any, targetAdjustments: any[]) => {
+function calculateTotalTargets(baseTargetData: any, targetAdjustments: any[]) {
   const result = { ...baseTargetData };
   
-  // Calculate monthly totals
   months.forEach(month => {
     const monthKey = month.toLowerCase();
     const adjustmentSum = targetAdjustments.reduce((sum, adj) => {
@@ -279,15 +199,39 @@ const calculateTotalTargets = (baseTargetData: any, targetAdjustments: any[]) =>
     result[monthKey] = (result[monthKey] || 0) + adjustmentSum;
   });
   
-  // Calculate YTD as sum of all months
-  result.ytd = months.reduce((sum, month) => 
-    sum + (result[month.toLowerCase()] || 0), 0
-  );
+  result.ytd = months.reduce((sum, month) => sum + (result[month.toLowerCase()] || 0), 0);
   
   return result;
-};
+}
 
-// Summary Card Component
+function calculatePlanYearProgress(rowData: any[]) {
+  const actualWRVUsRow = rowData.find(row => row.metric === 'Actual wRVUs');
+  
+  if (!actualWRVUsRow) return { completed: 0, total: 12, percentage: 0 };
+  
+  const monthsWithData = months.reduce((count, month) => {
+    const value = actualWRVUsRow[month.toLowerCase()];
+    return value > 0 ? count + 1 : count;
+  }, 0);
+
+  return {
+    completed: monthsWithData,
+    total: 12,
+    percentage: (monthsWithData / 12) * 100
+  };
+}
+
+function calculateYTDTargetProgress(rowData: any[]) {
+  const ytdWRVUs = rowData.find(row => row.metric === 'Total wRVUs')?.ytd || 0;
+  const ytdTarget = rowData.find(row => row.metric === 'Total Target')?.ytd || 0;
+
+  return {
+    actual: ytdWRVUs,
+    target: ytdTarget,
+    percentage: ytdTarget > 0 ? (ytdWRVUs / ytdTarget) * 100 : 0
+  };
+}
+
 const SummaryCard: React.FC<{
   title: string;
   value: string;
@@ -309,7 +253,6 @@ const SummaryCard: React.FC<{
   </div>
 );
 
-// Create a popup cell editor component
 const PopupCellEditor = (props: any) => {
   const [value, setValue] = useState(props.value);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -350,17 +293,6 @@ const PopupCellEditor = (props: any) => {
   );
 };
 
-// Component Implementation
-const calculateTotalIncentives = (variances: any, conversionFactor: number): number => {
-  return months.reduce((total, month) => {
-    const monthKey = month.toLowerCase();
-    const variance = variances[monthKey];
-    // Only add positive variances
-    const monthlyIncentive = variance > 0 ? variance * conversionFactor : 0;
-    return total + monthlyIncentive;
-  }, 0);
-};
-
 const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
   const [activeView, setActiveView] = useState('compensation');
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
@@ -377,11 +309,6 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
   const [isCompChangeModalOpen, setIsCompChangeModalOpen] = useState(false);
   const [currentSalary, setCurrentSalary] = useState(provider?.annualSalary || 0);
   const [currentFTE, setCurrentFTE] = useState(provider?.fte || 1.0);
-  const [rowData, setRowData] = useState<any[]>([]);
-  const [testValues, setTestValues] = useState(Object.fromEntries(months.map(m => [m.toLowerCase(), 0])));
-  const [wrvuAdjustments, setWrvuAdjustments] = useState([]);
-  const [showTestRow, setShowTestRow] = useState(true);
-  const [currentCF, setCurrentCF] = useState(provider?.conversionFactor || 45.00);
   const [editingChangeId, setEditingChangeId] = useState<string | null>(null);
   const [newSalary, setNewSalary] = useState<number>(0);
   const [newFTE, setNewFTE] = useState(1.0);
@@ -389,11 +316,9 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
   const [changeReason, setChangeReason] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editingPayment, setEditingPayment] = useState<any>(null);
-  
-  // Add gridApi ref
+
   const gridApi = useRef<any>(null);
 
-  // Add this handler for the grid ready event
   const onGridReady = (params: any) => {
     gridApi.current = params.api;
   };
@@ -408,14 +333,12 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
       return [...prev, { ...data, id: `change-${Date.now()}` }];
     });
 
-    // Make sure to reset all the state
-    setIsCompChangeModalOpen(false);  // Close the modal
-    setEditingChangeId(null);        // Reset editing state
-    setCurrentSalary(0);             // Reset form values
+    setIsCompChangeModalOpen(false);
+    setEditingChangeId(null);
+    setCurrentSalary(0);
     setNewSalary(0);
     setCurrentFTE(0);
     setNewFTE(0);
-    setCurrentCF(45.00);
     setEffectiveDate('');
     setChangeReason('');
   };
@@ -425,16 +348,12 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
     setIsAdjustmentModalOpen(true);
   };
 
-  // Data for Metrics Table
   const getRowData = () => {
-    // Calculate YTD for actual wRVUs including adjustments
     const calculateYTD = (baseData: any, adjustmentRows: any[]) => {
       let ytd = 0;
       months.forEach(month => {
         const monthKey = month.toLowerCase();
-        // Add base value
         ytd += Number(baseData[monthKey]) || 0;
-        // Add adjustments
         adjustmentRows.forEach(adj => {
           ytd += Number(adj[monthKey]) || 0;
         });
@@ -471,29 +390,29 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
     ];
   };
 
-  // Calculate values for both the grid and summary cards
   const totalWRVUs = calculateTotalWRVUs(baseMonthlyData, adjustments);
-  const monthlyVariances = calculateMonthlyVariances(totalWRVUs, targetMonthlyData);
-  const totalIncentives = calculateTotalIncentives(monthlyVariances, provider.conversionFactor);
+  const totalTargetsWithAdjustments = calculateTotalTargets(targetMonthlyData, targetAdjustments);
+  const monthlyVariances = calculateVariance(totalWRVUs, totalTargetsWithAdjustments);
+  const totalIncentives = months.reduce((sum, month) => {
+    const v = monthlyVariances[month.toLowerCase()] || 0;
+    return sum + calculateIncentive(v, provider.conversionFactor);
+  }, 0);
   const ytdWRVUs = totalWRVUs.ytd;
 
-  // Data for Compensation Table
   const getCompensationData = () => {
     const baseSalaryMonthly = provider.annualSalary / 12;
-    
-    // Get the total WRVUs including adjustments
+
+    // Ensure incentive uses the same monthlyVariances (which includes target adjustments)
     const totalWRVUsWithAdjustments = calculateTotalWRVUs(baseMonthlyData, adjustments);
-    
-    // Calculate variances against target
-    const monthlyVariances = calculateVariance(totalWRVUsWithAdjustments, targetMonthlyData);
-    
-    // Calculate incentive based on variances
-    const monthlyIncentives = {};
+    const totalTargetsAdjusted = calculateTotalTargets(targetMonthlyData, targetAdjustments);
+    const monthlyVariancesForIncentive = calculateVariance(totalWRVUsWithAdjustments, totalTargetsAdjusted);
+
+    const monthlyIncentives: any = {};
     let totalIncentive = 0;
 
     months.forEach(month => {
       const monthKey = month.toLowerCase();
-      const incentive = calculateIncentive(monthlyVariances[monthKey], provider.conversionFactor);
+      const incentive = calculateIncentive(monthlyVariancesForIncentive[monthKey], provider.conversionFactor);
       monthlyIncentives[monthKey] = incentive;
       totalIncentive += incentive;
     });
@@ -501,17 +420,15 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
     const holdback = totalIncentive * 0.2;
     const netIncentive = totalIncentive - holdback;
 
-    // Calculate total compensation for each month
     const totalCompensation = months.reduce((acc, month) => {
       const monthKey = month.toLowerCase();
       const monthlyTotal = baseSalaryMonthly + 
-        (monthlyIncentives[monthKey] || 0) * 0.8 + // Net incentive (after holdback)
-        (additionalPayments.reduce((sum, payment) => sum + (payment[monthKey] || 0), 0)); // Additional payments
+        (monthlyIncentives[monthKey] || 0) * 0.8 +
+        (additionalPayments.reduce((sum, payment) => sum + (payment[monthKey] || 0), 0));
       return { ...acc, [monthKey]: monthlyTotal };
     }, {});
 
     return [
-      // Base Salary
       {
         component: 'Base Salary',
         ...months.reduce((acc, month) => ({
@@ -520,24 +437,20 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
         }), {}),
         ytd: provider.annualSalary
       },
-      // Additional Payments
       ...additionalPayments.map(payment => ({
-        component: payment.name,
+        component: payment.component || payment.name,
+        description: payment.description || '',
         ...months.reduce((acc, month) => ({
           ...acc,
           [month.toLowerCase()]: payment[month.toLowerCase()] || 0
         }), {}),
-        ytd: Object.keys(payment)
-          .filter(key => months.map(m => m.toLowerCase()).includes(key))
-          .reduce((sum, month) => sum + (payment[month] || 0), 0)
+        ytd: months.reduce((sum, month) => sum + (payment[month.toLowerCase()] || 0), 0)
       })),
-      // Incentive
       {
         component: 'Incentive (100%)',
         ...monthlyIncentives,
         ytd: totalIncentive
       },
-      // Holdback
       {
         component: 'Holdback (20%)',
         ...months.reduce((acc, month) => ({
@@ -546,7 +459,6 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
         }), {}),
         ytd: -holdback
       },
-      // Net Incentive
       {
         component: 'Net Incentive (80%)',
         ...months.reduce((acc, month) => ({
@@ -555,20 +467,16 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
         }), {}),
         ytd: netIncentive
       },
-      // Total Compensation
       {
         component: 'Total Comp.',
         ...totalCompensation,
         ytd: provider.annualSalary + netIncentive + 
              additionalPayments.reduce((sum, payment) => 
-               sum + Object.keys(payment)
-                 .filter(key => months.map(m => m.toLowerCase()).includes(key))
-                 .reduce((monthSum, month) => monthSum + (payment[month] || 0), 0), 0)
+               sum + months.reduce((mSum, m) => mSum + (payment[m.toLowerCase()] || 0), 0), 0)
       }
     ];
   };
 
-  // This is the function being called from the modal
   const handleAddAdjustment = (data: any) => {
     if (data.type === 'target') {
       const newTargetAdjustment = {
@@ -583,7 +491,7 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
           [month]: parseFloat(data.monthlyAmounts[month]) || 0
         }), {}),
         ytd: Object.values(data.monthlyAmounts)
-          .reduce((sum, val) => sum + (parseFloat(val) || 0), 0)
+          .reduce((sum: number, val: any) => sum + (parseFloat(val) || 0), 0)
       };
 
       if (editingPayment) {
@@ -601,7 +509,7 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
         isAdjustment: true,
         editable: true,
         ...data.monthlyAmounts,
-        ytd: Object.values(data.monthlyAmounts).reduce((sum, val) => sum + (parseFloat(val) || 0), 0)
+        ytd: Object.values(data.monthlyAmounts).reduce((sum: number, val: any) => sum + (parseFloat(val) || 0), 0)
       };
       
       if (editingPayment) {
@@ -612,30 +520,28 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
         setAdjustments(prev => [...prev, newAdjustment]);
       }
     } else if (data.type === 'additionalPay') {
+      const monthlyValues = Object.values(data.monthlyAmounts).map(val => parseFloat(val as string) || 0);
+      const ytdValue = monthlyValues.reduce((sum, val) => sum + val, 0);
+
+      const newPayment = {
+        component: data.name,
+        description: data.description,
+        ...Object.fromEntries(
+          Object.entries(data.monthlyAmounts).map(([m, v]) => [m.toLowerCase(), parseFloat(v as string) || 0])
+        ),
+        ytd: ytdValue
+      };
+
       if (isEditing) {
-        // Update existing payment
         setAdditionalPayments(prev => 
           prev.map(payment => 
             payment.component === editingPayment?.component
-              ? {
-                  ...data,
-                  component: data.name, // Use the name as the component
-                  ytd: Object.values(data)
-                    .filter(val => !isNaN(parseFloat(val)))
-                    .reduce((sum, val) => sum + parseFloat(val), 0)
-                }
+              ? { ...payment, ...newPayment }
               : payment
           )
         );
       } else {
-        // Add new payment
-        setAdditionalPayments(prev => [...prev, {
-          ...data,
-          component: data.name,
-          ytd: Object.values(data)
-            .filter(val => !isNaN(parseFloat(val)))
-            .reduce((sum, val) => sum + parseFloat(val), 0)
-        }]);
+        setAdditionalPayments(prev => [...prev, newPayment]);
       }
     }
     
@@ -651,12 +557,11 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
   };
 
   const handleRemoveTargetAdjustment = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this target adjustment?')) {
+    if (window.confirm('Are you sure you want to delete this adjustment?')) {
       setTargetAdjustments(prev => prev.filter(adj => adj.id !== id));
     }
   };
 
-  // Metrics Table Column Definitions
   const metricsColumnDefs = [
     {
       field: 'metric',
@@ -678,8 +583,12 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (window.confirm('Are you sure you want to delete this wRVU adjustment?')) {
-                      handleRemoveAdjustment(params.data.id);
+                    if (window.confirm('Are you sure you want to delete this adjustment?')) {
+                      if (params.data.type === 'target') {
+                        handleRemoveTargetAdjustment(params.data.id);
+                      } else {
+                        handleRemoveAdjustment(params.data.id);
+                      }
                     }
                   }}
                   className="text-red-500 hover:text-red-700 transition-colors"
@@ -714,7 +623,6 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
           height: '100%'
         };
 
-        // Variance row styling
         if (params.data.metric === 'Variance') {
           const value = Number(params.value);
           return {
@@ -725,7 +633,6 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
           };
         }
 
-        // Bold specific rows
         if (params.data.metric === 'Actual wRVUs' || 
             params.data.metric === 'Target wRVUs') {
           return {
@@ -748,19 +655,11 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
             params.data[params.column.colId] = newValue;
             if (params.data.type === 'wrvu') {
               setAdjustments(prev => 
-                prev.map(adj => 
-                  adj.id === params.data.id 
-                    ? { ...adj, [params.column.colId]: newValue }
-                    : adj
-                )
+                prev.map(adj => adj.id === params.data.id ? { ...adj, [params.column.colId]: newValue } : adj)
               );
             } else if (params.data.type === 'target') {
               setTargetAdjustments(prev => 
-                prev.map(adj => 
-                  adj.id === params.data.id 
-                    ? { ...adj, [params.column.colId]: newValue }
-                    : adj
-                )
+                prev.map(adj => adj.id === params.data.id ? { ...adj, [params.column.colId]: newValue } : adj)
               );
             }
             return true;
@@ -769,7 +668,6 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
         return false;
       }
     })),
-    // Add YTD column with comma after it
     {
       field: 'ytd',
       headerName: 'YTD',
@@ -778,9 +676,9 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
       cellStyle: (params: any) => {
         const baseStyle = { 
           textAlign: 'right',
-          paddingRight: '24px', // Match December column padding
+          paddingRight: '24px',
           display: 'flex',
-          justifyContent: 'flex-end', // Align content to the right
+          justifyContent: 'flex-end',
           alignItems: 'center',
           height: '100%'
         };
@@ -814,14 +712,8 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
     }
   ];
 
-  // First, add the delete handler function
-  const handleDeleteAdditionalPay = (paymentName: string) => {
-    setAdditionalPayments(prev => prev.filter(payment => payment.name !== paymentName));
-  };
-
-  // Then modify your compensationColumnDefs
   const handleRemoveAdditionalPay = (payName: string) => {
-    setAdditionalPayments(prev => prev.filter(p => p.name !== payName));
+    setAdditionalPayments(prev => prev.filter(p => p.component !== payName));
   };
 
   const compensationColumnDefs = [
@@ -869,12 +761,11 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
         if (params.value === undefined || params.value === null) return '$0.00';
         return formatCurrency(params.value);
       },
-      cellStyle: params => ({
+      cellStyle: (params: any) => ({
         textAlign: 'right',
         fontWeight: params.data.component === 'Total Comp.' ? '600' : 'normal'
       })
     })),
-    // Add YTD column
     {
       field: 'ytd',
       headerName: 'YTD',
@@ -884,200 +775,73 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
         }, 0);
       },
       valueFormatter: (params: any) => formatCurrency(params.value),
-      cellStyle: params => ({
+      cellStyle: (params: any) => ({
         textAlign: 'right',
         fontWeight: params.data.component === 'Total Comp.' ? '600' : 'normal'
       })
     }
   ];
 
-  // Add these calculations near the top of your component
-  const getCurrentMonthData = () => {
-    const currentMonth = new Date().getMonth(); // 0-11 for Jan-Dec
-    const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-    const currentMonthName = monthNames[currentMonth];
-
-    // Get current month's wRVUs from your data
-    const currentMonthWRVUs = getRowData().find(row => row.metric === 'Total wRVUs')?.[currentMonthName] || 0;
-    const currentMonthTarget = getRowData().find(row => row.metric === 'Total Target')?.[currentMonthName] || 0;
-
-    return { currentMonthWRVUs, currentMonthTarget };
-  };
-
-  // Get the data for all months for the chart
-  const getChartData = () => {
-    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-    const wrvuData = getRowData().find(row => row.metric === 'Total wRVUs');
-    const targetData = getRowData().find(row => row.metric === 'Total Target');
-
-    const actualWRVUs = months.map(month => wrvuData?.[month] || 0);
-    const targetWRVUs = months.map(month => targetData?.[month] || 0);
-
-    return { actualWRVUs, targetWRVUs };
-  };
-
-  // Add this function to calculate totals from your existing table data
-  const getMetricTotals = () => {
-    const rowData = getRowData();
-    
-    // Monthly wRVUs vs Target
-    const currentMonth = new Date().getMonth();
-    const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-    const currentMonthName = monthNames[currentMonth];
-
-    // Get data from your existing rows
-    const wrvuRow = rowData.find(row => row.metric === 'Total wRVUs');
-    const targetRow = rowData.find(row => row.metric === 'Total Target');
-    const incentiveRow = rowData.find(row => row.metric === 'Incentive');
-    const holdbackRow = rowData.find(row => row.metric === 'Holdback');
-
-    return {
-      monthlyWRVUs: {
-        actual: wrvuRow?.[currentMonthName] || 0,
-        target: targetRow?.[currentMonthName] || 0,
-      },
-      ytdWRVUs: {
-        actual: wrvuRow?.ytd || 0,
-        target: targetRow?.ytd || 0,
-      },
-      incentive: {
-        actual: incentiveRow?.ytd || 0,
-        target: targetRow?.ytd * 0.1 || 0, // Assuming 10% incentive target
-      },
-      holdback: {
-        actual: Math.abs(holdbackRow?.ytd || 0),
-        target: targetRow?.ytd * 0.05 || 0, // Assuming 5% holdback target
-      }
-    };
-  };
-
-  const calculatePlanYearProgress = () => {
-    const rowData = getRowData();
-    const actualWRVUsRow = rowData.find(row => row.metric === 'Actual wRVUs');
-    
-    if (!actualWRVUsRow) return { completed: 0, total: 12, percentage: 0 };
-    
-    // Count months with data
-    const monthsWithData = months.reduce((count, month) => {
-      const value = actualWRVUsRow[month.toLowerCase()];
-      return value > 0 ? count + 1 : count;
-    }, 0);
-
-    return {
-      completed: monthsWithData,
-      total: 12,
-      percentage: (monthsWithData / 12) * 100
-    };
-  };
-
-  const calculateYTDTargetProgress = () => {
-    const ytdWRVUs = getRowData()
-      .find(row => row.metric === 'Total wRVUs')?.ytd || 0;
-    const ytdTarget = getRowData()
-      .find(row => row.metric === 'Total Target')?.ytd || 0;
-
-    return {
-      actual: ytdWRVUs,
-      target: ytdTarget,
-      percentage: ytdTarget > 0 ? (ytdWRVUs / ytdTarget) * 100 : 0
-    };
-  };
-
-  const calculateIncentiveEarned = () => {
-    // Get YTD values
-    const actualYTD = getRowData()
-      .find(row => row.metric === 'Total wRVUs')?.ytd || 0;
-    const targetYTD = getRowData()
-      .find(row => row.metric === 'Total Target')?.ytd || 0;
-    
-    // Calculate variance (actual - target)
-    const variance = actualYTD - targetYTD;
-    
-    // Calculate incentive only if variance is positive
-    const incentiveAmount = variance > 0 ? variance * provider.conversionFactor : 0;
-    
-    return {
-      earned: incentiveAmount,
-      total: provider.annualSalary,
-      percentage: (incentiveAmount / provider.annualSalary) * 100
-    };
-  };
-
-  const calculateHoldback = () => {
-    const incentiveEarned = calculateIncentiveEarned().earned;
-    const holdbackAmount = incentiveEarned * 0.2; // Assuming 20% holdback
-    
-    return {
-      amount: holdbackAmount,
-      total: incentiveEarned,
-      percentage: incentiveEarned > 0 ? (holdbackAmount / incentiveEarned) * 100 : 0
-    };
-  };
-
-  // Add this delete handler function
-  const handleDeleteWRVUAdjustment = (id: string) => {
-    setAdjustments(prev => prev.filter(adj => adj.id !== id));
-  };
-
-  // Add this function to handle PDF generation
   const handleExportPDF = async () => {
-    // Set to landscape and A4
     const pdf = new jsPDF({
       orientation: 'landscape',
       unit: 'pt',
       format: 'a4'
     });
     
-    // Show all sections before capturing
     setIsGaugesVisible(true);
     setIsWRVUChartVisible(true);
     setIsMetricsTableVisible(true);
     setIsCompTableVisible(true);
     
-    await new Promise(resolve => setTimeout(resolve, 100)); // Wait for state updates
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     try {
-      // Page 1: Header and Summary Cards
       const headerSection = document.querySelector('.dashboard-header');
       const summaryCards = document.querySelector('.summary-cards');
       const performanceMetrics = document.querySelector('.performance-metrics');
 
-      // Add header with styling
+      const addSection = async (pdf: jsPDF, element: HTMLElement | null, x: number, y: number, scale: number) => {
+        if (!element) return;
+        
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          logging: false,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff'
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = canvas.width * scale;
+        const imgHeight = canvas.height * scale;
+
+        pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+        return y + imgHeight;
+      };
+
       pdf.setFontSize(24);
       pdf.setTextColor(0, 0, 0);
-      await addSection(pdf, headerSection, 40, 40, 0.8);
-      
-      // Add summary cards row
-      await addSection(pdf, summaryCards, 40, 120, 0.8);
-      
-      // Add performance metrics (gauges)
-      await addSection(pdf, performanceMetrics, 40, 280, 0.8);
+      await addSection(pdf, headerSection as HTMLElement, 40, 40, 0.8);
+      await addSection(pdf, summaryCards as HTMLElement, 40, 120, 0.8);
+      await addSection(pdf, performanceMetrics as HTMLElement, 40, 280, 0.8);
 
-      // Page 2: Charts and Tables
       pdf.addPage();
-      
-      // Add wRVU chart
       const wrvuChart = document.getElementById('wrvu-chart-section');
-      await addSection(pdf, wrvuChart, 40, 40, 0.8);
-      
-      // Page 3: Tables
-      pdf.addPage();
-      
-      // Add metrics table
-      const metricsTable = document.getElementById('metrics-table');
-      await addSection(pdf, metricsTable, 40, 40, 0.75);
-      
-      // Add compensation table
-      const compensationTable = document.getElementById('compensation-table');
-      await addSection(pdf, compensationTable, 40, 400, 0.75);
+      await addSection(pdf, wrvuChart as HTMLElement, 40, 40, 0.8);
 
-      // Save the PDF
+      pdf.addPage();
+      const metricsTable = document.getElementById('metrics-table');
+      await addSection(pdf, metricsTable as HTMLElement, 40, 40, 0.75);
+      
+      const compensationTable = document.getElementById('compensation-table');
+      await addSection(pdf, compensationTable as HTMLElement, 40, 400, 0.75);
+
       pdf.save(`${provider.firstName}_${provider.lastName}_Dashboard.pdf`);
 
     } catch (error) {
       console.error('Error generating PDF:', error);
     } finally {
-      // Reset visibility states
       setIsGaugesVisible(false);
       setIsWRVUChartVisible(false);
       setIsMetricsTableVisible(false);
@@ -1085,187 +849,15 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
     }
   };
 
-  // Helper function to add a section to PDF
-  const addSection = async (pdf: jsPDF, element: HTMLElement | null, x: number, y: number, scale: number) => {
-    if (!element) return;
-    
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      logging: false,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: '#ffffff'
-    });
-
-    const imgData = canvas.toDataURL('image/png');
-    const imgWidth = canvas.width * scale;
-    const imgHeight = canvas.height * scale;
-
-    pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
-    return y + imgHeight;
-  };
-
-  useEffect(() => {
-    // Small delay to ensure DOM is ready
-    setTimeout(() => {
-      const metricsGrid = document.querySelector('#metrics-table .ag-root-wrapper');
-      const compGrid = document.querySelector('#compensation-table .ag-root-wrapper');
-      
-      if (metricsGrid) {
-        metricsGrid.style.width = '100%';
-      }
-      if (compGrid) {
-        compGrid.style.width = '100%';
-      }
-      
-      // Force grids to resize
-      const metricsApi = document.querySelector('#metrics-table .ag-grid-react')?.gridApi;
-      const compApi = document.querySelector('#compensation-table .ag-grid-react')?.gridApi;
-      
-      if (metricsApi) metricsApi.sizeColumnsToFit();
-      if (compApi) compApi.sizeColumnsToFit();
-    }, 100);
-  }, []);
-
-  // Add this function to handle updates to additional payments
-  const handleAdditionalPayUpdate = (component: string, month: string, value: number) => {
-    setAdditionalPayments(prev => prev.map(payment => {
-      if (payment.name === component) {
-        return {
-          ...payment,
-          [month]: value
-        };
-      }
-      return payment;
-    }));
-  };
-
-  // Add these helper functions to handle updates and deletions
-  const handleWRVUAdjustmentUpdate = (
-    id: string,
-    type: 'wrvu' | 'target',
-    month: string,
-    value: number
-  ) => {
-    if (type === 'wrvu') {
-      setAdjustments(prev => prev.map(adj => {
-        if (adj.id === id) {
-          return {
-            ...adj,
-            [month]: value
-          };
-        }
-        return adj;
-      }));
-    } else if (type === 'target') {
-      setTargetAdjustments(prev => prev.map(adj => {
-        if (adj.id === id) {
-          return {
-            ...adj,
-            [month]: value
-          };
-        }
-        return adj;
-      }));
-    }
-  };
-
-  const handleRemoveMetricAdjustment = (id: string, type: 'wrvu' | 'target') => {
-    if (type === 'wrvu') {
-      setAdjustments(prev => prev.filter(adj => adj.id !== id));
-    } else if (type === 'target') {
-      setTargetAdjustments(prev => prev.filter(adj => adj.id !== id));
-    }
-  };
-
-  const handleDeleteCompensationChange = (id: string) => {
-    setCompensationHistory(prev => prev.filter(change => change.id !== id));
-  };
-
-  // Simplify the edit handler
-  const handleEditCompensationChange = (change: CompensationChange) => {
-    setIsCompChangeModalOpen(true);
-    setEditingChangeId(change.id);
-    
-    // Set all the values from the existing change record
-    setCurrentSalary(change.previousSalary);
-    setNewSalary(change.newSalary);
-    setCurrentFTE(change.previousFTE);
-    setNewFTE(change.newFTE);
-    setCurrentCF(change.conversionFactor || 45.00);
-    setEffectiveDate(change.effectiveDate);
-    setChangeReason(change.reason || '');
-  };
-
-  const handleCellValueChange = (params: any) => {
-    if (params.data.type === 'adjustment') {
-      const newValue = Number(params.newValue);
-      if (!isNaN(newValue)) {
-        setTestValues(prev => ({
-          ...prev,
-          [params.column.colId]: newValue
-        }));
-      }
-    }
-  };
-
-  const handleDeleteTest = () => {
-    setShowTestRow(false);
-    setTestValues(Object.fromEntries(months.map(m => [m.toLowerCase(), 0]))); // Reset values
-  };
-
-  const handleDeleteAdjustment = (paymentToDelete: any) => {
-    // Add confirmation dialog
-    if (window.confirm('Are you sure you want to delete this additional pay?')) {
-      setAdditionalPayments(prev => 
-        prev.filter(payment => payment.component !== paymentToDelete.component)
-      );
-    }
-  };
-
-  // When opening the modal, make sure to pass the current FTE
-  const handleOpenCompChangeModal = () => {
-    setIsCompChangeModalOpen(true);
-    setCurrentFTE(provider?.fte || 1.0); // Set the current FTE from provider data
-  };
-
-  // Add this CSS to your global styles or component styles
-  const gridStyles = `
-    .ag-cell-vertically-aligned {
-      line-height: 48px !important;  // Match the rowHeight
-      padding-top: 0 !important;
-      padding-bottom: 0 !important;
-    }
-    .ag-header-cell-right .ag-header-cell-label {
-      justify-content: flex-end;
-      padding-right: 16px;
-    }
-  `;
-
-  // Add the styles to your component
-  useEffect(() => {
-    const styleSheet = document.createElement('style');
-    styleSheet.innerText = gridStyles;
-    document.head.appendChild(styleSheet);
-    return () => {
-      document.head.removeChild(styleSheet);
-    };
-  }, []);
-
-  // Add this new handler function
   const handleEditAdditionalPay = (paymentData: any) => {
-    console.log('Edit Payment Data:', paymentData);
-    
-    // Find the full payment data from additionalPayments state
     const fullPaymentData = additionalPayments.find(p => p.component === paymentData.component);
     
     const editData = {
       id: paymentData.id || Math.random().toString(36).substr(2, 9),
       component: paymentData.component,
       name: paymentData.component,
-      description: fullPaymentData?.description || '', // Get description from full payment data
+      description: fullPaymentData?.description || '',
       type: 'additionalPay',
-      // Add all months
       jan: paymentData.jan || 0,
       feb: paymentData.feb || 0,
       mar: paymentData.mar || 0,
@@ -1279,8 +871,6 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
       nov: paymentData.nov || 0,
       dec: paymentData.dec || 0
     };
-
-    console.log('Prepared Edit Data:', editData);
     
     setEditingPayment(editData);
     setAdjustmentType('additionalPay');
@@ -1288,76 +878,71 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
     setIsAdjustmentModalOpen(true);
   };
 
-  // Update the edit handler to properly set the type
   const handleEditAdjustment = (adjustmentData: any) => {
     const editData = {
-      id: adjustmentData.id || Math.random().toString(36).substr(2, 9),
-      name: adjustmentData.metric || 'EMR Go Live', // Ensure we get the metric name
-      description: adjustmentData.description || '',
-      type: 'wrvu',
-      monthlyAmounts: {
-        jan: adjustmentData.jan || 0,
-        feb: adjustmentData.feb || 0,
-        mar: adjustmentData.mar || 0,
-        apr: adjustmentData.apr || 0,
-        may: adjustmentData.may || 0,
-        jun: adjustmentData.jun || 0,
-        jul: adjustmentData.jul || 0,
-        aug: adjustmentData.aug || 0,
-        sep: adjustmentData.sep || 0,
-        oct: adjustmentData.oct || 0,
-        nov: adjustmentData.nov || 0,
-        dec: adjustmentData.dec || 0
-      }
+      id: adjustmentData.id,
+      name: adjustmentData.metric,
+      description: adjustmentData.description,
+      type: adjustmentData.type,
+      monthlyAmounts: months.reduce((acc, month) => ({
+        ...acc,
+        [month]: adjustmentData[month.toLowerCase()] || 0
+      }), {})
     };
-
+    
     setEditingPayment(editData);
-    setAdjustmentType('wrvu');
-    setIsEditing(true);
+    setAdjustmentType(adjustmentData.type);
     setIsAdjustmentModalOpen(true);
   };
 
-  const handleSubmitAdjustment = (data: any) => {
-    const newAdjustment = {
-      ...data,
-      id: data.id || Math.random().toString(36).substr(2, 9),
-      description: data.description,  // Make sure description is explicitly included
-    };
-
-    // Update your state/storage with the new adjustment
-    setAdjustments(prev => [...prev, newAdjustment]);
-    // or however you're storing the data
+  const handleOpenCompChangeModal = () => {
+    setIsCompChangeModalOpen(true);
+    setCurrentFTE(provider?.fte || 1.0);
   };
+
+  const gridStyles = `
+    .ag-cell-vertically-aligned {
+      line-height: 48px !important;  
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+    }
+    .ag-header-cell-right .ag-header-cell-label {
+      justify-content: flex-end;
+      padding-right: 16px;
+    }
+  `;
+
+  useEffect(() => {
+    const styleSheet = document.createElement('style');
+    styleSheet.innerText = gridStyles;
+    document.head.appendChild(styleSheet);
+    return () => {
+      document.head.removeChild(styleSheet);
+    };
+  }, []);
 
   return (
     <>
       <div className="max-w-full px-8">
         <style>{customStyles}</style>
-        {/* Header Section with Provider Info */}
         <div className="dashboard-header bg-white p-6 rounded-lg shadow-sm mb-8">
           <div className="px-6 pt-6">
             <div className="flex justify-between items-start">
               <div className="text-center flex-1">
-                {/* Provider Name and Specialty */}
                 <h1 className="text-2xl font-semibold text-gray-900 mb-1">
-                  John Smith, MD <span className="text-gray-600">- Specialty: Cardiology</span>
+                  {provider.firstName} {provider.lastName}, {provider.suffix || 'MD'} <span className="text-gray-600">- Specialty: {provider.specialty}</span>
                 </h1>
-
-                {/* Dashboard Title */}
                 <div className="text-gray-600 mb-3">
                   Provider Compensation Dashboard
                 </div>
-
-                {/* ID and FTE */}
                 <div className="text-gray-600 text-sm">
-                  Employee ID: EMP123 <span className="mx-3">•</span> FTE: 1.0
+                  Employee ID: {provider.employeeId} <span className="mx-3">•</span> FTE: {provider.fte || 1.0}
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Professional Tab Navigation */}
         <div className="border-b border-gray-200">
           <nav className="flex justify-center -mb-px" aria-label="Tabs">
             <button
@@ -1389,11 +974,12 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
             </button>
             <button
               onClick={() => setActiveView('control')}
-              className={`${
-                activeView === 'control'
+              className={`
+                ${activeView === 'control'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              } flex items-center px-3 py-2 text-sm font-medium border-b-2`}
+                } flex items-center px-3 py-2 text-sm font-medium border-b-2
+              `}
             >
               <Cog6ToothIcon className="h-5 w-5 mr-2" />
               Control Panel
@@ -1401,7 +987,6 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
           </nav>
         </div>
 
-        {/* Summary Cards - Always Visible */}
         <div className="summary-cards grid grid-cols-5 gap-6 mb-8">
           <SummaryCard
             title="Base Salary"
@@ -1441,12 +1026,9 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
           />
         </div>
 
-        {/* Conditional Content Based on Active Tab */}
         <div className="transition-all duration-300 ease-in-out">
           {activeView === 'compensation' ? (
-            // wRVUs & Comp View
             <div className="space-y-8">
-              {/* Metrics & Adjustments Table */}
               <div id="metrics-table" className="bg-white rounded-lg shadow-sm">
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h2 className="text-lg font-medium">Metrics & Adjustments</h2>
@@ -1471,13 +1053,11 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
                       {...baseGridConfig}
                       columnDefs={metricsColumnDefs}
                       rowData={getRowData()}
-                      onCellValueChanged={handleCellValueChange}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Compensation Details Table */}
               <div id="compensation-table" className="bg-white rounded-lg shadow-sm">
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h2 className="text-lg font-medium">Compensation Details</h2>
@@ -1510,10 +1090,8 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
               </div>
             </div>
           ) : activeView === 'analytics' ? (
-            // Charts & Stats View
             <div className="space-y-8">
-              {/* Performance Metrics Section */}
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden performance-metrics">
                 <h2 className="text-xl font-medium text-center py-4 border-b border-gray-200">
                   Performance Metrics
                 </h2>
@@ -1522,16 +1100,16 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
                     <div className="flex flex-col items-center">
                       <WRVUGauge 
                         title="Plan Year Progress" 
-                        value={calculatePlanYearProgress().percentage}
-                        subtitle={`${calculatePlanYearProgress().completed} of ${calculatePlanYearProgress().total} months`}
+                        value={calculatePlanYearProgress(getRowData()).percentage}
+                        subtitle={`${calculatePlanYearProgress(getRowData()).completed} of ${calculatePlanYearProgress(getRowData()).total} months`}
                         size="large"
                       />
                     </div>
                     <div className="flex flex-col items-center">
                       <WRVUGauge 
                         title="Target Progress" 
-                        value={calculateYTDTargetProgress().percentage}
-                        subtitle={`${formatNumber(calculateYTDTargetProgress().actual)} of ${formatNumber(calculateYTDTargetProgress().target)}`}
+                        value={calculateYTDTargetProgress(getRowData()).percentage}
+                        subtitle={`${formatNumber(calculateYTDTargetProgress(getRowData()).actual)} of ${formatNumber(calculateYTDTargetProgress(getRowData()).target)}`}
                         size="large"
                       />
                     </div>
@@ -1547,22 +1125,20 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
                 </div>
               </div>
 
-              {/* wRVU Performance Chart */}
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden" id="wrvu-chart-section">
                 <h2 className="text-xl font-medium text-center py-4 border-b border-gray-200">
                   wRVU Performance
                 </h2>
                 <div className="p-6">
                   <WRVUChart 
-                    actualWRVUs={getChartData().actualWRVUs}
-                    targetWRVUs={getChartData().targetWRVUs}
+                    actualWRVUs={getRowData().find(row => row.metric === 'Total wRVUs') ? months.map(m => getRowData().find(row => row.metric === 'Total wRVUs')?.[m.toLowerCase()] || 0) : []}
+                    targetWRVUs={getRowData().find(row => row.metric === 'Total Target') ? months.map(m => getRowData().find(row => row.metric === 'Total Target')?.[m.toLowerCase()] || 0) : []}
                     months={months}
                   />
                 </div>
               </div>
             </div>
           ) : (
-            // Control Panel View
             <div className="space-y-8">
               <div className="bg-white rounded-lg shadow-sm">
                 <div className="px-6 py-4 border-b border-gray-200">
@@ -1570,7 +1146,6 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
                 </div>
                 <div className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* First Column */}
                     <div className="bg-gray-50 p-6 rounded-lg">
                       <h3 className="text-lg font-medium mb-4">Record Compensation Change</h3>
                       <p className="text-gray-600 mb-4">
@@ -1585,7 +1160,6 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
                       </button>
                     </div>
 
-                    {/* Second Column */}
                     <div className="bg-gray-50 p-6 rounded-lg">
                       <h3 className="text-lg font-medium mb-4">Additional Pay Management</h3>
                       <p className="text-gray-600 mb-4">
@@ -1601,9 +1175,7 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
                     </div>
                   </div>
 
-                  {/* Second Row */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                    {/* wRVU Adjustments */}
                     <div className="bg-gray-50 p-6 rounded-lg">
                       <h3 className="text-lg font-medium mb-4">wRVU Adjustments</h3>
                       <p className="text-gray-600 mb-4">
@@ -1618,7 +1190,6 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
                       </button>
                     </div>
 
-                    {/* Target Adjustments */}
                     <div className="bg-gray-50 p-6 rounded-lg">
                       <h3 className="text-lg font-medium mb-4">Target Adjustments</h3>
                       <p className="text-gray-600 mb-4">
@@ -1634,12 +1205,20 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
                     </div>
                   </div>
 
-                  {/* Compensation History */}
                   <div className="mt-8">
                     <CompensationHistory 
                       changes={compensationHistory} 
-                      onDelete={handleDeleteCompensationChange}
-                      onEdit={handleEditCompensationChange}
+                      onDelete={(id) => setCompensationHistory(prev => prev.filter(change => change.id !== id))}
+                      onEdit={(change) => {
+                        setIsCompChangeModalOpen(true);
+                        setEditingChangeId(change.id);
+                        setCurrentSalary(change.previousSalary);
+                        setNewSalary(change.newSalary);
+                        setCurrentFTE(change.previousFTE);
+                        setNewFTE(change.newFTE);
+                        setEffectiveDate(change.effectiveDate);
+                        setChangeReason(change.reason || '');
+                      }}
                     />
                   </div>
                 </div>
@@ -1649,7 +1228,6 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
         </div>
       </div>
       
-      {/* Modal rendered at root level */}
       <AddAdjustmentModal
         isOpen={isAdjustmentModalOpen}
         onClose={() => {
@@ -1659,7 +1237,7 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
         }}
         onAdd={handleAddAdjustment}
         type={adjustmentType}
-        editingData={editingPayment}  // This will be undefined for new additions
+        editingData={editingPayment}
       />
 
       <CompensationChangeModal
@@ -1673,7 +1251,7 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
         newSalary={newSalary}
         currentFTE={currentFTE}
         newFTE={newFTE}
-        currentCF={currentCF}
+        currentCF={provider.conversionFactor || 45.00}
         effectiveDate={effectiveDate}
         reason={changeReason}
         editingChange={editingChangeId ? compensationHistory.find(c => c.id === editingChangeId) : undefined}
