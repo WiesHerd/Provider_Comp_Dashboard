@@ -238,17 +238,24 @@ const SummaryCard: React.FC<{
   subtitle: string;
   icon: string;
   iconBackgroundColor?: string;
-}> = ({ title, value, subtitle, icon, iconBackgroundColor }) => (
-  <div className="bg-white rounded-lg border border-gray-200 shadow-md p-6 flex items-start">
-    <div
-      className={`w-10 h-10 mr-4 rounded-full flex items-center justify-center ${iconBackgroundColor || 'bg-blue-100'}`}
-    >
-      <span className="text-lg">{icon}</span>
-    </div>
-    <div>
-      <div className="text-gray-500 text-sm font-medium mb-1">{title}</div>
-      <div className="text-2xl font-bold text-gray-900">{value}</div>
-      <div className="text-sm text-gray-500">{subtitle}</div>
+  className?: string;
+}> = ({ title, value, subtitle, icon, iconBackgroundColor, className }) => (
+  <div className={`
+    bg-white rounded-lg shadow-sm p-6
+    transform transition-transform duration-200 hover:scale-[1.02]
+    ${className}
+  `}>
+    <div className="flex items-start justify-between">
+      <div>
+        <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+        <p className="mt-2 text-xl font-semibold text-gray-900">{value}</p>
+        <p className="text-sm text-gray-500">{subtitle}</p>
+      </div>
+      {icon && (
+        <div className={`${iconBackgroundColor} p-2 rounded-lg`}>
+          <span className="text-xl">{icon}</span>
+        </div>
+      )}
     </div>
   </div>
 );
@@ -987,13 +994,14 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
           </nav>
         </div>
 
-        <div className="summary-cards grid grid-cols-5 gap-6 mb-8">
+        <div className="summary-cards grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 mb-8">
           <SummaryCard
             title="Base Salary"
             value={formatCurrency(provider.annualSalary)}
             subtitle="Annual Compensation"
             icon="💵"
             iconBackgroundColor="bg-green-100"
+            className="min-w-[200px]"
           />
           <SummaryCard
             title="YTD wRVUs"
@@ -1001,6 +1009,7 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
             subtitle={`Target: ${formatNumber(provider.annualWRVUTarget)}`}
             icon="📊"
             iconBackgroundColor="bg-blue-100"
+            className="min-w-[200px]"
           />
           <SummaryCard
             title="Conversion Factor"
@@ -1008,6 +1017,7 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
             subtitle="Per wRVU"
             icon="⚙️"
             iconBackgroundColor="bg-purple-100"
+            className="min-w-[200px]"
           />
           <SummaryCard
             title="Incentives Earned"
@@ -1015,6 +1025,7 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
             subtitle="Year to Date"
             icon=""
             iconBackgroundColor="bg-yellow-100"
+            className="min-w-[200px]"
           />
           <SummaryCard
             title="Holdback"
@@ -1023,6 +1034,7 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
             subtitle="Year to Date"
             icon="🔄"
             iconBackgroundColor="bg-red-100"
+            className="min-w-[200px]"
           />
         </div>
 

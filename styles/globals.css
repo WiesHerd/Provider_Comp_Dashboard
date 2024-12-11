@@ -11,6 +11,8 @@
   --ag-border-color: #e2e8f0;
   --ag-header-font-weight: 600;
   --ag-header-font-size: 16px;
+  --ag-grid-size: 4px;
+  --ag-list-item-height: 30px;
 }
 
 /* Remove any gap between Dec and YTD columns */
@@ -41,4 +43,34 @@
 .variance-neutral {
   font-weight: 600 !important;
   font-size: 16px !important;
+} 
+
+/* Responsive container for AG Grid */
+@media (max-width: 1024px) {
+  .ag-theme-alpine {
+    --ag-grid-size: 3px;
+    --ag-list-item-height: 25px;
+  }
+  
+  .ag-header-cell-text {
+    font-size: 12px;
+  }
+  
+  .ag-cell-value {
+    font-size: 12px;
+  }
+}
+
+/* Add horizontal scrolling container */
+.ag-grid-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure grid header stays fixed while scrolling */
+.ag-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
 } 
