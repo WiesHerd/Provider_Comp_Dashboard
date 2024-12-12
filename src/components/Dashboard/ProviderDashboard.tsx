@@ -41,7 +41,12 @@ interface Provider {
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const baseMonthlyData = Object.fromEntries(months.map((m) => [m.toLowerCase(), 400]));
-const targetMonthlyData = Object.fromEntries(months.map((m) => [m.toLowerCase(), 417]));
+
+const calculateMonthlyTarget = (annualSalary: number, conversionFactor: number, fte: number = 1.0) => {
+  const annualTarget = (annualSalary / conversionFactor) * fte;
+  const monthlyTarget = annualTarget / 12;
+  return Object.fromEntries(months.map((m) => [m.toLowerCase(), monthlyTarget]));
+};
 
 const baseGridConfig = {
   domLayout: 'autoHeight',
@@ -238,24 +243,17 @@ const SummaryCard: React.FC<{
   subtitle: string;
   icon: string;
   iconBackgroundColor?: string;
-  className?: string;
-}> = ({ title, value, subtitle, icon, iconBackgroundColor, className }) => (
-  <div className={`
-    bg-white rounded-lg shadow-sm p-6
-    transform transition-transform duration-200 hover:scale-[1.02]
-    ${className}
-  `}>
-    <div className="flex items-start justify-between">
-      <div>
-        <h3 className="text-sm font-medium text-gray-500">{title}</h3>
-        <p className="mt-2 text-xl font-semibold text-gray-900">{value}</p>
-        <p className="text-sm text-gray-500">{subtitle}</p>
-      </div>
-      {icon && (
-        <div className={`${iconBackgroundColor} p-2 rounded-lg`}>
-          <span className="text-xl">{icon}</span>
-        </div>
-      )}
+}> = ({ title, value, subtitle, icon, iconBackgroundColor }) => (
+  <div className="bg-white rounded-lg border border-gray-200 shadow-md p-6 flex items-start">
+    <div
+      className={`w-10 h-10 mr-4 rounded-full flex items-center justify-center ${iconBackgroundColor || 'bg-blue-100'}`}
+    >
+      <span className="text-lg">{icon}</span>
+    </div>
+    <div>
+      <div className="text-gray-500 text-sm font-medium mb-1">{title}</div>
+      <div className="text-2xl font-bold text-gray-900">{value}</div>
+      <div className="text-sm text-gray-500">{subtitle}</div>
     </div>
   </div>
 );
@@ -325,6 +323,12 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
   const [editingPayment, setEditingPayment] = useState<any>(null);
 
   const gridApi = useRef<any>(null);
+
+  const targetMonthlyData = calculateMonthlyTarget(
+    provider.annualSalary,
+    provider.conversionFactor,
+    provider.fte || 1.0
+  );
 
   const onGridReady = (params: any) => {
     gridApi.current = params.api;
@@ -409,17 +413,18 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
   const getCompensationData = () => {
     const baseSalaryMonthly = provider.annualSalary / 12;
 
-    // Ensure incentive uses the same monthlyVariances (which includes target adjustments)
+    // Calculate total WRVUs and targets first
     const totalWRVUsWithAdjustments = calculateTotalWRVUs(baseMonthlyData, adjustments);
     const totalTargetsAdjusted = calculateTotalTargets(targetMonthlyData, targetAdjustments);
-    const monthlyVariancesForIncentive = calculateVariance(totalWRVUsWithAdjustments, totalTargetsAdjusted);
+    const monthlyVariances = calculateVariance(totalWRVUsWithAdjustments, totalTargetsAdjusted);
 
+    // Calculate monthly incentives
     const monthlyIncentives: any = {};
     let totalIncentive = 0;
 
     months.forEach(month => {
       const monthKey = month.toLowerCase();
-      const incentive = calculateIncentive(monthlyVariancesForIncentive[monthKey], provider.conversionFactor);
+      const incentive = calculateIncentive(monthlyVariances[monthKey], provider.conversionFactor);
       monthlyIncentives[monthKey] = incentive;
       totalIncentive += incentive;
     });
@@ -427,6 +432,16 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
     const holdback = totalIncentive * 0.2;
     const netIncentive = totalIncentive - holdback;
 
+    // Calculate running YTD incentives
+    const ytdIncentives = months.reduce((acc, month, index) => {
+      const monthKey = month.toLowerCase();
+      const runningTotal = months
+        .slice(0, index + 1)
+        .reduce((sum, m) => sum + ((monthlyIncentives[m.toLowerCase()] || 0) * 0.8), 0);
+      return { ...acc, [monthKey]: runningTotal };
+    }, {});
+
+    // Calculate total compensation
     const totalCompensation = months.reduce((acc, month) => {
       const monthKey = month.toLowerCase();
       const monthlyTotal = baseSalaryMonthly + 
@@ -444,15 +459,7 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
         }), {}),
         ytd: provider.annualSalary
       },
-      ...additionalPayments.map(payment => ({
-        component: payment.component || payment.name,
-        description: payment.description || '',
-        ...months.reduce((acc, month) => ({
-          ...acc,
-          [month.toLowerCase()]: payment[month.toLowerCase()] || 0
-        }), {}),
-        ytd: months.reduce((sum, month) => sum + (payment[month.toLowerCase()] || 0), 0)
-      })),
+      ...additionalPayments,
       {
         component: 'Incentive (100%)',
         ...monthlyIncentives,
@@ -472,6 +479,11 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
           ...acc,
           [month.toLowerCase()]: (monthlyIncentives[month.toLowerCase()] || 0) * 0.8
         }), {}),
+        ytd: netIncentive
+      },
+      {
+        component: 'YTD Incentive',
+        ...ytdIncentives,
         ytd: netIncentive
       },
       {
@@ -994,14 +1006,13 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
           </nav>
         </div>
 
-        <div className="summary-cards grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6 mb-8">
+        <div className="summary-cards grid grid-cols-5 gap-6 mb-8">
           <SummaryCard
             title="Base Salary"
             value={formatCurrency(provider.annualSalary)}
             subtitle="Annual Compensation"
             icon="💵"
             iconBackgroundColor="bg-green-100"
-            className="min-w-[200px]"
           />
           <SummaryCard
             title="YTD wRVUs"
@@ -1009,7 +1020,6 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
             subtitle={`Target: ${formatNumber(provider.annualWRVUTarget)}`}
             icon="📊"
             iconBackgroundColor="bg-blue-100"
-            className="min-w-[200px]"
           />
           <SummaryCard
             title="Conversion Factor"
@@ -1017,7 +1027,6 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
             subtitle="Per wRVU"
             icon="⚙️"
             iconBackgroundColor="bg-purple-100"
-            className="min-w-[200px]"
           />
           <SummaryCard
             title="Incentives Earned"
@@ -1025,7 +1034,6 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
             subtitle="Year to Date"
             icon=""
             iconBackgroundColor="bg-yellow-100"
-            className="min-w-[200px]"
           />
           <SummaryCard
             title="Holdback"
@@ -1034,7 +1042,6 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
             subtitle="Year to Date"
             icon="🔄"
             iconBackgroundColor="bg-red-100"
-            className="min-w-[200px]"
           />
         </div>
 
