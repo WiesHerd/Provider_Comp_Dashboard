@@ -745,6 +745,7 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
                                params.data.component !== 'Incentive (100%)' &&
                                params.data.component !== 'Holdback (20%)' &&
                                params.data.component !== 'Net Incentive (80%)' &&
+                               params.data.component !== 'YTD Incentive' &&
                                params.data.component !== 'Total Comp.';
 
         if (isAdditionalPay) {
@@ -779,6 +780,14 @@ const ProviderDashboard: React.FC<ProviderDashboardProps> = ({ provider }) => {
       valueFormatter: (params: any) => {
         if (params.value === undefined || params.value === null) return '$0.00';
         return formatCurrency(params.value);
+      },
+      editable: (params: any) => {
+        return params.data.component !== 'Base Salary' && 
+               params.data.component !== 'Incentive (100%)' &&
+               params.data.component !== 'Holdback (20%)' &&
+               params.data.component !== 'Net Incentive (80%)' &&
+               params.data.component !== 'YTD Incentive' &&
+               params.data.component !== 'Total Comp.';
       },
       cellStyle: (params: any) => ({
         textAlign: 'right',
