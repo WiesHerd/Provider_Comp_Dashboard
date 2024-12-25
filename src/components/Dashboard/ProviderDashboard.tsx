@@ -22,6 +22,8 @@ import {
   ValueSetterParams,
   CellClickedEvent
 } from 'ag-grid-community';
+import { Dialog, Transition } from '@headlessui/react';
+import { Fragment } from 'react';
 
 interface ProviderDashboardProps {
   provider: {
@@ -294,6 +296,217 @@ const ProratedCellRenderer = (props: any) => {
   return <span title={formatCurrency(value)}>{formatCurrency(value)}</span>;
 };
 
+interface CompensationChangeModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  currentSalary: number;
+  currentFTE: number;
+  conversionFactor: number;
+  onSave: (data: CompensationChange) => void;
+}
+
+function CompensationChangeModal({
+  isOpen,
+  onClose,
+  currentSalary,
+  currentFTE,
+  conversionFactor,
+  onSave
+}: CompensationChangeModalProps) {
+  const [newSalary, setNewSalary] = useState(currentSalary);
+  const [newFTE, setNewFTE] = useState(currentFTE);
+  const [effectiveDate, setEffectiveDate] = useState('');
+  const [changeReason, setChangeReason] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({
+      effectiveDate,
+      newSalary,
+      newFTE,
+      conversionFactor,
+      reason: changeReason,
+    });
+    // Reset form
+    setNewSalary(currentSalary);
+    setNewFTE(currentFTE);
+    setEffectiveDate('');
+    setChangeReason('');
+  };
+
+  return (
+    <Transition appear show={isOpen} as={Fragment}>
+      <Dialog as="div" className="relative z-50" onClose={onClose}>
+        <Transition.Child
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div className="fixed inset-0 bg-black bg-opacity-25" />
+        </Transition.Child>
+
+        <div className="fixed inset-0 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-xl bg-white p-6 shadow-xl transition-all">
+                <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900 mb-4">
+                  Record Compensation Change
+                </Dialog.Title>
+
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Effective Date <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={effectiveDate}
+                        onChange={(e) => setEffectiveDate(e.target.value)}
+                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Current Salary
+                        </label>
+                        <input
+                          type="text"
+                          value={formatCurrency(currentSalary)}
+                          disabled
+                          className="block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm sm:text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          New Salary <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative rounded-md shadow-sm">
+                          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                            <span className="text-gray-500 sm:text-sm">$</span>
+                          </div>
+                          <input
+                            type="number"
+                            required
+                            value={newSalary}
+                            onChange={(e) => setNewSalary(Number(e.target.value))}
+                            className="block w-full rounded-md border-gray-300 pl-7 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Current FTE
+                        </label>
+                        <input
+                          type="text"
+                          value={currentFTE}
+                          disabled
+                          className="block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm sm:text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          New FTE <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          required
+                          step="0.1"
+                          min="0"
+                          max="1"
+                          value={newFTE}
+                          onChange={(e) => setNewFTE(Number(e.target.value))}
+                          className="block w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Conversion Factor <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative rounded-md shadow-sm">
+                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                          <span className="text-gray-500 sm:text-sm">$</span>
+                        </div>
+                        <input
+                          type="number"
+                          required
+                          value={conversionFactor}
+                          disabled
+                          className="block w-full rounded-md border-gray-300 pl-7 bg-gray-50 shadow-sm sm:text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Reason for Change <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        required
+                        value={changeReason}
+                        onChange={(e) => setChangeReason(e.target.value)}
+                        rows={3}
+                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                        placeholder="Enter reason for compensation change..."
+                      />
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="text-sm font-medium text-gray-900 mb-3">Change Summary</h4>
+                      <div className="space-y-2 text-sm text-gray-600">
+                        <p>Salary Change: {formatCurrency(currentSalary)} → {formatCurrency(newSalary)}</p>
+                        <p>FTE Change: {currentFTE} → {newFTE}</p>
+                        <p>Effective: {effectiveDate || 'Invalid Date'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    >
+                      Save Change
+                    </button>
+                  </div>
+                </form>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </div>
+      </Dialog>
+    </Transition>
+  );
+}
+
 export default function ProviderDashboard({ provider }: ProviderDashboardProps) {
   const [metricsGridApi, setMetricsGridApi] = useState<GridApi | null>(null);
   const [compensationGridApi, setCompensationGridApi] = useState<GridApi | null>(null);
@@ -559,17 +772,23 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     setAdditionalPayments(prev => prev.filter(p => p.name !== name));
   };
 
-  const handleOpenCompChangeModal=()=>{
+  const handleOpenCompChangeModal = () => {
     setIsCompChangeModalOpen(true);
-    setNewFTE(fte);
-    setNewSalary(annualSalary);
   };
 
-  const handleCompensationChange=(data:CompensationChange)=>{
-    setCompensationHistory(prev=>
+  const handleCloseCompChangeModal = () => {
+    setIsCompChangeModalOpen(false);
+    setNewSalary(annualSalary);
+    setNewFTE(fte);
+    setEffectiveDate('');
+    setChangeReason('');
+  };
+
+  const handleCompensationChange = (data: CompensationChange) => {
+    setCompensationHistory(prev =>
       editingChangeId
-        ? prev.map(change=>change.id===editingChangeId?{...data,id:editingChangeId}:change)
-        :[...prev,{...data,id:`change-${Date.now()}`}]
+        ? prev.map(change => change.id === editingChangeId ? {...data, id: editingChangeId} : change)
+        : [...prev, {...data, id: `change-${Date.now()}`}]
     );
 
     setAnnualSalary(data.newSalary);
@@ -592,17 +811,27 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       --ag-odd-row-background-color: #ffffff;
       --ag-row-border-color: #f3f4f6;
       --ag-border-color: #e5e7eb;
-      --ag-font-size: 14px;
+      --ag-font-size: 13px;
       --ag-font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       border: 1px solid var(--ag-border-color);
       border-radius: 8px;
     }
 
-    .ag-header-cell {
-      display: flex !important;
-      align-items: center !important;
+    /* Remove gap between pinned right column */
+    .ag-pinned-right-cols-container {
+      margin-left: -1px !important;
     }
 
+    .ag-pinned-right-header {
+      margin-left: -1px !important;
+    }
+
+    /* Hide the vertical separator between main and pinned sections */
+    .ag-right-aligned-header .ag-header-cell-resize::after {
+      display: none !important;
+    }
+
+    /* Right align header text */
     .ag-header-cell-label {
       width: 100% !important;
       display: flex !important;
@@ -613,37 +842,36 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       justify-content: flex-start !important;
     }
 
-    .text-right {
-      text-align: right !important;
-      justify-content: flex-end !important;
-    }
-
-    /* Remove gap between pinned right column */
-    .ag-pinned-right-cols-container {
-      margin-left: 0 !important;
-    }
-
-    .ag-pinned-right-header {
-      margin-left: 0 !important;
-    }
-
-    /* Ensure no horizontal overflow */
-    .ag-root-wrapper {
-      overflow: hidden !important;
-    }
-
-    .ag-horizontal-left-spacer, 
-    .ag-horizontal-right-spacer {
-      display: none !important;
-    }
-
-    /* Adjust cell padding */
-    .ag-cell {
-      padding: 0 6px !important;
-    }
-
     .ag-header-cell {
-      padding: 0 6px !important;
+      padding: 0 3px !important;
+    }
+
+    .ag-cell {
+      padding: 0 3px !important;
+    }
+
+    .number-cell {
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ag-cell-value {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Ensure the grid container doesn't overflow */
+    .ag-theme-alpine .ag-root-wrapper {
+      max-width: 100%;
+      overflow-x: hidden !important;
+    }
+
+    /* Remove horizontal scrollbar */
+    .ag-body-horizontal-scroll {
+      display: none !important;
     }
   `;
 
@@ -664,7 +892,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   const metricsColumnDefs = [
     {
       field: 'metric',
-      headerName: 'METRIC',
+      headerName: '',
       pinned: 'left' as const,
       width: 180,
       flex: 0,
@@ -760,9 +988,9 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   const compensationColumnDefs = [
     {
       field: 'component',
-      headerName: 'Component',
+      headerName: '',
       pinned: 'left' as const,
-      width: 180,
+      width: 150,
       flex: 0,
       suppressSizeToFit: true,
       headerClass: 'left-align',
@@ -808,23 +1036,27 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       suppressSizeToFit: false,
       headerClass: 'text-right',
       cellClass: (params: any) => {
-        const classes = ['text-right'];
+        const classes = ['text-right', 'number-cell'];
         if (params.value < 0) classes.push('text-red-600');
         return classes.join(' ');
       },
       cellStyle: { textAlign: 'right' },
-      valueFormatter: (params: any) => formatNegativeCurrency(params.value),
+      cellRenderer: (params: any) => {
+        const value = params.value;
+        const formattedValue = formatNegativeCurrency(value);
+        return <span title={formattedValue} className="truncate block">{formattedValue}</span>;
+      },
     })) as ColDef[],
     {
       field: 'ytd',
       headerName: 'YTD',
       pinned: 'right' as const,
-      width: 130,
+      width: 110,
       flex: 0,
       suppressSizeToFit: true,
       headerClass: 'text-right',
       cellClass: (params: any) => {
-        const classes = ['text-right'];
+        const classes = ['text-right', 'number-cell'];
         if (params.value < 0) classes.push('text-red-600');
         return classes.join(' ');
       },
@@ -924,7 +1156,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
 
   return (
     <>
-      <div className="max-w-full px-8">
+      <div className="max-w-[1600px] mx-auto">
         <style>{customStyles}</style>
         <div className="dashboard-header bg-white rounded-lg shadow-sm mb-8 border border-gray-200">
           <div className="px-8 py-6">
@@ -1316,19 +1548,11 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
 
       <CompensationChangeModal
         isOpen={isCompChangeModalOpen}
-        onClose={()=>{
-          setIsCompChangeModalOpen(false);
-          setEditingChangeId(null);
-        }}
-        onSave={handleCompensationChange}
+        onClose={handleCloseCompChangeModal}
         currentSalary={annualSalary}
-        newSalary={newSalary}
         currentFTE={fte}
-        newFTE={newFTE}
-        currentCF={provider.conversionFactor||45.00}
-        effectiveDate={effectiveDate}
-        reason={changeReason}
-        editingChange={editingChangeId?compensationHistory.find(c=>c.id===editingChangeId):undefined}
+        conversionFactor={provider.conversionFactor}
+        onSave={handleCompensationChange}
       />
     </>
   );
