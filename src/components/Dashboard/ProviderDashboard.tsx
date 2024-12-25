@@ -323,6 +323,8 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   const [isMetricsTableVisible, setIsMetricsTableVisible] = useState(true);
   const [isCompTableVisible, setIsCompTableVisible] = useState(true);
 
+  const [holdbackPercentage, setHoldbackPercentage] = useState(20);
+
   const { monthlySalaries, monthlyDetails } = useMemo(
     () => getMonthlySalaries(annualSalary, fte, compensationHistory),
     [annualSalary, fte, compensationHistory]
@@ -383,11 +385,8 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       {
         component: 'Base Salary',
         isSystem: true,
-        ...months.reduce((acc, month) => ({
-          ...acc,
-          [month.toLowerCase()]: monthlyBaseSalary || 0,
-        }), {}),
-        ytd: monthlyBaseSalary * months.length,
+        ...monthlySalaries,
+        ytd: Object.values(monthlySalaries).reduce((sum, val) => sum + (Number(val) || 0), 0),
       },
       {
         component: 'Incentives',
@@ -399,22 +398,48 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         ytd: months.reduce((sum, month) => sum + (getMonthlyIncentive(month) || 0), 0),
       },
       {
-        component: 'Holdback (20%)',
+        component: `Holdback (${holdbackPercentage}%)`,
         isSystem: true,
         ...months.reduce((acc, month) => ({
           ...acc,
-          [month.toLowerCase()]: -1 * (monthlyBaseSalary || 0) * 0.2,
+          [month.toLowerCase()]: -1 * (monthlySalaries[month.toLowerCase()] || 0) * (holdbackPercentage / 100),
         }), {}),
-        ytd: -1 * monthlyBaseSalary * 0.2 * months.length,
+        ytd: -1 * Object.values(monthlySalaries).reduce((sum, val) => sum + (Number(val) || 0), 0) * (holdbackPercentage / 100),
       },
       ...additionalPayments.map(pay => ({
-        ...pay, // Spread all properties including monthly values
+        ...pay,
         component: pay.name,
         isSystem: false,
         type: 'additionalPay',
         ytd: months.reduce((sum, month) => sum + (Number(pay[month.toLowerCase()]) || 0), 0)
       })),
     ];
+
+    // Calculate YTD Incentives row with cumulative values
+    const incentivesRow = baseData.find(row => row.component === 'Incentives');
+    const ytdIncentivesRow = {
+      component: 'YTD Incentives',
+      isSystem: true,
+      ...months.reduce((acc, month, index) => {
+        const monthKey = month.toLowerCase();
+        // Sum all incentives up to and including current month
+        const cumulative = months
+          .slice(0, index + 1)
+          .reduce((sum, m) => sum + (Number(incentivesRow?.[m.toLowerCase()]) || 0), 0);
+        return { ...acc, [monthKey]: cumulative };
+      }, {}),
+      ytd: incentivesRow?.ytd || 0
+    };
+
+    // Find the index of Call Pay to insert YTD Incentives after it
+    const callPayIndex = baseData.findIndex(row => row.component === 'Call Pay');
+    if (callPayIndex !== -1) {
+      baseData.splice(callPayIndex + 1, 0, ytdIncentivesRow);
+    } else {
+      // If Call Pay doesn't exist, add it after the system rows
+      const lastSystemRowIndex = baseData.filter(row => row.isSystem).length - 1;
+      baseData.splice(lastSystemRowIndex + 1, 0, ytdIncentivesRow);
+    }
 
     const totals = months.reduce((acc, month) => {
       const monthTotal = baseData.reduce((sum, row) => sum + (Number(row[month.toLowerCase()]) || 0), 0);
@@ -673,31 +698,11 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
             </div>
           );
         }
-        
-        // For section headers (wRVU GENERATION and wRVU TARGET)
-        if (params.data.isHeader) {
-          return <span>{params.value}</span>;
-        }
-
-        // For regular rows (Actual wRVUs, test, etc.)
-        const isMainMetric = params.data.metric === 'Actual wRVUs' || 
-                           params.data.metric === 'Target wRVUs';
-        const isSubMetric = params.data.metric === 'test' || 
-                          params.data.metric === 'test2';
-
-        // Main metrics (Actual wRVUs, Target wRVUs) get no padding
-        // Sub metrics (test, test2) also get no padding
-        return (
-          <span className={isMainMetric || isSubMetric ? '' : ''}>
-            {params.value}
-          </span>
-        );
+        return <span className={params.data.isHeader ? 'font-semibold' : ''}>{params.value}</span>;
       },
       cellClass: (params: any) => {
         const classes: string[] = [];
-        if (params.data.isHeader) {
-          classes.push('font-semibold');
-        }
+        if (params.data.isHeader) classes.push('font-semibold');
         if (params.data.metric === 'Total wRVUs' || params.data.metric === 'Total Target') {
           classes.push('font-semibold');
         }
@@ -712,8 +717,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       suppressSizeToFit: false,
       headerClass: 'text-right',
       cellClass: (params: any) => {
-        const classes: string[] = ['text-right'];
-        if (params.data.isAdjustment) classes.push('adjustment-row');
+        const classes = ['text-right'];
         if (params.value < 0) classes.push('text-red-600');
         if (params.data.metric === 'Total wRVUs' || params.data.metric === 'Total Target') {
           classes.push('font-semibold');
@@ -721,7 +725,10 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         return classes.join(' ');
       },
       cellStyle: { textAlign: 'right' },
-      valueFormatter: (params: any) => params.data.isHeader ? '' : formatNegativeValue(params.value),
+      valueFormatter: (params: any) => {
+        if (params.data.isHeader) return '';
+        return formatNegativeValue(params.value);
+      },
     })) as ColDef[],
     {
       field: 'ytd',
@@ -734,6 +741,9 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       cellClass: (params: any) => {
         const classes = ['text-right'];
         if (params.value < 0) classes.push('text-red-600');
+        if (params.data.metric === 'Total wRVUs' || params.data.metric === 'Total Target') {
+          classes.push('font-semibold');
+        }
         return classes.join(' ');
       },
       cellStyle: { textAlign: 'right' },
@@ -1196,6 +1206,30 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
                 </div>
                 <div className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-gray-50 p-6 rounded-lg">
+                      <h3 className="text-lg font-medium mb-4">Holdback Settings</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Holdback Percentage
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="range"
+                              min="0"
+                              max="100"
+                              value={holdbackPercentage}
+                              onChange={(e) => setHoldbackPercentage(Number(e.target.value))}
+                              className="w-full"
+                            />
+                            <span className="text-sm font-medium text-gray-900 min-w-[4rem]">
+                              {holdbackPercentage}%
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="bg-gray-50 p-6 rounded-lg">
                       <h3 className="text-lg font-medium mb-4">Record Compensation Change</h3>
                       <p className="text-gray-600 mb-4">Update provider's base salary, FTE, or other compensation details.</p>
