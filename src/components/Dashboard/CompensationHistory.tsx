@@ -9,64 +9,90 @@ interface CompensationHistoryProps {
   onEdit: (change: CompensationChange) => void;
 }
 
-const CompensationHistory: React.FC<CompensationHistoryProps> = ({ changes, onDelete, onEdit }) => {
+const CompensationHistory: React.FC<CompensationHistoryProps> = ({
+  changes,
+  onDelete,
+  onEdit,
+}) => {
   return (
     <div className="mt-6">
-      <h3 className="text-lg font-medium mb-4">Compensation History</h3>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Effective Date
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Salary Change
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                FTE Change
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Reason
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {changes.map((change) => (
-              <tr key={change.id}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {change.effectiveDate}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {`${formatCurrency(change.previousSalary)} → ${formatCurrency(change.newSalary)}`}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {`${change.previousFTE} → ${change.newFTE}`}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {change.reason}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <button
-                    onClick={() => onEdit(change)}
-                    className="text-blue-600 hover:text-blue-900 mr-4"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => onDelete(change.id)}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    Delete
-                  </button>
-                </td>
+      <h3 className="text-lg font-medium mb-4">Compensation Change History</h3>
+      <div className="bg-white rounded-lg border border-gray-200">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Previous Salary
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  New Salary
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Previous FTE
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  New FTE
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Reason
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {changes.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                    No compensation changes recorded
+                  </td>
+                </tr>
+              ) : (
+                changes.map((change) => (
+                  <tr key={change.id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {new Date(change.effectiveDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {formatCurrency(change.previousSalary)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {formatCurrency(change.newSalary)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {change.previousFTE?.toFixed(2) || "1.00"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {change.newFTE?.toFixed(2) || "1.00"}
+                    </td>
+                    <td className="px-6 py-4">
+                      {change.reason || "No reason provided"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <button
+                        onClick={() => onEdit(change)}
+                        className="text-blue-600 hover:text-blue-900 mr-3"
+                      >
+                        <PencilSquareIcon className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => onDelete(change.id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        <TrashIcon className="h-5 w-5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

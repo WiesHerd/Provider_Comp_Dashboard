@@ -1,13 +1,22 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import AdminNav from '../AdminLayout/AdminNav';
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
+  const [collapsed, setCollapsed] = useState(false);
+
   return (
     <div className="flex min-h-screen bg-gray-100">
-      <AdminNav />
-      <div className="flex-1 transition-all duration-300 [&:has(+aside.w-16)]:ml-16 ml-64">
+      <AdminNav
+        collapsed={collapsed}
+        onToggle={() => setCollapsed(!collapsed)}
+      />
+      <div
+        className={`flex-1 transition-all duration-300 ${
+          collapsed ? 'ml-16' : 'ml-64'
+        }`}
+      >
         <main className="p-6">
           {children}
         </main>
@@ -16,4 +25,4 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-export default DashboardLayout; 
+export default DashboardLayout;

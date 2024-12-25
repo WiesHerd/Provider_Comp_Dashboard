@@ -1,237 +1,233 @@
-import React, { useState, useEffect } from 'react';
-import Modal from '@/components/ui/modal';
+import React, { useEffect } from 'react';
 import { CompensationChange } from '@/types/compensation';
 import { formatCurrency } from '@/utils/formatters';
-import { NumericFormat } from 'react-number-format';
 
 interface CompensationChangeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (change: CompensationChange) => void;
   currentSalary: number;
-  currentFTE: number;
-  currentCF: number;
   newSalary: number;
+  currentFTE: number;
   newFTE: number;
-  reason: string;
+  currentCF: number;
   effectiveDate: string;
-  isEditing?: boolean;
+  reason: string;
+  editingChange?: CompensationChange;
 }
 
 const CompensationChangeModal: React.FC<CompensationChangeModalProps> = ({
   isOpen,
   onClose,
   onSave,
-  currentSalary = 0,
-  currentFTE = 0,
-  currentCF = 0,
-  newSalary = 0,
-  newFTE = 0,
-  reason = '',
-  effectiveDate = '',
-  isEditing = false
+  currentSalary,
+  newSalary,
+  currentFTE,
+  newFTE,
+  currentCF,
+  effectiveDate,
+  reason,
+  editingChange
 }) => {
-  const [effectiveDateState, setEffectiveDateState] = useState(
-    effectiveDate || new Date().toISOString().split('T')[0]
-  );
-  const [newSalaryState, setNewSalaryState] = useState<string>((currentSalary || 0).toFixed(2));
-  const [newFTEState, setNewFTEState] = useState<string>((currentFTE || 0).toFixed(2));
-  const [conversionFactor, setConversionFactor] = useState<string>((currentCF || 0).toFixed(2));
-  const [reasonState, setReasonState] = useState<string>('');
+  const [localNewSalary, setLocalNewSalary] = React.useState(newSalary);
+  const [localNewFTE, setLocalNewFTE] = React.useState(newFTE);
+  const [localEffectiveDate, setLocalEffectiveDate] = React.useState(effectiveDate);
+  const [localReason, setLocalReason] = React.useState(reason);
+  const [localConversionFactor, setLocalConversionFactor] = React.useState(currentCF);
 
+  // Update local state when editing an existing change
   useEffect(() => {
-    if (isOpen) {
-      setNewSalaryState(newSalary.toString());
-      setNewFTEState(newFTE.toString());
-      setConversionFactor(currentCF.toString());
-      setReasonState(reason);
-      setEffectiveDateState(effectiveDate || new Date().toISOString().split('T')[0]);
+    if (editingChange) {
+      setLocalNewSalary(editingChange.newSalary);
+      setLocalNewFTE(editingChange.newFTE || 1.0);
+      setLocalEffectiveDate(editingChange.effectiveDate);
+      setLocalReason(editingChange.reason || '');
+    } else {
+      // Reset to defaults when not editing
+      setLocalNewSalary(currentSalary);
+      setLocalNewFTE(currentFTE);
+      setLocalEffectiveDate('');
+      setLocalReason('');
     }
-  }, [isOpen, newSalary, newFTE, currentCF, reason, effectiveDate]);
-
-  const validateChange = (change: CompensationChange): boolean => {
-    const errors: string[] = [];
-    
-    if (change.newSalary < 0) errors.push('Salary cannot be negative');
-    if (change.newFTE < 0 || change.newFTE > 1) errors.push('FTE must be between 0 and 1');
-    if (!change.effectiveDate) errors.push('Effective date is required');
-    
-    if (errors.length > 0) {
-      alert(errors.join('\n'));
-      return false;
-    }
-    return true;
-  };
+  }, [editingChange, isOpen, currentSalary, currentFTE]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const change: CompensationChange = {
-      effectiveDate: effectiveDateState,
-      previousSalary: currentSalary,
-      newSalary: parseFloat(newSalaryState),
-      previousFTE: currentFTE,
-      newFTE: parseFloat(newFTEState),
-      conversionFactor: parseFloat(conversionFactor),
-      reason: reasonState,
-      providerId: 'temp-id'
-    };
-
-    if (validateChange(change)) {
-      onSave(change);
-    }
+    onSave({
+      id: editingChange?.id || `change-${Date.now()}`,
+      effectiveDate: localEffectiveDate,
+      previousSalary: editingChange ? editingChange.previousSalary : currentSalary,
+      newSalary: localNewSalary,
+      previousFTE: editingChange ? editingChange.previousFTE : currentFTE,
+      newFTE: localNewFTE,
+      reason: localReason
+    });
   };
 
-  const handleSalaryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Remove all non-numeric characters except decimal point
-    const value = e.target.value.replace(/[^0-9.]/g, '');
-    
-    // Ensure only valid numbers are entered
-    if (value === '' || !isNaN(parseFloat(value))) {
-      setNewSalaryState(value);
-    }
+  const validateNumericInput = (value: string, min?: number, max?: number) => {
+    const numValue = value.replace(/[^\d.-]/g, '');
+    if (numValue === '' || isNaN(parseFloat(numValue))) return '';
+    const parsed = parseFloat(numValue);
+    if (min !== undefined && parsed < min) return min.toString();
+    if (max !== undefined && parsed > max) return max.toString();
+    return parsed.toString();
   };
+
+  if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="p-6">
-        <h2 className="text-xl font-semibold mb-6">
-          {isEditing ? 'Edit Compensation Change' : 'Record Compensation Change'}
-        </h2>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Effective Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Effective Date
+    <div className={`modal-overlay ${isOpen ? 'block' : 'hidden'}`}>
+      <div className="modal-content w-[600px]">
+        <h2 className="text-2xl font-semibold mb-6">Record Compensation Change</h2>
+        
+        <div className="space-y-6">
+          <div className="form-group">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Effective Date <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
-              value={effectiveDateState}
-              onChange={(e) => setEffectiveDateState(e.target.value)}
-              className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              value={localEffectiveDate}
+              onChange={(e) => setLocalEffectiveDate(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
               required
             />
           </div>
 
-          {/* Salary Section */}
           <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="form-group">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Current Salary
               </label>
-              <div className="relative">
-                <NumericFormat
-                  value={currentSalary}
-                  thousandSeparator={true}
-                  prefix="$"
-                  disabled
-                  className="block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm px-3 py-2"
-                />
-              </div>
+              <input
+                type="text"
+                value={formatCurrency(editingChange ? editingChange.previousSalary : currentSalary)}
+                disabled
+                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-300 text-gray-500"
+              />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                New Salary
+
+            <div className="form-group">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                New Salary <span className="text-red-500">*</span>
               </label>
               <div className="relative">
-                <NumericFormat
-                  value={newSalaryState}
-                  onValueChange={(values) => {
-                    setNewSalaryState(values.value);
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                <input
+                  type="text"
+                  value={localNewSalary === 0 ? '' : localNewSalary}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/^\$/, '');
+                    setLocalNewSalary(Number(validateNumericInput(value, 0)));
                   }}
-                  thousandSeparator={true}
-                  prefix="$"
-                  allowNegative={false}
-                  decimalScale={2}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 px-3 py-2"
+                  className="w-full pl-8 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                  placeholder="Enter new salary"
+                  required
                 />
               </div>
             </div>
           </div>
 
-          {/* FTE Section */}
           <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="form-group">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Current FTE
               </label>
               <input
                 type="text"
-                value={currentFTE.toFixed(2)}
-                className="block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm"
+                value={editingChange ? editingChange.previousFTE : currentFTE}
                 disabled
+                className="w-full px-4 py-3 rounded-lg bg-gray-50 border border-gray-300 text-gray-500"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                New FTE
+
+            <div className="form-group">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                New FTE <span className="text-red-500">*</span>
               </label>
               <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="1"
-                value={newFTEState}
-                onChange={(e) => setNewFTEState(e.target.value)}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                type="text"
+                value={localNewFTE === 0 ? '' : localNewFTE}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Allow digits, single decimal point, and handle empty input
+                  if (value === '' || value === '.') {
+                    setLocalNewFTE(value === '' ? 0 : value);
+                  } else {
+                    const numValue = parseFloat(value);
+                    if (!isNaN(numValue) && numValue >= 0 && numValue <= 1) {
+                      // Allow up to 2 decimal places
+                      setLocalNewFTE(Number(Math.min(1, Math.max(0, Number(value))).toFixed(2)));
+                    }
+                  }
+                }}
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                placeholder="Enter FTE (0-1)"
                 required
               />
             </div>
           </div>
 
-          {/* Conversion Factor */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Conversion Factor
+          <div className="form-group">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Conversion Factor <span className="text-red-500">*</span>
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span className="text-gray-500 sm:text-sm">$</span>
-              </div>
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
               <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={conversionFactor}
-                onChange={(e) => setConversionFactor(e.target.value)}
-                className="pl-7 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                type="text"
+                value={localConversionFactor === 0 ? '' : localConversionFactor}
+                onChange={(e) => {
+                  setLocalConversionFactor(Number(validateNumericInput(e.target.value, 0)));
+                }}
+                className="w-full pl-8 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                placeholder="Enter conversion factor"
                 required
               />
             </div>
           </div>
 
-          {/* Reason */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Reason for Change
+          <div className="form-group">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Reason for Change <span className="text-red-500">*</span>
             </label>
             <textarea
-              value={reasonState}
-              onChange={(e) => setReasonState(e.target.value)}
-              className="block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2"
-              rows={3}
-              placeholder="Enter reason for change"
+              value={localReason}
+              onChange={(e) => setLocalReason(e.target.value)}
+              rows={4}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none"
+              placeholder="Enter reason for compensation change..."
+              required
             />
           </div>
 
-          <div className="flex justify-end space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              Save Change
-            </button>
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Change Summary</h3>
+            <div className="space-y-2 text-sm">
+              <p>Salary Change: {formatCurrency(currentSalary)} → {formatCurrency(localNewSalary)}</p>
+              <p>FTE Change: {currentFTE} → {localNewFTE}</p>
+              <p>Effective: {new Date(localEffectiveDate).toLocaleDateString()}</p>
+            </div>
           </div>
-        </form>
+        </div>
+
+        <div className="mt-8 flex justify-end gap-4">
+          <button
+            onClick={onClose}
+            className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={!localEffectiveDate || !localNewSalary || !localNewFTE || !localReason}
+            className="px-6 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+          >
+            Save Change
+          </button>
+        </div>
       </div>
-    </Modal>
+    </div>
   );
 };
 
