@@ -12,7 +12,7 @@ import { formatCurrency, formatNumber } from '@/utils/formatters';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import CompensationHistory from './CompensationHistory';
-import CompensationChangeModal from './CompensationChangeModal';
+import CompensationChangeModalComponent from './CompensationChangeModal';
 import { CompensationChange } from '@/types/compensation';
 import { 
   ColDef, 
@@ -89,7 +89,7 @@ function getMonthlySalaries(
     });
 
     if (monthlyChanges.length === 0) {
-      monthlySalaries[monthKey] = currentAnnualSalary / 12;
+      monthlySalaries[monthKey] = (currentAnnualSalary * currentFTE) / 12;
       monthlyDetails[monthKey] = { 
         changed: false, 
         prorated: false,
@@ -112,24 +112,22 @@ function getMonthlySalaries(
 
     if (dayOfChange === 1) {
       // Entire month at new salary and FTE
-      currentAnnualSalary = newAnnual;
-      currentFTE = newFTE;
-      monthlySalaries[monthKey] = (currentAnnualSalary * currentFTE) / 12;
-      monthlyDetails[monthKey] = {
-        changed: true,
-        prorated: false,
-        oldAnnual,
-        newAnnual,
-        oldFTE,
-        newFTE
-      };
+      monthlySalaries[monthKey] = (newAnnual * newFTE) / 12;
+    monthlyDetails[monthKey] = {
+      changed: true,
+      prorated: false,
+      oldAnnual,
+      newAnnual,
+      oldFTE,
+      newFTE
+    };
     } else {
-      // Partial proration
+      // Prorate the month based on days
       const oldDays = dayOfChange - 1;
       const newDays = daysInMonth - oldDays;
       
-      const oldMonthlyAmount = (oldAnnual / 12) * (oldDays / daysInMonth);
-      const newMonthlyAmount = (newAnnual / 12) * (newDays / daysInMonth);
+      const oldMonthlyAmount = ((oldAnnual * oldFTE) / 12) * (oldDays / daysInMonth);
+      const newMonthlyAmount = ((newAnnual * newFTE) / 12) * (newDays / daysInMonth);
       const total = oldMonthlyAmount + newMonthlyAmount;
 
       monthlySalaries[monthKey] = total;
@@ -146,11 +144,11 @@ function getMonthlySalaries(
         newMonthly: newMonthlyAmount,
         total
       };
-
-      // Update current values for future months
-      currentAnnualSalary = newAnnual;
-      currentFTE = newFTE;
     }
+
+    // Update current values for future months
+    currentAnnualSalary = newAnnual;
+    currentFTE = newFTE;
   }
 
   return { monthlySalaries, monthlyDetails };
@@ -1546,7 +1544,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         editingData={editingPayment}
       />
 
-      <CompensationChangeModal
+      <CompensationChangeModalComponent
         isOpen={isCompChangeModalOpen}
         onClose={handleCloseCompChangeModal}
         currentSalary={annualSalary}
