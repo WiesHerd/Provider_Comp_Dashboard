@@ -11,11 +11,18 @@ function classNames(...classes: (string | boolean | undefined)[]) {
 }
 
 type UploadType = 'provider' | 'wrvu' | 'market';
+
 interface FileState {
   file: File | null;
   isUploading: boolean;
   error: string | null;
   preview: any[] | null;
+}
+
+interface FileStates {
+  provider: FileState;
+  wrvu: FileState;
+  market: FileState;
 }
 
 interface ProviderData {
@@ -75,6 +82,33 @@ const validateProviderData = (data: any[]) => {
   return null;
 };
 
+const validateWRVUData = (data: any[]) => {
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    return 'No data found in file';
+  }
+
+  const firstRow = data[0];
+  const requiredFields = [
+    'employee_id',
+    'first_name',
+    'last_name',
+    'specialty',
+    'jan', 'feb', 'mar', 'apr', 'may', 'jun',
+    'jul', 'aug', 'sep', 'oct', 'nov', 'dec'
+  ];
+
+  const missingFields = requiredFields.filter(field => {
+    const value = firstRow[field];
+    return value === undefined || value === null || value === '';
+  });
+
+  if (missingFields.length > 0) {
+    return `Missing required fields: ${missingFields.join(', ')}`;
+  }
+
+  return null;
+};
+
 // Add this new validation function for market data
 const validateMarketData = (data: any[]) => {
   if (!data || !Array.isArray(data) || data.length === 0) {
@@ -118,7 +152,7 @@ const validateMarketData = (data: any[]) => {
 export default function UploadPage() {
   const [mounted, setMounted] = useState(false);
   const [selectedTab, setSelectedTab] = useState(0);
-  const [fileStates, setFileStates] = useState<Record<UploadType, FileState>>({
+  const [fileStates, setFileStates] = useState<FileStates>({
     provider: { file: null, isUploading: false, error: null, preview: null },
     wrvu: { file: null, isUploading: false, error: null, preview: null },
     market: { file: null, isUploading: false, error: null, preview: null }
@@ -134,69 +168,91 @@ export default function UploadPage() {
     return null;
   }
 
-  const handleFileSelect = async (type: UploadType, file: File | null) => {
+  const handleFileChange = async (type: UploadType, file: File | null) => {
     if (!file) return;
-
+    
     try {
-      // Validate file type
-      if (!file.name.endsWith('.csv') && !file.name.endsWith('.xlsx')) {
-        throw new Error('Please upload a CSV or Excel file');
-      }
+      const reader = new FileReader();
+      reader.onload = async (event: ProgressEvent<FileReader>) => {
+        try {
+          const text = event.target?.result;
+          if (typeof text !== 'string') {
+            throw new Error('Failed to read file as text');
+          }
+          
+          const workbook = XLSX.read(text, { type: 'binary' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          
+          // Read data as JSON with header row, using lowercase headers
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+            raw: false, // Get formatted text
+            defval: '', // Default to empty string
+            header: 'A', // Use A1 notation
+          });
 
-      // Read file contents
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      
-      // Convert to JSON with header row mapping
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-        raw: false,
-        dateNF: 'yyyy-mm-dd',
-        defval: '',
-        blankrows: false,
-        header: 1
-      }) as Array<Array<string>>;
+          // Get headers from first row
+          const headers = Object.keys(jsonData[0] || {}).reduce((acc: Record<string, string>, key) => {
+            const value = ((jsonData[0] as Record<string, any>)[key] || '').toString().toLowerCase().trim();
+            acc[key] = value;
+            return acc;
+          }, {} as Record<string, string>);
 
-      if (jsonData.length < 2) {
-        throw new Error('File must contain a header row and at least one data row');
-      }
+          console.log('Headers:', headers);
 
-      // Extract headers and data
-      const [headers, ...rows] = jsonData;
-      
-      // Convert headers to lowercase for consistent mapping
-      const formattedHeaders = headers.map(h => h.toLowerCase().trim().replace(/\s+/g, '_'));
-      
-      // Map data to objects with formatted headers
-      const formattedData = rows.map(row => {
-        const obj: Record<string, string | number> = {};
-        formattedHeaders.forEach((header, index) => {
-          obj[header] = row[index] || '';
-        });
-        return obj;
-      });
+          // Remove header row and map data
+          const rows = jsonData.slice(1).map((row: any) => {
+            const mappedRow: Record<string, any> = {};
+            Object.keys(row).forEach(key => {
+              const header = headers[key];
+              if (header) {
+                // Convert numeric values for months
+                if (['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].includes(header)) {
+                  mappedRow[header] = Number(row[key] || 0);
+                } else if (header === 'employee_id' || header === 'employee id') {
+                  mappedRow['employee_id'] = row[key].toString().trim();
+                } else if (header === 'first_name' || header === 'first name') {
+                  mappedRow['first_name'] = row[key].toString().trim();
+                } else if (header === 'last_name' || header === 'last name') {
+                  mappedRow['last_name'] = row[key].toString().trim();
+                } else if (header === 'specialty') {
+                  mappedRow['specialty'] = row[key].toString().trim();
+                }
+              }
+            });
+            return mappedRow;
+          });
 
-      // Set the preview data
-      setFileStates(prev => ({
-        ...prev,
-        [type]: {
-          file,
-          isUploading: false,
-          error: null,
-          preview: formattedData
+          console.log('Processed rows:', rows);
+          
+          setFileStates(prev => ({
+            ...prev,
+            [type]: {
+              file,
+              preview: rows,
+              isUploading: false,
+              error: null
+            }
+          }));
+        } catch (error) {
+          console.error('Error parsing file:', error);
+          setFileStates(prev => ({
+            ...prev,
+            [type]: {
+              ...prev[type],
+              error: 'Failed to parse file'
+            }
+          }));
         }
-      }));
+      };
+      reader.readAsBinaryString(file);
     } catch (error) {
-      console.error('File validation error:', error);
+      console.error('Error reading file:', error);
       setFileStates(prev => ({
         ...prev,
         [type]: {
           ...prev[type],
-          file,
-          error: error instanceof Error 
-            ? error.message 
-            : 'Could not read the file. Please make sure it matches the template format.',
-          preview: null
+          error: 'Failed to read file'
         }
       }));
     }
@@ -215,86 +271,39 @@ export default function UploadPage() {
         [type]: { ...prev[type], isUploading: true, error: null }
       }));
 
-      // Log the data being sent
-      console.log('Attempting to upload data:', {
-        type,
-        previewLength: state.preview.length,
-        firstRow: state.preview[0]
-      });
-
-      // Use different validation based on type
-      let validationError;
-      if (type === 'market') {
-        validationError = validateMarketData(state.preview);
-      } else if (type === 'provider') {
-        validationError = validateProviderData(state.preview);
+      // Validate preview data
+      if (!Array.isArray(state.preview)) {
+        throw new Error('Preview data is not an array');
       }
 
-      if (validationError) {
-        throw new Error(validationError);
+      if (state.preview.length === 0) {
+        throw new Error('No data to upload');
       }
 
-      // Map the data based on type
-      let mappedData;
-      if (type === 'market') {
-        mappedData = state.preview.map((row: any, index: number) => {
-          try {
-            return {
-              specialty: String(row.specialty),
-              p25_total: Number(row.p25_tcc || row.p25_total || 0),
-              p50_total: Number(row.p50_tcc || row.p50_total || 0),
-              p75_total: Number(row.p75_tcc || row.p75_total || 0),
-              p90_total: Number(row.p90_tcc || row.p90_total || 0),
-              p25_wrvu: Number(row.p25_wrvu || 0),
-              p50_wrvu: Number(row.p50_wrvu || 0),
-              p75_wrvu: Number(row.p75_wrvu || 0),
-              p90_wrvu: Number(row.p90_wrvu || 0),
-              p25_cf: Number(row.p25_cf || 0),
-              p50_cf: Number(row.p50_cf || 0),
-              p75_cf: Number(row.p75_cf || 0),
-              p90_cf: Number(row.p90_cf || 0),
-            };
-          } catch (error) {
-            throw new Error(`Row ${index + 1}: ${error instanceof Error ? error.message : 'Invalid data format'}`);
-          }
-        });
-      } else if (type === 'provider') {
-        // Existing provider data mapping
-        mappedData = state.preview.map((row: any, index: number) => {
-          try {
-            const baseSalary = parseFloat(row.base_salary);
-            if (isNaN(baseSalary)) {
-              throw new Error(`Invalid base salary: ${row.base_salary}`);
-            }
+      // Log the data we're about to send
+      const requestData = {
+        data: state.preview.map(row => ({
+          employee_id: row.employee_id,
+          first_name: row.first_name,
+          last_name: row.last_name,
+          specialty: row.specialty,
+          jan: Number(row.jan),
+          feb: Number(row.feb),
+          mar: Number(row.mar),
+          apr: Number(row.apr),
+          may: Number(row.may),
+          jun: Number(row.jun),
+          jul: Number(row.jul),
+          aug: Number(row.aug),
+          sep: Number(row.sep),
+          oct: Number(row.oct),
+          nov: Number(row.nov),
+          dec: Number(row.dec)
+        }))
+      };
 
-            const fte = parseFloat(row.fte);
-            if (isNaN(fte)) {
-              throw new Error(`Invalid FTE: ${row.fte}`);
-            }
-
-            return {
-              employee_id: String(row.employee_id),
-              first_name: String(row.first_name),
-              last_name: String(row.last_name),
-              email: String(row.email),
-              specialty: String(row.specialty),
-              department: String(row.department),
-              hire_date: String(row.hire_date),
-              fte: fte,
-              base_salary: baseSalary,
-              compensation_model: String(row.compensation_model),
-              status: 'Active'
-            };
-          } catch (error) {
-            throw new Error(`Row ${index + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          }
-        });
-      }
-
-      console.log('Sending mapped data to API:', {
-        firstRow: mappedData[0],
-        totalRows: mappedData.length
-      });
+      console.log('Request data:', requestData);
+      console.log('Stringified request:', JSON.stringify(requestData));
 
       // Make the upload request
       const response = await fetch(`/api/upload/${type}`, {
@@ -302,24 +311,30 @@ export default function UploadPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ data: mappedData })
+        body: JSON.stringify(requestData)
       });
 
-      console.log('API Response status:', response.status);
-      
       if (!response.ok) {
         const text = await response.text();
-        console.error('Error response:', text);
+        console.error('Error response text:', text);
+        let errorMessage = 'Upload failed';
         try {
-          const result = JSON.parse(text);
-          throw new Error(result.error || 'Upload failed');
+          if (text) {
+            const result = JSON.parse(text);
+            errorMessage = result.error || errorMessage;
+          } else {
+            console.error('Empty error response from server');
+            errorMessage = 'Server returned an empty error response';
+          }
         } catch (e) {
-          throw new Error('Upload failed: ' + text);
+          console.error('Error parsing error response:', e);
+          errorMessage = text || 'Unknown error occurred';
         }
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
-      console.log('API Response data:', result);
+      console.log('Upload successful:', result);
 
       // Clear the file state and show success message
       setFileStates(prev => ({
@@ -331,11 +346,8 @@ export default function UploadPage() {
           preview: null
         }
       }));
-      
-      // Show success message to user
-      alert(result.message || 'Upload successful');
 
-      return result;
+      alert(`Successfully uploaded ${result.count} records`);
     } catch (error) {
       console.error('Upload error:', error);
       setFileStates(prev => ({
@@ -346,6 +358,7 @@ export default function UploadPage() {
           error: error instanceof Error ? error.message : 'Upload failed'
         }
       }));
+      alert(error instanceof Error ? error.message : 'Upload failed');
     }
   };
 
@@ -394,7 +407,7 @@ export default function UploadPage() {
               <UploadSection
                 type="provider"
                 state={fileStates.provider}
-                onFileSelect={(file) => handleFileSelect('provider', file)}
+                onFileSelect={(file) => handleFileChange('provider', file)}
                 onUpload={() => handleUpload('provider')}
                 onDownload={() => downloadTemplate('provider')}
                 onClear={() => clearFile('provider')}
@@ -419,19 +432,29 @@ export default function UploadPage() {
               <UploadSection
                 type="wrvu"
                 state={fileStates.wrvu}
-                onFileSelect={(file) => handleFileSelect('wrvu', file)}
+                onFileSelect={(file) => handleFileChange('wrvu', file)}
                 onUpload={() => handleUpload('wrvu')}
                 onDownload={() => downloadTemplate('wrvu')}
                 onClear={() => clearFile('wrvu')}
                 title="wRVU Data Upload"
                 description="Upload monthly wRVU data for providers."
                 columns={[
-                  { name: 'Employee ID', example: 'EMP1001' },
-                  { name: 'Month', example: '2024-01' },
-                  { name: 'Actual wRVUs', example: '400.00' },
-                  { name: 'Target wRVUs', example: '375.70' },
-                  { name: 'Adjustment Type', example: 'Bonus' },
-                  { name: 'Adjustment Amount', example: '50.00' }
+                  { name: 'employee_id', example: 'EMP1001' },
+                  { name: 'first_name', example: 'John' },
+                  { name: 'last_name', example: 'Smith' },
+                  { name: 'specialty', example: 'Cardiology' },
+                  { name: 'jan', example: '450' },
+                  { name: 'feb', example: '425' },
+                  { name: 'mar', example: '500' },
+                  { name: 'apr', example: '475' },
+                  { name: 'may', example: '525' },
+                  { name: 'jun', example: '450' },
+                  { name: 'jul', example: '475' },
+                  { name: 'aug', example: '500' },
+                  { name: 'sep', example: '450' },
+                  { name: 'oct', example: '475' },
+                  { name: 'nov', example: '425' },
+                  { name: 'dec', example: '450' }
                 ]}
               />
             </Tab.Panel>
@@ -440,7 +463,7 @@ export default function UploadPage() {
               <UploadSection
                 type="market"
                 state={fileStates.market}
-                onFileSelect={(file) => handleFileSelect('market', file)}
+                onFileSelect={(file) => handleFileChange('market', file)}
                 onUpload={() => handleUpload('market')}
                 onDownload={() => downloadTemplate('market')}
                 onClear={() => clearFile('market')}

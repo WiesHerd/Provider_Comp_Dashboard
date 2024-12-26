@@ -25,6 +25,11 @@ const navigation = [
     href: '/admin/market-data',
     icon: CurrencyDollarIcon
   },
+  {
+    name: 'wRVU Data',
+    href: '/admin/wrvu-data',
+    icon: ChartBarIcon
+  },
   { 
     name: 'Upload', 
     href: '/admin/upload', 

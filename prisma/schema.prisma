@@ -25,6 +25,7 @@ model Provider {
   wrvuAdjustments    WRVUAdjustment[]
   targetAdjustments  TargetAdjustment[]
   additionalPayments AdditionalPayment[]
+  wrvuData           WRVUData[]
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
 
@@ -112,4 +113,28 @@ model MarketData {
   updatedAt   DateTime @updatedAt
 
   @@map("market_data")
+}
+
+model WRVUData {
+  id          String   @id @default(cuid())
+  year        Int
+  jan         Float    @default(0)
+  feb         Float    @default(0)
+  mar         Float    @default(0)
+  apr         Float    @default(0)
+  may         Float    @default(0)
+  jun         Float    @default(0)
+  jul         Float    @default(0)
+  aug         Float    @default(0)
+  sep         Float    @default(0)
+  oct         Float    @default(0)
+  nov         Float    @default(0)
+  dec         Float    @default(0)
+  providerId  String
+  provider    Provider @relation(fields: [providerId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([providerId, year])
+  @@map("wrvu_data")
 }
