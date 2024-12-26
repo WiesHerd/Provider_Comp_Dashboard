@@ -7,7 +7,7 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import AddAdjustmentModal from './AddAdjustmentModal';
 import WRVUChart from './WRVUChart';
 import WRVUGauge from './WRVUGauge';
-import { CurrencyDollarIcon, ChartBarIcon, PencilIcon, TrashIcon, PlusIcon, Cog6ToothIcon, BanknotesIcon, ChartPieIcon, ScaleIcon, ArrowTrendingUpIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { CurrencyDollarIcon, ChartBarIcon, PencilIcon, TrashIcon, PlusIcon, Cog6ToothIcon, BanknotesIcon, ChartPieIcon, ScaleIcon, ArrowTrendingUpIcon, ArrowPathIcon, ArrowDownTrayIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -25,8 +25,8 @@ import {
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 
-interface ProviderDashboardProps {
-  provider: {
+interface Provider {
+  id: string;
     firstName: string;
     middleInitial?: string;
     lastName: string;
@@ -38,7 +38,6 @@ interface ProviderDashboardProps {
     conversionFactor: number;
     hireDate: Date;
     fte?: number;
-  };
 }
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -56,6 +55,10 @@ interface MonthlyDetail {
   oldMonthly?: number;
   newMonthly?: number;
   total?: number;
+}
+
+interface ProviderDashboardProps {
+  provider: Provider;
 }
 
 // Proration logic updated for clarity:
@@ -551,11 +554,11 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   const monthlyVariances = useMemo(() => calculateVariance(totalWRVUs, totalTargetsWithAdjustments), [totalWRVUs, totalTargetsWithAdjustments]);
 
   const totalIncentives = useMemo(() => {
-    return months.reduce((sum, m) => {
+    return months.reduce((sum: number, m: string) => {
       const v = monthlyVariances[m.toLowerCase()] || 0;
       return sum + calculateIncentive(v, provider.conversionFactor);
     }, 0);
-  }, [monthlyVariances, provider.conversionFactor]);
+  }, [monthlyVariances, provider.conversionFactor, months]);
 
   const ytdWRVUs = totalWRVUs.ytd;
 
@@ -597,7 +600,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         component: 'Base Salary',
         isSystem: true,
         ...monthlySalaries,
-        ytd: Object.values(monthlySalaries).reduce((sum, val) => sum + (Number(val) || 0), 0),
+        ytd: Object.values(monthlySalaries).reduce((sum: number, val) => sum + (Number(val) || 0), 0),
       },
       {
         component: 'Incentives',
@@ -782,22 +785,22 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     setChangeReason('');
   };
 
-  const handleCompensationChange = (data: CompensationChange) => {
-    setCompensationHistory(prev =>
-      editingChangeId
-        ? prev.map(change => change.id === editingChangeId ? {...data, id: editingChangeId} : change)
-        : [...prev, {...data, id: `change-${Date.now()}`}]
-    );
-
-    setAnnualSalary(data.newSalary);
-    setFte(data.newFTE);
-
+  const handleCompensationChange = (data: {
+    effectiveDate: string;
+    newSalary: number;
+    newFTE: number;
+    conversionFactor: number;
+    reason: string;
+  }) => {
+    const change: CompensationChange = {
+      id: crypto.randomUUID(),
+      providerId: provider.id,
+      previousSalary: annualSalary,
+      previousFTE: fte,
+      ...data
+    };
+    setCompensationHistory([...compensationHistory, change]);
     setIsCompChangeModalOpen(false);
-    setEditingChangeId(null);
-    setNewSalary(0);
-    setNewFTE(1.0);
-    setEffectiveDate('');
-    setChangeReason('');
   };
 
   const customStyles = `
@@ -1152,6 +1155,15 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     params.api.sizeColumnsToFit();
   };
 
+  const currentProgress = useMemo(() => calculateYTDTargetProgress(getRowData()).percentage, [getRowData]);
+
+  const getStatusIndicator = (progress: number) => {
+    if (progress >= 90) return { class: 'bg-emerald-400/10 text-emerald-400', text: 'Exceptional' };
+    if (progress >= 70) return { class: 'bg-green-400/10 text-green-400', text: 'On Track' };
+    if (progress >= 40) return { class: 'bg-amber-400/10 text-amber-400', text: 'Needs Attention' };
+    return { class: 'bg-red-400/10 text-red-400', text: 'Below Target' };
+  };
+
   return (
     <>
       <div className="max-w-[1600px] mx-auto">
@@ -1377,35 +1389,110 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
 
           {activeView === 'analytics' && (
             <div className="space-y-6">
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden performance-metrics">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <h2 className="text-lg font-medium text-gray-900">Performance Metrics</h2>
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                      Performance Metrics
+                    </h2>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-gray-900 rounded-full text-sm">
+                      <span className="text-gray-400">Current:</span>
+                      <span className="font-medium text-white">{currentProgress.toFixed(1)}%</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusIndicator(currentProgress).class}`}>
+                        {getStatusIndicator(currentProgress).text}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button className="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                      <ArrowPathIcon className="h-5 w-5" />
+                    </button>
+                    <button className="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                      <ArrowDownTrayIcon className="h-5 w-5" />
+                    </button>
+                  </div>
                 </div>
+
                 <div className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
                       <WRVUGauge
                         title="Plan Year Progress"
                         value={calculatePlanYearProgress(getRowData()).percentage}
                         subtitle={`${calculatePlanYearProgress(getRowData()).completed} of ${calculatePlanYearProgress(getRowData()).total} months`}
                         size="large"
+                        showTrend={true}
                       />
+                      <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-500">Last updated:</span>
+                          <span className="text-sm font-medium text-gray-900">{new Date().toLocaleDateString()}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
                       <WRVUGauge
                         title="Target Progress"
                         value={calculateYTDTargetProgress(getRowData()).percentage}
                         subtitle={`${formatNumber(calculateYTDTargetProgress(getRowData()).actual)} of ${formatNumber(calculateYTDTargetProgress(getRowData()).target)}`}
                         size="large"
+                        showTrend={true}
                       />
+                      <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-500">YTD Progress</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-900">
+                              {calculateYTDTargetProgress(getRowData()).percentage.toFixed(1)}%
+                            </span>
+                            <span className="text-xs text-emerald-500">↑</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+
+                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
                       <WRVUGauge
                         title="Incentive % of Base"
-                        value={(totalIncentives / annualSalary)*100}
+                        value={(totalIncentives / annualSalary) * 100}
                         subtitle={`${formatCurrency(totalIncentives)} of ${formatCurrency(annualSalary)}`}
                         size="large"
+                        showTrend={true}
                       />
+                      <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-500">YTD Incentives</span>
+                          <span className="text-sm font-medium text-gray-900">{formatCurrency(totalIncentives)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8">
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <InformationCircleIcon className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-semibold text-blue-900 mb-1">Performance Summary</h4>
+                          <p className="text-sm text-blue-700 leading-relaxed">
+                            Your YTD wRVU production is at {calculateYTDTargetProgress(getRowData()).percentage.toFixed(1)}% of target. 
+                            {calculateYTDTargetProgress(getRowData()).percentage >= 100 
+                              ? ' You are exceeding your target!' 
+                              : ' Keep pushing to reach your target.'}
+                          </p>
+                          <div className="mt-3 flex gap-3">
+                            <button className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                              View Details
+                            </button>
+                            <button className="inline-flex items-center px-3 py-1.5 bg-white text-blue-600 text-sm font-medium rounded-lg hover:bg-blue-50 transition-colors">
+                              Set Reminders
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
