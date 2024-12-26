@@ -31,7 +31,8 @@
     "react-dropzone": "^14.3.5",
     "react-number-format": "^5.4.2",
     "recharts": "^2.13.3",
-    "tailwind-merge": "^2.5.4"
+    "tailwind-merge": "^2.5.4",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@shadcn/ui": "^0.0.4",

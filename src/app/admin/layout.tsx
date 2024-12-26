@@ -14,19 +14,28 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const navigation = [
-  { name: 'Data Management', children: [
-    { name: 'Upload Data', href: '/admin/upload', icon: CloudArrowUpIcon },
-    { name: 'Manage Templates', href: '/admin/templates', icon: DocumentDuplicateIcon },
-  ]},
-  { name: 'Provider Management', children: [
-    { name: 'All Providers', href: '/admin/providers', icon: UsersIcon },
-    { name: 'Departments', href: '/admin/departments', icon: BuildingOfficeIcon },
-  ]},
-  { name: 'System', children: [
-    { name: 'Reports', href: '/admin/reports', icon: ChartBarIcon },
-    { name: 'Settings', href: '/admin/settings', icon: Cog6ToothIcon },
-    { name: 'Configuration', href: '/admin/config', icon: AdjustmentsHorizontalIcon },
-  ]},
+  {
+    name: 'PROVIDER MANAGEMENT',
+    items: [
+      { name: 'All Providers', href: '/admin/providers', icon: UsersIcon },
+      { name: 'Departments', href: '/admin/departments', icon: BuildingOfficeIcon },
+    ],
+  },
+  {
+    name: 'DATA MANAGEMENT',
+    items: [
+      { name: 'Upload Data', href: '/admin/upload', icon: CloudArrowUpIcon },
+      { name: 'Manage Templates', href: '/admin/templates', icon: DocumentDuplicateIcon },
+    ],
+  },
+  {
+    name: 'SYSTEM',
+    items: [
+      { name: 'Reports', href: '/admin/reports', icon: ChartBarIcon },
+      { name: 'Configuration', href: '/admin/config', icon: AdjustmentsHorizontalIcon },
+      { name: 'Settings', href: '/admin/settings', icon: Cog6ToothIcon },
+    ],
+  },
 ];
 
 export default function AdminLayout({
@@ -50,7 +59,7 @@ export default function AdminLayout({
                 {group.name}
               </h3>
               <div className="mt-2 space-y-1">
-                {group.children.map((item) => {
+                {group.items.map((item) => {
                   const isActive = pathname === item.href;
                   return (
                     <Link
