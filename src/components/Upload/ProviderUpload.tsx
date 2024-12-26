@@ -4,7 +4,7 @@ import { useState } from 'react';
 import UploadSection from './UploadSection';
 import { DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 
-export default function WRVUUpload() {
+export default function ProviderUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export default function WRVUUpload() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/upload/wrvu', {
+      const response = await fetch('/api/upload/provider', {
         method: 'POST',
         body: formData,
       });
@@ -45,7 +45,7 @@ export default function WRVUUpload() {
   };
 
   const handleDownload = () => {
-    window.location.href = '/api/templates/wrvu';
+    window.location.href = '/api/templates/provider';
   };
 
   return (
