@@ -46,8 +46,7 @@ export default function MarketDataUploadPage() {
     if (!preview.length) return;
 
     try {
-      // TODO: API call to save market data
-      const response = await fetch('/api/market-data/upload', {
+      const response = await fetch('/api/upload/market', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

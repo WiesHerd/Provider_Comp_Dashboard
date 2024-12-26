@@ -8,7 +8,8 @@ import {
   CloudArrowUpIcon,
   HomeIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  CurrencyDollarIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -18,6 +19,11 @@ const navigation = [
     name: 'Providers', 
     href: '/admin/providers', 
     icon: UsersIcon
+  },
+  {
+    name: 'Market Data',
+    href: '/admin/market-data',
+    icon: CurrencyDollarIcon
   },
   { 
     name: 'Upload', 

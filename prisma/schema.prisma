@@ -89,3 +89,27 @@ model AdditionalPayment {
 
   @@index([providerId, year, month])
 }
+
+model MarketData {
+  id          String   @id @default(cuid())
+  specialty   String   @unique
+  // Total Compensation Percentiles
+  p25_total   Float
+  p50_total   Float
+  p75_total   Float
+  p90_total   Float
+  // WRVU Percentiles
+  p25_wrvu    Float
+  p50_wrvu    Float
+  p75_wrvu    Float
+  p90_wrvu    Float
+  // Conversion Factor Percentiles
+  p25_cf      Float
+  p50_cf      Float
+  p75_cf      Float
+  p90_cf      Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("market_data")
+}

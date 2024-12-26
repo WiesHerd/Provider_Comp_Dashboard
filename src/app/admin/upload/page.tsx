@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tab } from '@headlessui/react';
 import UploadSection from '@/components/Upload/UploadSection';
 import * as XLSX from 'xlsx';
@@ -75,13 +75,64 @@ const validateProviderData = (data: any[]) => {
   return null;
 };
 
+// Add this new validation function for market data
+const validateMarketData = (data: any[]) => {
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    return 'No data found in file';
+  }
+
+  const firstRow = data[0];
+  
+  // Check specialty field
+  if (!firstRow.specialty) {
+    return 'Missing required field: specialty';
+  }
+
+  // Check TCC/total fields
+  const tccFields = ['p25_tcc', 'p50_tcc', 'p75_tcc', 'p90_tcc'];
+  const totalFields = ['p25_total', 'p50_total', 'p75_total', 'p90_total'];
+  const hasTccFields = tccFields.every(field => typeof firstRow[field] !== 'undefined');
+  const hasTotalFields = totalFields.every(field => typeof firstRow[field] !== 'undefined');
+  
+  if (!hasTccFields && !hasTotalFields) {
+    return 'Missing required TCC fields. Expected either p25_tcc, p50_tcc, p75_tcc, p90_tcc or p25_total, p50_total, p75_total, p90_total';
+  }
+
+  // Check wRVU fields
+  const wrvuFields = ['p25_wrvu', 'p50_wrvu', 'p75_wrvu', 'p90_wrvu'];
+  const missingWrvu = wrvuFields.filter(field => typeof firstRow[field] === 'undefined');
+  if (missingWrvu.length > 0) {
+    return `Missing required wRVU fields: ${missingWrvu.join(', ')}`;
+  }
+
+  // Check CF fields
+  const cfFields = ['p25_cf', 'p50_cf', 'p75_cf', 'p90_cf'];
+  const missingCf = cfFields.filter(field => typeof firstRow[field] === 'undefined');
+  if (missingCf.length > 0) {
+    return `Missing required CF fields: ${missingCf.join(', ')}`;
+  }
+
+  return null;
+};
+
 export default function UploadPage() {
+  const [mounted, setMounted] = useState(false);
   const [selectedTab, setSelectedTab] = useState(0);
   const [fileStates, setFileStates] = useState<Record<UploadType, FileState>>({
     provider: { file: null, isUploading: false, error: null, preview: null },
     wrvu: { file: null, isUploading: false, error: null, preview: null },
     market: { file: null, isUploading: false, error: null, preview: null }
   });
+
+  // Use useEffect to handle client-side initialization
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Don't render anything until mounted to avoid hydration mismatch
+  if (!mounted) {
+    return null;
+  }
 
   const handleFileSelect = async (type: UploadType, file: File | null) => {
     if (!file) return;
@@ -171,44 +222,74 @@ export default function UploadPage() {
         firstRow: state.preview[0]
       });
 
-      // Validate the data before mapping
-      const validationError = validateProviderData(state.preview);
+      // Use different validation based on type
+      let validationError;
+      if (type === 'market') {
+        validationError = validateMarketData(state.preview);
+      } else if (type === 'provider') {
+        validationError = validateProviderData(state.preview);
+      }
+
       if (validationError) {
         throw new Error(validationError);
       }
 
-      // Map the data to match the database schema
-      const mappedData = state.preview.map((row: any, index: number) => {
-        try {
-          // Parse numeric values
-          const baseSalary = parseFloat(row.base_salary);
-          if (isNaN(baseSalary)) {
-            throw new Error(`Invalid base salary: ${row.base_salary}`);
+      // Map the data based on type
+      let mappedData;
+      if (type === 'market') {
+        mappedData = state.preview.map((row: any, index: number) => {
+          try {
+            return {
+              specialty: String(row.specialty),
+              p25_total: Number(row.p25_tcc || row.p25_total || 0),
+              p50_total: Number(row.p50_tcc || row.p50_total || 0),
+              p75_total: Number(row.p75_tcc || row.p75_total || 0),
+              p90_total: Number(row.p90_tcc || row.p90_total || 0),
+              p25_wrvu: Number(row.p25_wrvu || 0),
+              p50_wrvu: Number(row.p50_wrvu || 0),
+              p75_wrvu: Number(row.p75_wrvu || 0),
+              p90_wrvu: Number(row.p90_wrvu || 0),
+              p25_cf: Number(row.p25_cf || 0),
+              p50_cf: Number(row.p50_cf || 0),
+              p75_cf: Number(row.p75_cf || 0),
+              p90_cf: Number(row.p90_cf || 0),
+            };
+          } catch (error) {
+            throw new Error(`Row ${index + 1}: ${error instanceof Error ? error.message : 'Invalid data format'}`);
           }
+        });
+      } else if (type === 'provider') {
+        // Existing provider data mapping
+        mappedData = state.preview.map((row: any, index: number) => {
+          try {
+            const baseSalary = parseFloat(row.base_salary);
+            if (isNaN(baseSalary)) {
+              throw new Error(`Invalid base salary: ${row.base_salary}`);
+            }
 
-          const fte = parseFloat(row.fte);
-          if (isNaN(fte)) {
-            throw new Error(`Invalid FTE: ${row.fte}`);
+            const fte = parseFloat(row.fte);
+            if (isNaN(fte)) {
+              throw new Error(`Invalid FTE: ${row.fte}`);
+            }
+
+            return {
+              employee_id: String(row.employee_id),
+              first_name: String(row.first_name),
+              last_name: String(row.last_name),
+              email: String(row.email),
+              specialty: String(row.specialty),
+              department: String(row.department),
+              hire_date: String(row.hire_date),
+              fte: fte,
+              base_salary: baseSalary,
+              compensation_model: String(row.compensation_model),
+              status: 'Active'
+            };
+          } catch (error) {
+            throw new Error(`Row ${index + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
           }
-
-          // Create the provider object with default status
-          return {
-            employee_id: String(row.employee_id),
-            first_name: String(row.first_name),
-            last_name: String(row.last_name),
-            email: String(row.email),
-            specialty: String(row.specialty),
-            department: String(row.department),
-            hire_date: String(row.hire_date),
-            fte: fte,
-            base_salary: baseSalary,
-            compensation_model: String(row.compensation_model),
-            status: 'Active' // Set default status to Active
-          };
-        } catch (error) {
-          throw new Error(`Row ${index + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
-      });
+        });
+      }
 
       console.log('Sending mapped data to API:', {
         firstRow: mappedData[0],
@@ -366,10 +447,19 @@ export default function UploadPage() {
                 title="Market Data Upload"
                 description="Upload specialty-specific market data including compensation, wRVUs, and conversion factors."
                 columns={[
-                  { name: 'Specialty', example: 'Cardiology' },
-                  { name: 'Total Compensation', example: 'p25: 220000, p50: 250000, p75: 280000, p90: 310000' },
-                  { name: 'wRVUs', example: 'p25: 4500, p50: 4800, p75: 5100, p90: 5400' },
-                  { name: 'Conversion Factors', example: 'p25: 42.00, p50: 45.00, p75: 48.00, p90: 51.00' }
+                  { name: 'specialty', example: 'Cardiology' },
+                  { name: 'p25_tcc', example: '220000' },
+                  { name: 'p50_tcc', example: '250000' },
+                  { name: 'p75_tcc', example: '280000' },
+                  { name: 'p90_tcc', example: '310000' },
+                  { name: 'p25_wrvu', example: '4500' },
+                  { name: 'p50_wrvu', example: '4800' },
+                  { name: 'p75_wrvu', example: '5100' },
+                  { name: 'p90_wrvu', example: '5400' },
+                  { name: 'p25_cf', example: '42.00' },
+                  { name: 'p50_cf', example: '45.00' },
+                  { name: 'p75_cf', example: '48.00' },
+                  { name: 'p90_cf', example: '51.00' }
                 ]}
               />
             </Tab.Panel>

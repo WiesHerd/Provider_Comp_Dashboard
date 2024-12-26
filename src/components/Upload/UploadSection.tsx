@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { CloudArrowUpIcon, DocumentArrowDownIcon, XMarkIcon, InformationCircleIcon, ChevronRightIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { ExclamationCircleIcon } from '@heroicons/react/20/solid';
 import { Disclosure } from '@headlessui/react';
@@ -38,7 +41,16 @@ export default function UploadSection({
   description,
   columns
 }: UploadSectionProps): JSX.Element {
+  const [mounted, setMounted] = useState(false);
   const { file, isUploading, error, preview } = state;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className="min-h-[200px]" />;
+  }
 
   const renderPreviewTable = () => {
     if (!preview || preview.length === 0) return null;

@@ -1,4 +1,4 @@
-import { HomeIcon, UsersIcon, ArrowUpTrayIcon, ChartBarIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, UsersIcon, ArrowUpTrayIcon, ChartBarIcon, Cog6ToothIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -25,6 +25,18 @@ export default function Sidebar() {
         >
           <UsersIcon className="h-5 w-5 mr-2" />
           Providers
+        </Link>
+
+        <Link
+          href="/admin/market-data"
+          className={`flex items-center px-3 py-2 text-sm rounded-md transition-colors ${
+            pathname === '/admin/market-data'
+              ? 'bg-indigo-500 text-white'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <CurrencyDollarIcon className="h-5 w-5 mr-2" />
+          Market Data
         </Link>
 
         <Link
