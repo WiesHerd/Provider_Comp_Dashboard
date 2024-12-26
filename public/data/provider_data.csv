@@ -1,0 +1,147 @@
+employee_id,first_name,last_name,email,specialty,department,hire_date,fte,base_salary,compensation_model
+EMP1001,Michael,Johnson,michael.johnson@healthsystem.org,Dermatology,Dermatology,9/18/2016,1,327560,Standard
+EMP1002,Linda,Miller,linda.miller@healthsystem.org,Cardiothoracic Surgery,Cardiothoracic Surgery,4/10/2024,1,232343,Standard
+EMP1003,Emily,Garcia,emily.garcia@healthsystem.org,General Surgery,General Surgery,3/1/2023,1,295883,Standard
+EMP1004,Emily,Brown,emily.brown@healthsystem.org,Internal Medicine,Internal Medicine,12/12/2022,0.5,397579,Standard
+EMP1005,David,Brown,david.brown@healthsystem.org,Internal Medicine,Internal Medicine,11/1/2018,0.8,262603,Standard
+EMP1006,Robert,Miller,robert.miller@healthsystem.org,Orthopedic Surgery,Orthopedic Surgery,7/9/2015,0.5,356994,Standard
+EMP1007,Linda,Brown,linda.brown@healthsystem.org,General Surgery,General Surgery,7/21/2020,1,200149,Standard
+EMP1008,Jessica,Moore,jessica.moore@healthsystem.org,General Surgery,General Surgery,12/11/2022,1,316600,Standard
+EMP1009,James,Jones,james.jones@healthsystem.org,Dermatology,Dermatology,11/20/2016,1,306031,Standard
+EMP1010,Elizabeth,Brown,elizabeth.brown@healthsystem.org,Dermatology,Dermatology,10/3/2024,1,278438,Standard
+EMP1011,Elizabeth,Hernandez,elizabeth.hernandez@healthsystem.org,General Surgery,General Surgery,7/10/2022,1,203869,Custom
+EMP1012,Robert,Rodriguez,robert.rodriguez@healthsystem.org,Cardiology,Cardiology,7/17/2024,1,254592,Tiered CF
+EMP1013,Sarah,Moore,sarah.moore@healthsystem.org,Otolaryngology,Otolaryngology,2/7/2024,1,213193,Tiered CF
+EMP1014,David,Taylor,david.taylor@healthsystem.org,Cardiology,Cardiology,1/20/2015,0.75,340130,Standard
+EMP1015,David,Davis,david.davis@healthsystem.org,Cardiology,Cardiology,6/19/2016,1,265336,Standard
+EMP1016,John,Davis,john.davis@healthsystem.org,Cardiology,Cardiology,1/20/2023,1,394049,Custom
+EMP1017,Matthew,Davis,matthew.davis@healthsystem.org,Internal Medicine,Internal Medicine,10/7/2015,1,322749,Tiered CF
+EMP1018,Jessica,Moore,jessica.moore@healthsystem.org,Internal Medicine,Internal Medicine,4/6/2021,1,377546,Tiered CF
+EMP1019,Linda,Garcia,linda.garcia@healthsystem.org,Internal Medicine,Internal Medicine,12/8/2017,1,334307,Tiered CF
+EMP1020,Elizabeth,Rodriguez,elizabeth.rodriguez@healthsystem.org,Radiology,Radiology,10/19/2015,1,275292,Standard
+EMP1021,Sarah,Brown,sarah.brown@healthsystem.org,General Surgery,General Surgery,6/11/2019,1,223911,Custom
+EMP1022,John,Davis,john.davis@healthsystem.org,Dermatology,Dermatology,10/12/2021,1,336961,Standard
+EMP1023,Linda,Garcia,linda.garcia@healthsystem.org,Cardiology,Cardiology,7/18/2015,1,274948,Tiered CF
+EMP1024,Jennifer,Garcia,jennifer.garcia@healthsystem.org,General Surgery,General Surgery,5/10/2020,1,396472,Tiered CF
+EMP1025,Sophia,Thomas,sophia.thomas@healthsystem.org,Cardiology,Cardiology,5/29/2021,1,359003,Tiered CF
+EMP1026,Linda,Brown,linda.brown@healthsystem.org,Internal Medicine,Internal Medicine,3/19/2017,1,353688,Custom
+EMP1027,John,Martinez,john.martinez@healthsystem.org,Internal Medicine,Internal Medicine,2/15/2021,1,390841,Standard
+EMP1028,Linda,Johnson,linda.johnson@healthsystem.org,Cardiology,Cardiology,10/5/2022,1,202097,Standard
+EMP1029,John,Garcia,john.garcia@healthsystem.org,Internal Medicine,Internal Medicine,1/12/2023,1,261425,Standard
+EMP1030,Jessica,Thomas,jessica.thomas@healthsystem.org,General Surgery,General Surgery,9/3/2017,1,293017,Standard
+EMP1031,Joseph,Taylor,joseph.taylor@healthsystem.org,Internal Medicine,Internal Medicine,4/10/2015,1,299304,Standard
+EMP1032,Elizabeth,Garcia,elizabeth.garcia@healthsystem.org,Dermatology,Dermatology,3/27/2017,1,235822,Standard
+EMP1033,Robert,Miller,robert.miller@healthsystem.org,Endocrinology,Endocrinology,11/11/2016,1,360076,Standard
+EMP1034,James,Davis,james.davis@healthsystem.org,Dermatology,Dermatology,9/3/2024,1,369222,Standard
+EMP1035,Robert,Smith,robert.smith@healthsystem.org,Cardiology,Cardiology,1/13/2023,1,298941,Standard
+EMP1036,Joseph,Thomas,joseph.thomas@healthsystem.org,General Surgery,General Surgery,2/20/2021,1,357931,Standard
+EMP1037,Jennifer,Taylor,jennifer.taylor@healthsystem.org,General Surgery,General Surgery,9/20/2019,0.9,257418,Standard
+EMP1038,Joseph,Garcia,joseph.garcia@healthsystem.org,Cardiology,Cardiology,12/10/2016,1,248640,Standard
+EMP1039,Mary,Moore,mary.moore@healthsystem.org,Cardiology,Cardiology,8/18/2016,0.75,334181,Standard
+EMP1040,James,Garcia,james.garcia@healthsystem.org,Radiology,Radiology,6/27/2016,1,332910,Standard
+EMP1041,Linda,Garcia,linda.garcia@healthsystem.org,Cardiology,Cardiology,10/11/2023,1,356246,Custom
+EMP1042,Sophia,Davis,sophia.davis@healthsystem.org,General Surgery,General Surgery,9/9/2016,1,334553,Tiered CF
+EMP1043,Elizabeth,Taylor,elizabeth.taylor@healthsystem.org,Dermatology,Dermatology,11/13/2023,1,245482,Tiered CF
+EMP1044,Matthew,Martinez,matthew.martinez@healthsystem.org,Dermatology,Dermatology,5/30/2023,1,235232,Tiered CF
+EMP1045,Jennifer,Garcia,jennifer.garcia@healthsystem.org,Dermatology,Dermatology,8/11/2023,1,349146,Standard
+EMP1046,Michael,Garcia,michael.garcia@healthsystem.org,Cardiology,Cardiology,12/21/2018,0.8,387404,Standard
+EMP1047,Jessica,Smith,jessica.smith@healthsystem.org,Cardiology,Cardiology,1/9/2018,1,286359,Standard
+EMP1048,Sarah,Williams,sarah.williams@healthsystem.org,Cardiology,Cardiology,7/16/2021,1,349062,Standard
+EMP1049,Elizabeth,Thomas,elizabeth.thomas@healthsystem.org,Radiology,Radiology,1/11/2022,1,289520,Standard
+EMP1050,John,Rodriguez,john.rodriguez@healthsystem.org,General Surgery,General Surgery,10/4/2015,0.9,223820,Standard
+EMP1051,John,Thomas,john.thomas@healthsystem.org,Internal Medicine,Internal Medicine,3/6/2024,1,394596,Standard
+EMP1052,Sophia,Johnson,sophia.johnson@healthsystem.org,Radiology,Radiology,8/26/2016,1,310795,Standard
+EMP1053,Sarah,Hernandez,sarah.hernandez@healthsystem.org,Endocrinology,Endocrinology,10/17/2022,1,272269,Tiered CF
+EMP1054,Jennifer,Hernandez,jennifer.hernandez@healthsystem.org,Psychiatry - Child and Adolescent,Psychiatry ,7/11/2022,1,210931,Standard
+EMP1055,Elizabeth,Taylor,elizabeth.taylor@healthsystem.org,Dermatology,Dermatology,11/23/2015,1,363790,Custom
+EMP1056,Mary,Smith,mary.smith@healthsystem.org,Nephrology,Nephrology,8/29/2018,1,260916,Custom
+EMP1057,Jessica,Taylor,jessica.taylor@healthsystem.org,Internal Medicine,Internal Medicine,11/14/2023,1,359716,Standard
+EMP1058,Linda,Jones,linda.jones@healthsystem.org,Internal Medicine,Internal Medicine,9/28/2016,1,248502,Standard
+EMP1059,Joseph,Martinez,joseph.martinez@healthsystem.org,Dermatology,Dermatology,2/4/2023,1,391427,Tiered CF
+EMP1060,Jennifer,Thomas,jennifer.thomas@healthsystem.org,Internal Medicine,Internal Medicine,1/29/2016,0.5,352108,Tiered CF
+EMP1061,Emily,Martinez,emily.martinez@healthsystem.org,General Surgery,General Surgery,4/17/2017,1,214978,Standard
+EMP1062,David,Miller,david.miller@healthsystem.org,Dermatology,Dermatology,12/22/2016,1,398467,Tiered CF
+EMP1063,Matthew,Rodriguez,matthew.rodriguez@healthsystem.org,Cardiology,Cardiology,5/25/2015,1,374307,Tiered CF
+EMP1064,Emily,Jones,emily.jones@healthsystem.org,Cardiology,Cardiology,8/23/2020,1,394864,Standard
+EMP1065,Jessica,Anderson,jessica.anderson@healthsystem.org,Radiology,Radiology,2/3/2018,1,274923,Standard
+EMP1066,David,Jones,david.jones@healthsystem.org,Dermatology,Dermatology,10/28/2022,1,287844,Standard
+EMP1067,Robert,Taylor,robert.taylor@healthsystem.org,General Surgery,General Surgery,6/11/2020,1,362456,Tiered CF
+EMP1068,William,Moore,william.moore@healthsystem.org,Cardiology,Cardiology,4/20/2023,1,325784,Tiered CF
+EMP1069,Linda,Davis,linda.davis@healthsystem.org,Cardiology,Cardiology,10/30/2022,1,253686,Standard
+EMP1070,Michael,Taylor,michael.taylor@healthsystem.org,Radiology,Radiology,8/28/2024,1,375402,Standard
+EMP1071,Emily,Taylor,emily.taylor@healthsystem.org,Cardiology,Cardiology,3/5/2019,1,200186,Standard
+EMP1072,James,Moore,james.moore@healthsystem.org,Cardiology,Cardiology,11/15/2018,0.8,394428,Tiered CF
+EMP1073,Michael,Williams,michael.williams@healthsystem.org,Cardiology,Cardiology,10/15/2021,1,239698,Tiered CF
+EMP1074,Jessica,Martinez,jessica.martinez@healthsystem.org,Dermatology,Dermatology,8/29/2020,0.8,357747,Standard
+EMP1075,Emily,Thomas,emily.thomas@healthsystem.org,Internal Medicine,Internal Medicine,5/30/2018,1,296480,Standard
+EMP1076,Elizabeth,Hernandez,elizabeth.hernandez@healthsystem.org,Dermatology,Dermatology,3/18/2017,1,214940,Standard
+EMP1077,Joseph,Anderson,joseph.anderson@healthsystem.org,Radiology,Radiology,9/20/2023,1,358957,Standard
+EMP1078,Linda,Rodriguez,linda.rodriguez@healthsystem.org,Internal Medicine,Internal Medicine,3/4/2016,1,235011,Standard
+EMP1079,Matthew,Taylor,matthew.taylor@healthsystem.org,Internal Medicine,Internal Medicine,4/29/2024,1,221209,Standard
+EMP1080,Matthew,Garcia,matthew.garcia@healthsystem.org,Internal Medicine,Internal Medicine,4/27/2023,1,383742,Custom
+EMP1081,Sophia,Garcia,sophia.garcia@healthsystem.org,Otolaryngology,Otolaryngology,2/10/2019,1,310438,Tiered CF
+EMP1082,Mary,Martinez,mary.martinez@healthsystem.org,Cardiology,Cardiology,11/4/2021,0.9,294190,Standard
+EMP1083,James,Jones,james.jones@healthsystem.org,Internal Medicine,Internal Medicine,2/27/2022,1,232929,Tiered CF
+EMP1084,Emily,Taylor,emily.taylor@healthsystem.org,General Surgery,General Surgery,1/15/2019,1,389359,Standard
+EMP1085,Emily,Hernandez,emily.hernandez@healthsystem.org,Dermatology,Dermatology,7/12/2016,1,295488,Standard
+EMP1086,Emily,Martinez,emily.martinez@healthsystem.org,Internal Medicine,Internal Medicine,12/16/2019,1,265359,Standard
+EMP1087,Sarah,Rodriguez,sarah.rodriguez@healthsystem.org,Dermatology,Dermatology,9/20/2022,1,238375,Custom
+EMP1088,Emily,Jones,emily.jones@healthsystem.org,Internal Medicine,Internal Medicine,8/14/2022,0.9,341276,Tiered CF
+EMP1089,Elizabeth,Jones,elizabeth.jones@healthsystem.org,Dermatology,Dermatology,4/19/2015,0.5,345442,Custom
+EMP1090,Jessica,Miller,jessica.miller@healthsystem.org,Dermatology,Dermatology,11/12/2017,1,280180,Tiered CF
+EMP1091,James,Smith,james.smith@healthsystem.org,Orthopedic Surgery,Orthopedic Surgery,2/4/2015,1,267128,Standard
+EMP1092,Linda,Hernandez,linda.hernandez@healthsystem.org,Internal Medicine,Internal Medicine,6/11/2019,1,313557,Standard
+EMP1093,Matthew,Anderson,matthew.anderson@healthsystem.org,Internal Medicine,Internal Medicine,5/13/2019,0.5,307200,Standard
+EMP1094,William,Davis,william.davis@healthsystem.org,Cardiology,Cardiology,12/26/2021,0.8,390829,Tiered CF
+EMP1095,Elizabeth,Smith,elizabeth.smith@healthsystem.org,General Surgery,General Surgery,7/11/2016,1,274011,Tiered CF
+EMP1096,Linda,Anderson,linda.anderson@healthsystem.org,General Surgery,General Surgery,9/15/2017,1,271215,Standard
+EMP1097,Sophia,Smith,sophia.smith@healthsystem.org,Dermatology,Dermatology,4/28/2016,1,395480,Custom
+EMP1098,James,Martinez,james.martinez@healthsystem.org,General Surgery,General Surgery,5/27/2017,0.8,240867,Standard
+EMP1099,Jessica,Martinez,jessica.martinez@healthsystem.org,Cardiology,Cardiology,6/23/2021,1,312289,Standard
+EMP1100,Joseph,Johnson,joseph.johnson@healthsystem.org,Cardiology,Cardiology,7/6/2022,1,354483,Tiered CF
+EMP11101,Joseph,Brown,joseph.brown@healthsystem.org,Radiology,Radiology,3/9/2018,1,319189,Base Pay
+EMP11102,Emily,Davis,emily.davis@healthsystem.org,Urgent Care,Urgent Care,3/8/2017,0.5,343309,Base Pay
+EMP11103,Sophia,Miller,sophia.miller@healthsystem.org,General Surgery,General Surgery,5/22/2018,0.5,297994,Base Pay
+EMP11104,Sarah,Thomas,sarah.thomas@healthsystem.org,Cardiology,Cardiology,10/8/2021,1,293534,Base Pay
+EMP11105,James,Smith,james.smith@healthsystem.org,Internal Medicine,Internal Medicine,12/2/2015,0.9,324446,Base Pay
+EMP11106,Michael,Martinez,michael.martinez@healthsystem.org,General Surgery,General Surgery,7/3/2016,0.5,338498,Base Pay
+EMP11107,Emily,Johnson,emily.johnson@healthsystem.org,Dermatology,Dermatology,8/1/2023,1,379369,Base Pay
+EMP11108,Emily,Williams,emily.williams@healthsystem.org,Internal Medicine,Internal Medicine,7/24/2020,1,352078,Base Pay
+EMP11109,William,Johnson,william.johnson@healthsystem.org,Cardiology,Cardiology,9/20/2020,1,399265,Base Pay
+EMP11110,Joseph,Moore,joseph.moore@healthsystem.org,Internal Medicine,Internal Medicine,6/13/2016,1,282919,Base Pay
+EMP11111,David,Rodriguez,david.rodriguez@healthsystem.org,Radiology,Radiology,5/24/2017,1,330234,Base Pay
+EMP11112,Emily,Brown,emily.brown@healthsystem.org,Radiology,Radiology,4/27/2016,0.5,354776,Base Pay
+EMP11113,Robert,Hernandez,robert.hernandez@healthsystem.org,General Surgery,General Surgery,6/8/2024,1,290229,Base Pay
+EMP11114,Matthew,Miller,matthew.miller@healthsystem.org,Dermatology,Dermatology,10/7/2018,1,325384,Base Pay
+EMP11115,David,Martinez,david.martinez@healthsystem.org,Internal Medicine,Internal Medicine,6/25/2015,1,217611,Base Pay
+EMP11116,Sarah,Martinez,sarah.martinez@healthsystem.org,Hematology and Oncology,Hematology and Oncology,6/2/2016,1,362218,Base Pay
+EMP11117,Michael,Miller,michael.miller@healthsystem.org,Cardiology,Cardiology,6/21/2022,1,260626,Base Pay
+EMP11118,William,Davis,william.davis@healthsystem.org,Internal Medicine,Internal Medicine,9/14/2023,1,225179,Base Pay
+EMP11119,Michael,Davis,michael.davis@healthsystem.org,Endocrinology,Endocrinology,7/14/2023,1,309770,Base Pay
+EMP11120,Joseph,Hernandez,joseph.hernandez@healthsystem.org,Radiology,Radiology,10/13/2018,1,378994,Base Pay
+EMP0121,David,Moore,david.moore@healthsystem.org,Critical Care Medicine - Cardiology,Critical Care Medicine,1/10/2024,1,270666,Base Pay
+EMP0122,Elizabeth,Johnson,elizabeth.johnson@healthsystem.org,Critical Care Medicine,Critical Care Medicine,1/19/2023,1,312841,Base Pay
+EMP0123,Emily,Davis,emily.davis@healthsystem.org,Radiology - Interventional,Radiology - Interventional,11/25/2019,1,378030,Base Pay
+EMP0124,Jessica,Thomas,jessica.thomas@healthsystem.org,Anesthesiology,Anesthesiology,9/12/2020,0.5,280321,Base Pay
+EMP0125,Jessica,Taylor,jessica.taylor@healthsystem.org,General,General,10/17/2022,1,348209,Base Pay
+EMP0126,Michael,Smith,michael.smith@healthsystem.org,Infectious Disease,Infectious Disease,8/3/2021,1,302187,Base Pay
+EMP0127,Joseph,Miller,joseph.miller@healthsystem.org,Ophthalmology,Ophthalmology,3/19/2017,0.75,336097,Base Pay
+EMP0128,Sarah,Rodriguez,sarah.rodriguez@healthsystem.org,Pathology,Pathology,4/10/2024,1,298117,Base Pay
+EMP0129,James,Jones,james.jones@healthsystem.org,Gastroenterology,Gastroenterology,11/25/2018,1,249195,Base Pay
+EMP0130,David,Rodriguez,david.rodriguez@healthsystem.org,Plastic and Reconstructive Surgery,Plastic and Reconstructive Surgery,8/24/2016,0.75,287711,Base Pay
+EMP0131,Michael,Brown,michael.brown@healthsystem.org,Genetics,Genetics,7/3/2017,1,298229,Base Pay
+EMP0132,Michael,Martinez,michael.martinez@healthsystem.org,Neurology,Neurology,9/14/2015,1,338723,Base Pay
+EMP0133,Emily,Moore,emily.moore@healthsystem.org,Emergency Medicine,Emergency Medicine,7/20/2024,1,261578,Base Pay
+EMP0134,James,Hernandez,james.hernandez@healthsystem.org,Neurological Surgery,Neurological Surgery,7/19/2018,1,206569,Base Pay
+EMP0135,Robert,Hernandez,robert.hernandez@healthsystem.org,Gynecology,Gynecology,2/12/2020,1,224012,Base Pay
+EMP0136,Sarah,Martinez,sarah.martinez@healthsystem.org,Bone Marrow Transplant,Bone Marrow Transplant,2/10/2015,1,330591,Base Pay
+EMP0137,James,Anderson,james.anderson@healthsystem.org,Allergy and Immunology,Allergy and Immunology,10/25/2020,1,335304,Base Pay
+EMP0138,Linda,Smith,linda.smith@healthsystem.org,Developmental-Behavioral Medicine,Developmental-Behavioral Medicine,2/17/2019,1,380073,Base Pay
+EMP0139,Michael,Martinez,michael.martinez@healthsystem.org,Hospitalist,Hospitalist,1/24/2023,0.9,370438,Base Pay
+EMP0140,Michael,Thomas,michael.thomas@healthsystem.org,Rheumatology,Rheumatology,1/25/2024,1,377960,Base Pay
+EMP0141,William,Miller,william.miller@healthsystem.org,Urology,Urology,5/19/2019,1,396077,Base Pay
+EMP0142,Joseph,Thomas,joseph.thomas@healthsystem.org,Physical Medicine and Rehabilitation,Physical Medicine and Rehabilitation,8/15/2024,1,256748,Base Pay
+EMP0143,Joseph,Taylor,joseph.taylor@healthsystem.org,Neonatal-Perinatal Medicine,Neonatal-Perinatal Medicine,4/6/2015,1,240651,Base Pay
+EMP0144,Emily,Miller,emily.miller@healthsystem.org,Sports Medicine - Medical,Sports Medicine ,10/1/2022,0.5,292848,Base Pay
+EMP0145,James,Taylor,james.taylor@healthsystem.org,Adolescent Medicine,Adolescent Medicine,3/21/2015,0.5,221347,Base Pay
+EMP0146,Matthew,Davis,matthew.davis@healthsystem.org,Pulmonology,Pulmonology,12/26/2018,0.8,330316,Base Pay

@@ -9,7 +9,7 @@ export default function ProviderPage() {
   const { providers } = generateSampleData(800);
   
   // Get the current provider based on URL param
-  const currentProvider = providers.find(p => p.id === params?.id);
+  const currentProvider = providers.find(p => p.id === params?.providerId);
 
   if (!currentProvider) {
     return (

@@ -12,18 +12,23 @@ model Provider {
   employeeId          String               @unique
   firstName           String
   lastName            String
-  specialty           String?
-  annualSalary        Float
-  annualWRVUTarget    Float?
-  conversionFactor    Float                @default(45.00)
-  fte                 Float                @default(1.0)
+  email               String
+  specialty           String
+  department          String
+  status              String               @default("Active")
+  terminationDate     DateTime?
   hireDate           DateTime
+  fte                Float
+  baseSalary         Float
+  compensationModel  String
   compensationChanges CompensationChange[]
   wrvuAdjustments    WRVUAdjustment[]
   targetAdjustments  TargetAdjustment[]
   additionalPayments AdditionalPayment[]
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
+
+  @@map("providers")
 }
 
 model CompensationChange {
