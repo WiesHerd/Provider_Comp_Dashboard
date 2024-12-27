@@ -7,7 +7,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100">
       <AdminNav
         collapsed={collapsed}
         onToggle={() => setCollapsed(!collapsed)}
@@ -17,7 +17,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           collapsed ? 'ml-16' : 'ml-64'
         }`}
       >
-        <main className="p-4">
+        <main className="h-screen p-4">
           {children}
         </main>
       </div>
