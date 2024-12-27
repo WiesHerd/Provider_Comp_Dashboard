@@ -10,7 +10,9 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  FunnelIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import AddProviderModal from '@/components/Providers/AddProviderModal';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -53,6 +55,54 @@ interface SortableHeaderProps {
   setSelectedProviders: (ids: string[]) => void;
   paginatedProviders: Provider[];
 }
+
+interface DualRangeSliderProps {
+  min: number;
+  max: number;
+  step: number;
+  value: [number, number];
+  onChange: (value: [number, number]) => void;
+}
+
+const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, step, value, onChange }) => {
+  return (
+    <div className="relative h-10">
+      <div className="slider absolute top-1/2 -translate-y-1/2 w-full">
+        <div 
+          className="track" 
+          style={{
+            left: `${((value[0] - min) / (max - min)) * 100}%`,
+            width: `${((value[1] - value[0]) / (max - min)) * 100}%`
+          }}
+        ></div>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value[0]}
+        onChange={(e) => {
+          const newValue = Math.min(parseFloat(e.target.value), value[1] - step);
+          onChange([newValue, value[1]]);
+        }}
+        className="absolute w-full"
+      />
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value[1]}
+        onChange={(e) => {
+          const newValue = Math.max(parseFloat(e.target.value), value[0] + step);
+          onChange([value[0], newValue]);
+        }}
+        className="absolute w-full"
+      />
+    </div>
+  );
+};
 
 const SortableHeader = ({
   column,
@@ -654,6 +704,197 @@ export default function ProvidersPage() {
   const [selectedProviderForTermination, setSelectedProviderForTermination] = useState<Provider | null>(null);
   const [terminationDate, setTerminationDate] = useState('');
 
+  // Add state for filter visibility
+  const [isFiltersVisible, setIsFiltersVisible] = useState(false);
+  const [activeFilterCount, setActiveFilterCount] = useState(0);
+
+  // Update the filters section JSX
+  {/* Filters Toggle Button */}
+  <div className="bg-white rounded-lg shadow">
+    <div className="p-4 flex items-center justify-between">
+      <button
+        onClick={() => setIsFiltersVisible(!isFiltersVisible)}
+        className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
+      >
+        <FunnelIcon className="h-5 w-5" />
+        <span className="font-medium">Filters</span>
+        {activeFilterCount > 0 && (
+          <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-sm">
+            {activeFilterCount}
+          </span>
+        )}
+        <ChevronDownIcon
+          className={`h-5 w-5 transition-transform ${isFiltersVisible ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {activeFilterCount > 0 && (
+        <button
+          onClick={() => {
+            setSelectedSpecialty('');
+            setSelectedDepartment('');
+            setSelectedStatus('');
+            setSelectedCompModel('');
+            setFteRange([0, 1]);
+            setBaseSalaryRange([0, 1000000]);
+            setShowMissingBenchmarks(false);
+            setShowMissingWRVUs(false);
+          }}
+          className="flex items-center gap-2 text-gray-500 hover:text-gray-700"
+        >
+          <XMarkIcon className="h-5 w-5" />
+          <span className="text-sm">Clear Filters</span>
+        </button>
+      )}
+    </div>
+
+    {/* Collapsible Filter Content */}
+    <div className={`overflow-hidden transition-all duration-200 ease-in-out ${
+      isFiltersVisible ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+    }`}>
+      <div className="p-6 space-y-8 border-t">
+        {/* First Row - Range Sliders */}
+        <div className="grid grid-cols-2 gap-6">
+          <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <label className="block text-sm font-medium text-gray-700">
+              FTE Range
+            </label>
+            <div className="px-2">
+              <DualRangeSlider
+                min={0}
+                max={1}
+                step={0.1}
+                value={fteRange}
+                onChange={setFteRange}
+              />
+            </div>
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>{fteRange[0].toFixed(1)}</span>
+              <span>{fteRange[1].toFixed(1)}</span>
+            </div>
+          </div>
+
+          <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <label className="block text-sm font-medium text-gray-700">
+              Base Salary Range
+            </label>
+            <div className="px-2">
+              <DualRangeSlider
+                min={0}
+                max={1000000}
+                step={10000}
+                value={baseSalaryRange}
+                onChange={setBaseSalaryRange}
+              />
+            </div>
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>{formatCurrency(baseSalaryRange[0])}</span>
+              <span>{formatCurrency(baseSalaryRange[1])}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Second Row - Dropdowns */}
+        <div className="grid grid-cols-3 gap-6">
+          <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <label className="block text-sm font-medium text-gray-700">
+              Specialty
+            </label>
+            <select
+              value={selectedSpecialty}
+              onChange={(e) => setSelectedSpecialty(e.target.value)}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10"
+            >
+              <option value="">Select specialties</option>
+              {Array.from(new Set(providers.map(p => p.specialty))).sort().map(specialty => (
+                <option key={specialty} value={specialty}>{specialty}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <label className="block text-sm font-medium text-gray-700">
+              Risk Level
+            </label>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10"
+            >
+              <option value="">Select risk levels</option>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+
+          <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <label className="block text-sm font-medium text-gray-700">
+              Status
+            </label>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10"
+            >
+              <option value="">Select statuses</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Pending">Pending</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Third Row - Toggles */}
+        <div className="flex items-center space-x-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+          <div className="flex items-center">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showMissingBenchmarks}
+                onChange={(e) => setShowMissingBenchmarks(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+            <span className="ml-3 text-sm text-gray-700">
+              Show Missing Benchmarks Only ({providersWithoutBenchmarks.length})
+            </span>
+          </div>
+
+          <div className="flex items-center">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showMissingWRVUs}
+                onChange={(e) => setShowMissingWRVUs(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+            <span className="ml-3 text-sm text-gray-700">
+              Show Missing wRVUs Only ({providersWithoutWRVUs.length})
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  // Add useEffect to count active filters
+  useEffect(() => {
+    let count = 0;
+    if (selectedSpecialty) count++;
+    if (selectedDepartment) count++;
+    if (selectedStatus) count++;
+    if (selectedCompModel) count++;
+    if (fteRange[0] > 0 || fteRange[1] < 1) count++;
+    if (baseSalaryRange[0] > 0 || baseSalaryRange[1] < 1000000) count++;
+    if (showMissingBenchmarks) count++;
+    if (showMissingWRVUs) count++;
+    setActiveFilterCount(count);
+  }, [selectedSpecialty, selectedDepartment, selectedStatus, selectedCompModel, 
+      fteRange, baseSalaryRange, showMissingBenchmarks, showMissingWRVUs]);
+
   return (
     <>
       {!mounted ? null : (
@@ -706,193 +947,170 @@ export default function ProvidersPage() {
 
               {/* Filters */}
               <div className="bg-white rounded-lg shadow">
-                <div className="p-5 space-y-6">
-                  {/* Filter Groups */}
-                  <div className="space-y-4">
-                    {/* First Row - Dropdowns */}
-                    <div className="grid grid-cols-4 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">Specialty</label>
+                <div className="p-4 flex items-center justify-between">
+                  <button
+                    onClick={() => setIsFiltersVisible(!isFiltersVisible)}
+                    className="flex items-center gap-2 text-gray-700 hover:text-gray-900"
+                  >
+                    <FunnelIcon className="h-5 w-5" />
+                    <span className="font-medium">Filters</span>
+                    {activeFilterCount > 0 && (
+                      <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-sm">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                    <ChevronDownIcon
+                      className={`h-5 w-5 transition-transform ${isFiltersVisible ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                  {activeFilterCount > 0 && (
+                    <button
+                      onClick={() => {
+                        setSelectedSpecialty('');
+                        setSelectedDepartment('');
+                        setSelectedStatus('');
+                        setSelectedCompModel('');
+                        setFteRange([0, 1]);
+                        setBaseSalaryRange([0, 1000000]);
+                        setShowMissingBenchmarks(false);
+                        setShowMissingWRVUs(false);
+                      }}
+                      className="flex items-center gap-2 text-gray-500 hover:text-gray-700"
+                    >
+                      <XMarkIcon className="h-5 w-5" />
+                      <span className="text-sm">Clear Filters</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Collapsible Filter Content */}
+                <div className={`overflow-hidden transition-all duration-200 ease-in-out ${
+                  isFiltersVisible ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+                }`}>
+                  <div className="p-6 space-y-8 border-t">
+                    {/* First Row - Range Sliders */}
+                    <div className="grid grid-cols-2 gap-6">
+                      <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                        <label className="block text-sm font-medium text-gray-700">
+                          FTE Range
+                        </label>
+                        <div className="px-2">
+                          <DualRangeSlider
+                            min={0}
+                            max={1}
+                            step={0.1}
+                            value={fteRange}
+                            onChange={setFteRange}
+                          />
+                        </div>
+                        <div className="flex justify-between text-sm text-gray-500">
+                          <span>{fteRange[0].toFixed(1)}</span>
+                          <span>{fteRange[1].toFixed(1)}</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Base Salary Range
+                        </label>
+                        <div className="px-2">
+                          <DualRangeSlider
+                            min={0}
+                            max={1000000}
+                            step={10000}
+                            value={baseSalaryRange}
+                            onChange={setBaseSalaryRange}
+                          />
+                        </div>
+                        <div className="flex justify-between text-sm text-gray-500">
+                          <span>{formatCurrency(baseSalaryRange[0])}</span>
+                          <span>{formatCurrency(baseSalaryRange[1])}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Second Row - Dropdowns */}
+                    <div className="grid grid-cols-3 gap-6">
+                      <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Specialty
+                        </label>
                         <select
-                          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                           value={selectedSpecialty}
                           onChange={(e) => setSelectedSpecialty(e.target.value)}
+                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10"
                         >
-                          <option value="">All Specialties</option>
+                          <option value="">Select specialties</option>
                           {Array.from(new Set(providers.map(p => p.specialty))).sort().map(specialty => (
                             <option key={specialty} value={specialty}>{specialty}</option>
                           ))}
                         </select>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">Department</label>
+
+                      <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Risk Level
+                        </label>
                         <select
-                          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                          value={selectedDepartment}
-                          onChange={(e) => setSelectedDepartment(e.target.value)}
-                        >
-                          <option value="">All Departments</option>
-                          {Array.from(new Set(providers.map(p => p.department))).sort().map(department => (
-                            <option key={department} value={department}>{department}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">Status</label>
-                        <select
-                          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                           value={selectedStatus}
                           onChange={(e) => setSelectedStatus(e.target.value)}
+                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10"
                         >
-                          <option value="">All Status</option>
-                          {Array.from(new Set(providers.map(p => p.status))).sort().map(status => (
-                            <option key={status} value={status}>{status}</option>
-                          ))}
+                          <option value="">Select risk levels</option>
+                          <option value="Low">Low</option>
+                          <option value="Medium">Medium</option>
+                          <option value="High">High</option>
                         </select>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">Comp Model</label>
+
+                      <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Status
+                        </label>
                         <select
-                          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                          value={selectedCompModel}
-                          onChange={(e) => setSelectedCompModel(e.target.value)}
+                          value={selectedStatus}
+                          onChange={(e) => setSelectedStatus(e.target.value)}
+                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10"
                         >
-                          <option value="">All Models</option>
-                          {Array.from(new Set(providers.map(p => p.compensationModel))).sort().map(model => (
-                            <option key={model} value={model}>{model}</option>
-                          ))}
+                          <option value="">Select statuses</option>
+                          <option value="Active">Active</option>
+                          <option value="Inactive">Inactive</option>
+                          <option value="Pending">Pending</option>
                         </select>
                       </div>
                     </div>
 
-                    {/* Second Row - Range Sliders */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm font-medium text-gray-700">
-                          <span>FTE Range</span>
-                        </div>
-                        <div className="relative h-10">
-                          <div className="slider absolute top-1/2 -translate-y-1/2 w-full">
-                            <div 
-                              className="track" 
-                              style={{
-                                left: `${(fteRange[0]) * 100}%`,
-                                width: `${(fteRange[1] - fteRange[0]) * 100}%`
-                              }}
-                            ></div>
-                          </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.1"
-                            value={fteRange[0]}
-                            onChange={(e) => {
-                              const value = Math.min(parseFloat(e.target.value), fteRange[1] - 0.1);
-                              setFteRange([value, fteRange[1]]);
-                            }}
-                            className="absolute w-full"
-                          />
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.1"
-                            value={fteRange[1]}
-                            onChange={(e) => {
-                              const value = Math.max(parseFloat(e.target.value), fteRange[0] + 0.1);
-                              setFteRange([fteRange[0], value]);
-                            }}
-                            className="absolute w-full"
-                          />
-                        </div>
-                        <div className="flex justify-between text-xs text-gray-500">
-                          <span className="text-sm font-medium text-gray-700">0.0</span>
-                          <span className="text-sm font-medium text-gray-700">0.5</span>
-                          <span className="text-sm font-medium text-gray-700">1.0</span>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm font-medium text-gray-700">
-                          <span>Base Salary Range</span>
-                        </div>
-                        <div className="relative h-10">
-                          <div className="slider absolute top-1/2 -translate-y-1/2 w-full">
-                            <div 
-                              className="track" 
-                              style={{
-                                left: `${(baseSalaryRange[0] / 1000000) * 100}%`,
-                                width: `${((baseSalaryRange[1] - baseSalaryRange[0]) / 1000000) * 100}%`
-                              }}
-                            ></div>
-                          </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="1000000"
-                            step="10000"
-                            value={baseSalaryRange[0]}
-                            onChange={(e) => {
-                              const value = Math.min(parseInt(e.target.value), baseSalaryRange[1] - 10000);
-                              setBaseSalaryRange([value, baseSalaryRange[1]]);
-                            }}
-                            className="absolute w-full"
-                          />
-                          <input
-                            type="range"
-                            min="0"
-                            max="1000000"
-                            step="10000"
-                            value={baseSalaryRange[1]}
-                            onChange={(e) => {
-                              const value = Math.max(parseInt(e.target.value), baseSalaryRange[0] + 10000);
-                              setBaseSalaryRange([baseSalaryRange[0], value]);
-                            }}
-                            className="absolute w-full"
-                          />
-                        </div>
-                        <div className="flex justify-between text-xs text-gray-500">
-                          <span className="text-sm font-medium text-gray-700">$0</span>
-                          <span className="text-sm font-medium text-gray-700">$500,000</span>
-                          <span className="text-sm font-medium text-gray-700">$1,000,000</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Third Row - Toggle and Reset */}
-                    <div className="flex items-center justify-between pt-2">
-                      <div className="flex items-center space-x-4">
-                        <label className="flex items-center space-x-2">
+                    {/* Third Row - Toggles */}
+                    <div className="flex items-center space-x-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                      <div className="flex items-center">
+                        <label className="relative inline-flex items-center cursor-pointer">
                           <input
                             type="checkbox"
                             checked={showMissingBenchmarks}
                             onChange={(e) => setShowMissingBenchmarks(e.target.checked)}
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            className="sr-only peer"
                           />
-                          <span className="text-sm text-gray-700">
-                            Show Missing Benchmarks Only ({providersWithoutBenchmarks.length})
-                          </span>
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                         </label>
+                        <span className="ml-3 text-sm text-gray-700">
+                          Show Missing Benchmarks Only ({providersWithoutBenchmarks.length})
+                        </span>
+                      </div>
 
-                        <label className="flex items-center space-x-2">
+                      <div className="flex items-center">
+                        <label className="relative inline-flex items-center cursor-pointer">
                           <input
                             type="checkbox"
                             checked={showMissingWRVUs}
                             onChange={(e) => setShowMissingWRVUs(e.target.checked)}
-                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            className="sr-only peer"
                           />
-                          <span className="text-sm text-gray-700">
-                            Show Missing wRVUs Only ({providersWithoutWRVUs.length})
-                          </span>
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                         </label>
+                        <span className="ml-3 text-sm text-gray-700">
+                          Show Missing wRVUs Only ({providersWithoutWRVUs.length})
+                        </span>
                       </div>
-
-                      <button
-                        onClick={handleResetFilters}
-                        className="text-sm text-gray-600 hover:text-gray-900"
-                      >
-                        Reset Filters
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -1136,17 +1354,6 @@ export default function ProvidersPage() {
                   </div>
                 </Dialog>
               </Transition>
-
-              {/* Status Filter Dropdown */}
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              >
-                <option value="">All Status</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
 
               {/* Comp Model Edit Modal */}
               <Transition appear show={isCompModelModalOpen} as={Fragment}>

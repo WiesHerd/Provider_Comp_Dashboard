@@ -11,7 +11,8 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CurrencyDollarIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  Cog6ToothIcon
 } from '@heroicons/react/24/outline';
 
 const navigation = [
@@ -39,6 +40,11 @@ const navigation = [
     name: 'Reports', 
     href: '/admin/reports', 
     icon: ChartBarIcon
+  },
+  { 
+    name: 'Settings', 
+    href: '/admin/settings', 
+    icon: Cog6ToothIcon
   }
 ];
 
@@ -55,13 +61,18 @@ export default function ProviderLayout({
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 bg-[#1a1c23] transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'} shadow-xl`}>
         {/* Header */}
-        <div className="flex h-14 items-center px-4">
-          <Link href="/admin" className="flex items-center space-x-2 text-white hover:text-gray-300 transition-colors">
-            <div className="bg-indigo-500 p-1.5 rounded-lg">
-              <HomeIcon className="h-5 w-5 flex-shrink-0" />
-            </div>
+        <div className="flex h-14 items-center px-2">
+          <Link 
+            href="/admin" 
+            className={`
+              flex items-center px-3 py-2 my-1 text-sm rounded-md w-full
+              transition-all duration-200
+              text-gray-400 hover:bg-gray-800 hover:text-white
+            `}
+          >
+            <HomeIcon className="h-6 w-6 flex-shrink-0" aria-hidden="true" />
             {!isCollapsed && (
-              <span className="font-medium">Provider Comp</span>
+              <span className="ml-3">Main Menu</span>
             )}
           </Link>
         </div>
