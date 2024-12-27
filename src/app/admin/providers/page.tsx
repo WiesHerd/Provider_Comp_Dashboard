@@ -139,6 +139,7 @@ export default function ProvidersPage() {
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedCompModel, setSelectedCompModel] = useState('');
   const [filteredProviders, setFilteredProviders] = useState<Provider[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -278,6 +279,7 @@ export default function ProvidersPage() {
       const matchesSpecialty = !selectedSpecialty || provider.specialty === selectedSpecialty;
       const matchesDepartment = !selectedDepartment || provider.department === selectedDepartment;
       const matchesStatus = !selectedStatus || provider.status === selectedStatus;
+      const matchesCompModel = !selectedCompModel || provider.compensationModel === selectedCompModel;
       const matchesFTE = provider.fte >= fteRange[0] && provider.fte <= fteRange[1];
       const matchesSalary = provider.baseSalary >= baseSalaryRange[0] && provider.baseSalary <= baseSalaryRange[1];
 
@@ -286,7 +288,7 @@ export default function ProvidersPage() {
       const matchesMissingBenchmarks = !showMissingBenchmarks || !hasMatchingBenchmark;
 
       return matchesSearch && matchesSpecialty && matchesDepartment && 
-             matchesStatus && matchesFTE && matchesSalary && matchesMissingBenchmarks;
+             matchesStatus && matchesCompModel && matchesFTE && matchesSalary && matchesMissingBenchmarks;
     });
 
     // Update providers without benchmarks
@@ -297,7 +299,7 @@ export default function ProvidersPage() {
 
     setFilteredProviders(filtered);
   }, [providers, searchQuery, selectedSpecialty, selectedDepartment, selectedStatus, 
-      fteRange, baseSalaryRange, showMissingBenchmarks, marketData]);
+      selectedCompModel, fteRange, baseSalaryRange, showMissingBenchmarks, marketData]);
 
   const paginatedProviders = filteredProviders.slice(
     (currentPage - 1) * rowsPerPage,
@@ -329,8 +331,8 @@ export default function ProvidersPage() {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(amount);
   };
 
@@ -467,6 +469,7 @@ export default function ProvidersPage() {
     setSelectedSpecialty('');
     setSelectedDepartment('');
     setSelectedStatus('');
+    setSelectedCompModel('');
     setFteRange([0, 1]);
     setBaseSalaryRange([0, 1000000]);
     setShowMissingBenchmarks(false);
@@ -572,7 +575,7 @@ export default function ProvidersPage() {
                   {/* Filter Groups */}
                   <div className="space-y-4">
                     {/* First Row - Dropdowns */}
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-4 gap-4">
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">Specialty</label>
                         <select
@@ -609,6 +612,19 @@ export default function ProvidersPage() {
                           <option value="">All Status</option>
                           {Array.from(new Set(providers.map(p => p.status))).sort().map(status => (
                             <option key={status} value={status}>{status}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">Comp Model</label>
+                        <select
+                          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          value={selectedCompModel}
+                          onChange={(e) => setSelectedCompModel(e.target.value)}
+                        >
+                          <option value="">All Models</option>
+                          {Array.from(new Set(providers.map(p => p.compensationModel))).sort().map(model => (
+                            <option key={model} value={model}>{model}</option>
                           ))}
                         </select>
                       </div>
@@ -783,31 +799,28 @@ export default function ProvidersPage() {
 
               {/* Table */}
               <div className="flex flex-col bg-white shadow-lg rounded-lg flex-1 min-h-0 border border-gray-200">
-                <div className="overflow-y-scroll flex-1 rounded-t-lg scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">
                       <tr>
-                        <th scope="col" className="w-10 px-2 py-3 text-left bg-gray-50">
+                        <th scope="col" className="sticky left-0 z-20 w-10 px-2 py-3 text-left bg-gray-50 border-r border-gray-200">
                           <input
                             type="checkbox"
                             className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                            checked={paginatedProviders.length > 0 && selectedProviders.length === paginatedProviders.length}
+                            checked={filteredProviders.length > 0 && selectedProviders.length === filteredProviders.length}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setSelectedProviders(paginatedProviders.map(p => p.id));
+                                setSelectedProviders(filteredProviders.map(p => p.id));
                               } else {
                                 setSelectedProviders([]);
                               }
                             }}
                           />
                         </th>
-                        <th scope="col" className="w-20 px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-300">
-                          Status
-                        </th>
-                        <th scope="col" className="w-36 px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th scope="col" className="sticky left-[41px] z-20 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-r border-gray-200">
                           Name
                         </th>
-                        <th scope="col" className="w-24 px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                        <th scope="col" className="sticky left-[200px] z-20 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-r border-gray-200">
                           ID
                         </th>
                         <th scope="col" className="w-36 px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
@@ -846,8 +859,8 @@ export default function ProvidersPage() {
                           } ${provider.status === 'Inactive' ? 'text-gray-500' : ''}`}
                         >
                           <td className={classNames(
-                            'whitespace-nowrap px-2 py-3 text-sm sticky left-0 bg-white w-10',
-                            selectedProviders.includes(provider.id) ? 'bg-indigo-50' : ''
+                            'sticky left-0 z-10 whitespace-nowrap px-2 py-4 text-sm',
+                            selectedProviders.includes(provider.id) ? 'bg-indigo-50' : 'bg-white'
                           )}>
                             <input
                               type="checkbox"
@@ -863,40 +876,18 @@ export default function ProvidersPage() {
                               }}
                             />
                           </td>
-                          <td className="whitespace-nowrap px-3 py-3 text-sm border-r border-gray-300">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStatusChange(provider.id, provider.status);
-                              }}
-                              className={`inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-medium
-                                ${provider.status === 'Active'
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-red-100 text-red-800'
-                                }`}
-                            >
-                              {provider.status === 'Active' ? (
-                                <>
-                                  <CheckCircleIcon className="w-4 h-4 mr-1" />
-                                  Active
-                                </>
-                              ) : (
-                                <>
-                                  <XCircleIcon className="w-4 h-4 mr-1" />
-                                  Inactive
-                                </>
-                              )}
-                            </button>
+                          <td className={classNames(
+                            'sticky left-[41px] z-10 whitespace-nowrap px-3 py-4 text-sm font-medium text-blue-600 border-r border-gray-200',
+                            selectedProviders.includes(provider.id) ? 'bg-indigo-50' : 'bg-white'
+                          )}>
+                            <Link href={`/provider/${provider.employeeId}`}>{provider.firstName} {provider.lastName}</Link>
                           </td>
-                          <td className="whitespace-nowrap px-3 py-3 text-sm">
-                            <Link 
-                              href={`/provider/${provider.employeeId}`}
-                              className="text-blue-600 hover:text-blue-800 hover:underline"
-                            >
-                              {`${provider.firstName} ${provider.lastName}`}
-                            </Link>
+                          <td className={classNames(
+                            'sticky left-[200px] z-10 whitespace-nowrap px-3 py-4 text-sm text-gray-900 border-r border-gray-200',
+                            selectedProviders.includes(provider.id) ? 'bg-indigo-50' : 'bg-white'
+                          )}>
+                            {provider.employeeId}
                           </td>
-                          <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-600">{provider.employeeId}</td>
                           <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-600">{provider.specialty}</td>
                           <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-600 border-r border-gray-300">{provider.department}</td>
                           <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-600">{provider.fte.toFixed(2)}</td>

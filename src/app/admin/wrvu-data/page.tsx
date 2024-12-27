@@ -29,7 +29,7 @@ interface WRVUData {
 
 const formatNumber = (value: number | null | undefined) => {
   if (value === null || value === undefined) return '-';
-  return value.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 export default function WRVUDataPage() {
@@ -54,11 +54,13 @@ export default function WRVUDataPage() {
   useEffect(() => {
     // Filter data based on search query and specialty
     const filtered = wrvuData.filter(data => {
-      const matchesSearch = 
-        data.employee_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        data.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        data.last_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        data.specialty.toLowerCase().includes(searchQuery.toLowerCase());
+      const searchTerm = searchQuery.toLowerCase().trim();
+      const fullName = `${data.first_name} ${data.last_name}`.toLowerCase();
+      
+      const matchesSearch = !searchTerm || 
+        data.employee_id.toLowerCase().includes(searchTerm) ||
+        fullName.includes(searchTerm) ||
+        data.specialty.toLowerCase().includes(searchTerm);
       
       const matchesSpecialty = !selectedSpecialty || data.specialty === selectedSpecialty;
       
@@ -169,6 +171,14 @@ export default function WRVUDataPage() {
     }
   };
 
+  // Add helper function to calculate YTD
+  const calculateYTD = (data: WRVUData) => {
+    return [
+      data.jan, data.feb, data.mar, data.apr, data.may, data.jun,
+      data.jul, data.aug, data.sep, data.oct, data.nov, data.dec
+    ].reduce((sum, val) => sum + (val || 0), 0);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
@@ -263,16 +273,18 @@ export default function WRVUDataPage() {
                 />
                 <MagnifyingGlassIcon className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
               </div>
-              <select
-                className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                value={selectedSpecialty}
-                onChange={(e) => setSelectedSpecialty(e.target.value)}
-              >
-                <option value="">All Specialties</option>
-                {Array.from(new Set(wrvuData.map(d => d.specialty))).sort().map(specialty => (
-                  <option key={specialty} value={specialty}>{specialty}</option>
-                ))}
-              </select>
+              <div>
+                <select
+                  className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  value={selectedSpecialty}
+                  onChange={(e) => setSelectedSpecialty(e.target.value)}
+                >
+                  <option value="">All Specialties</option>
+                  {Array.from(new Set(wrvuData.map(d => d.specialty))).sort().map(specialty => (
+                    <option key={specialty} value={specialty}>{specialty}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -297,27 +309,28 @@ export default function WRVUDataPage() {
                       }}
                     />
                   </th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Employee ID
                   </th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Name
                   </th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Specialty
                   </th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Jan</th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Feb</th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Mar</th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Apr</th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">May</th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Jun</th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Jul</th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aug</th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Sep</th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Oct</th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Nov</th>
-                  <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Dec</th>
+                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Jan</th>
+                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Feb</th>
+                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Mar</th>
+                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Apr</th>
+                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">May</th>
+                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Jun</th>
+                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Jul</th>
+                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aug</th>
+                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Sep</th>
+                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Oct</th>
+                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Nov</th>
+                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Dec</th>
+                  <th scope="col" className="w-20 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-100">YTD</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -338,21 +351,22 @@ export default function WRVUDataPage() {
                         }}
                       />
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">{data.employee_id}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">{`${data.first_name} ${data.last_name}`}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">{data.specialty}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">{formatNumber(data.jan)}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">{formatNumber(data.feb)}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">{formatNumber(data.mar)}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">{formatNumber(data.apr)}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">{formatNumber(data.may)}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">{formatNumber(data.jun)}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">{formatNumber(data.jul)}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">{formatNumber(data.aug)}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">{formatNumber(data.sep)}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">{formatNumber(data.oct)}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">{formatNumber(data.nov)}</td>
-                    <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500 text-right">{formatNumber(data.dec)}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-900">{data.employee_id}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-900">{`${data.first_name} ${data.last_name}`}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-900">{data.specialty}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.jan)}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.feb)}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.mar)}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.apr)}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.may)}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.jun)}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.jul)}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.aug)}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.sep)}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.oct)}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.nov)}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.dec)}</td>
+                    <td className="whitespace-nowrap px-2 py-2 text-sm font-medium text-gray-900 text-right bg-gray-50">{formatNumber(calculateYTD(data))}</td>
                   </tr>
                 ))}
               </tbody>
