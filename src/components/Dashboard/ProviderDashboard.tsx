@@ -7,7 +7,7 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import AddAdjustmentModal from './AddAdjustmentModal';
 import WRVUChart from './WRVUChart';
 import WRVUGauge from './WRVUGauge';
-import { CurrencyDollarIcon, ChartBarIcon, PencilIcon, TrashIcon, PlusIcon, Cog6ToothIcon, BanknotesIcon, ChartPieIcon, ScaleIcon, ArrowTrendingUpIcon, ArrowPathIcon, ArrowDownTrayIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { CurrencyDollarIcon, ChartBarIcon, PencilIcon, TrashIcon, PlusIcon, Cog6ToothIcon, BanknotesIcon, ChartPieIcon, ScaleIcon, ArrowTrendingUpIcon, ArrowPathIcon, ArrowDownTrayIcon, InformationCircleIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -27,16 +27,23 @@ import { Fragment } from 'react';
 
 interface Provider {
   id: string;
+  employeeId: string;
   firstName: string;
   middleInitial?: string;
   lastName: string;
   suffix?: string;
-  employeeId: string;
+  email: string;
   specialty: string;
-  baseSalary: number;
-  annualWRVUTarget: number;
-  hireDate: Date;
+  department: string;
+  status: string;
+  terminationDate?: string;
+  hireDate: string;
   fte: number;
+  baseSalary: number;
+  compensationModel: string;
+  annualWRVUTarget: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -1211,6 +1218,9 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
                 </span>
                 <span className="flex items-center">
                   FTE: {fte.toFixed(2)}
+                </span>
+                <span className="flex items-center">
+                  Comp Type: {provider.compensationModel}
                 </span>
               </div>
             </div>

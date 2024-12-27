@@ -264,11 +264,16 @@ export default function ProvidersPage() {
   useEffect(() => {
     // Filter data based on search query and other filters
     let filtered = providers.filter(provider => {
-      const matchesSearch = 
-        provider.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        provider.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        provider.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        provider.employeeId.toLowerCase().includes(searchQuery.toLowerCase());
+      // Split search query into words
+      const searchTerms = searchQuery.toLowerCase().split(' ').filter(term => term.length > 0);
+      
+      const matchesSearch = searchTerms.length === 0 || searchTerms.every(term => 
+        provider.firstName.toLowerCase().includes(term) ||
+        provider.lastName.toLowerCase().includes(term) ||
+        `${provider.firstName} ${provider.lastName}`.toLowerCase().includes(term) ||
+        provider.specialty.toLowerCase().includes(term) ||
+        provider.employeeId.toLowerCase().includes(term)
+      );
 
       const matchesSpecialty = !selectedSpecialty || provider.specialty === selectedSpecialty;
       const matchesDepartment = !selectedDepartment || provider.department === selectedDepartment;
