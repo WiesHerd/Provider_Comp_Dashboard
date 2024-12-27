@@ -779,8 +779,8 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
 
   const handleCloseCompChangeModal = () => {
     setIsCompChangeModalOpen(false);
-    setNewSalary(annualSalary);
-    setNewFTE(fte);
+    setNewSalary(provider.baseSalary);
+    setNewFTE(provider.fte);
     setEffectiveDate('');
     setChangeReason('');
   };
@@ -795,8 +795,8 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     const change: CompensationChange = {
       id: crypto.randomUUID(),
       providerId: provider.id,
-      previousSalary: annualSalary,
-      previousFTE: fte,
+      previousSalary: provider.baseSalary,
+      previousFTE: provider.fte,
       ...data
     };
     setCompensationHistory([...compensationHistory, change]);
@@ -1164,6 +1164,12 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     return { class: 'bg-red-400/10 text-red-400', text: 'Below Target' };
   };
 
+  useEffect(() => {
+    // Initialize state with provider data
+    setAnnualSalary(provider.baseSalary);
+    setFte(provider.fte);
+  }, [provider]);
+
   return (
     <>
       <div className="max-w-[1600px] mx-auto">
@@ -1199,7 +1205,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
                   </div>
                   <h3 className="text-sm font-medium text-gray-600">Base Salary</h3>
                 </div>
-                <p className="mt-3 text-xl font-semibold text-gray-900">{formatCurrency(annualSalary)}</p>
+                <p className="mt-3 text-xl font-semibold text-gray-900">{formatCurrency(provider.baseSalary)}</p>
               </div>
             </div>
           </div>
@@ -1455,8 +1461,8 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
                       <WRVUGauge
                         title="Incentive % of Base"
-                        value={(totalIncentives / annualSalary) * 100}
-                        subtitle={`${formatCurrency(totalIncentives)} of ${formatCurrency(annualSalary)}`}
+                        value={(totalIncentives / provider.baseSalary) * 100}
+                        subtitle={`${formatCurrency(totalIncentives)} of ${formatCurrency(provider.baseSalary)}`}
                         size="large"
                         showTrend={true}
                       />
@@ -1634,8 +1640,8 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       <CompensationChangeModalComponent
         isOpen={isCompChangeModalOpen}
         onClose={handleCloseCompChangeModal}
-        currentSalary={annualSalary}
-        currentFTE={fte}
+        currentSalary={provider.baseSalary}
+        currentFTE={provider.fte}
         conversionFactor={provider.conversionFactor}
         onSave={handleCompensationChange}
       />

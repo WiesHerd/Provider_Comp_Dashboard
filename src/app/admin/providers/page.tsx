@@ -18,6 +18,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, horizontalList
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface Provider {
   id: string;
@@ -175,7 +176,14 @@ export default function ProvidersPage() {
         )}
       </button>
     )},
-    { id: 'name', label: 'Name', key: (provider: Provider) => `${provider.firstName} ${provider.lastName}` },
+    { id: 'name', label: 'Name', key: (provider: Provider) => (
+      <Link 
+        href={`/provider/${provider.employeeId}`}
+        className="text-blue-600 hover:text-blue-800 hover:underline"
+      >
+        {`${provider.firstName} ${provider.lastName}`}
+      </Link>
+    )},
     { id: 'employeeId', label: 'ID', key: 'employeeId' },
     { id: 'specialty', label: 'Specialty', key: 'specialty' },
     { id: 'department', label: 'Department', key: 'department' },

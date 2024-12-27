@@ -1,17 +1,45 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { generateSampleData } from '@/utils/seedData';
+import { useEffect, useState } from 'react';
 import ProviderDashboard from '@/components/Dashboard/ProviderDashboard';
 
 export default function ProviderPage() {
   const params = useParams();
-  const { providers } = generateSampleData(800);
-  
-  // Get the current provider based on URL param
-  const currentProvider = providers.find(p => p.id === params?.providerId);
+  const [provider, setProvider] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!currentProvider) {
+  useEffect(() => {
+    async function fetchProvider() {
+      try {
+        const response = await fetch(`/api/providers/employee/${params?.providerId}`);
+        const data = await response.json();
+        if (response.ok) {
+          setProvider(data);
+        }
+      } catch (error) {
+        console.error('Error fetching provider:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (params?.providerId) {
+      fetchProvider();
+    }
+  }, [params?.providerId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-medium text-gray-900">Loading...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (!provider) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -24,7 +52,7 @@ export default function ProviderPage() {
 
   return (
     <ProviderDashboard 
-      provider={currentProvider}
+      provider={provider}
     />
   );
 } 

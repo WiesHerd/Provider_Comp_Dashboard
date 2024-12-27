@@ -55,4 +55,35 @@ export async function DELETE(
       { status: 500 }
     );
   }
+}
+
+// GET /api/providers/[providerId] - Get a provider with their wRVU data
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { providerId: string } }
+) {
+  try {
+    const providerId = await params.providerId;
+    const provider = await prisma.provider.findUnique({
+      where: { id: providerId },
+      include: {
+        wrvuData: true,
+      },
+    });
+
+    if (!provider) {
+      return NextResponse.json(
+        { error: 'Provider not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(provider);
+  } catch (error) {
+    console.error('Error fetching provider:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch provider' },
+      { status: 500 }
+    );
+  }
 } 

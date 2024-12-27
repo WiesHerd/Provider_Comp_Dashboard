@@ -88,11 +88,15 @@ export default function AddProviderModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await onSubmit(formData);
+      // Convert baseSalary to number before submitting
+      const submissionData = {
+        ...formData,
+        baseSalary: formData.baseSalary ? Number(formData.baseSalary) : 0
+      };
+      await onSubmit(submissionData);
       onClose();
     } catch (error) {
-      console.error('Error submitting provider:', error);
-      alert('Failed to submit provider. Please try again.');
+      console.error('Error submitting form:', error);
     }
   };
 
