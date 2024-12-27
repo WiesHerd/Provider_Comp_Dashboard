@@ -1172,7 +1172,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
 
   return (
     <>
-      <div className="max-w-[1600px] mx-auto">
+      <div className="w-full">
         <style>{customStyles}</style>
         <div className="dashboard-header bg-white rounded-lg shadow-sm mb-8 border border-gray-200">
           <div className="px-8 py-6">
@@ -1317,7 +1317,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         <div className="transition-all duration-300 ease-in-out">
           {activeView === 'compensation' && (
             <div className="space-y-6">
-              <div id="metrics-table" className="bg-white rounded-lg shadow-sm border border-gray-200" style={{overflowX:'auto'}}>
+              <div id="metrics-table" className="bg-white rounded-lg shadow-sm border border-gray-200" style={{width: '100%'}}>
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h2 className="text-lg font-medium text-gray-900">Metrics & Adjustments</h2>
                 </div>
@@ -1358,7 +1358,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
                 </div>
               </div>
 
-              <div id="compensation-table" className="bg-white rounded-lg shadow-sm border border-gray-200" style={{overflowX:'auto'}}>
+              <div id="compensation-table" className="bg-white rounded-lg shadow-sm border border-gray-200" style={{width: '100%'}}>
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h2 className="text-lg font-medium text-gray-900">Compensation Details</h2>
                 </div>

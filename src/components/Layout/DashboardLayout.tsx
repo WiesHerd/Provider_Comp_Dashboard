@@ -17,7 +17,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           collapsed ? 'ml-16' : 'ml-64'
         }`}
       >
-        <main className="p-6">
+        <main className="p-4">
           {children}
         </main>
       </div>
