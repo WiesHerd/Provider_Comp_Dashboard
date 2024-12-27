@@ -520,6 +520,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   const [baseMonthlyData, setBaseMonthlyData] = useState<Record<string, number>>(
     Object.fromEntries(months.map((m) => [m.toLowerCase(), 0]))
   );
+  const [isLoading, setIsLoading] = useState(true);
 
   const [activeView, setActiveView] = useState('compensation');
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
@@ -567,19 +568,17 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
 
   useEffect(() => {
     const fetchWRVUData = async () => {
+      setIsLoading(true);
       try {
-        // First get the wRVU data from the database
         const response = await fetch('/api/wrvu-data');
         if (!response.ok) {
           throw new Error('Failed to fetch wRVU data');
         }
         const data = await response.json();
         
-        // Find the provider's wRVU data
         const providerData = data.find((d: any) => d.employee_id === provider.employeeId);
         
         if (providerData) {
-          // Map the monthly data directly from the database fields
           const monthlyData = {
             jan: providerData.jan || 0,
             feb: providerData.feb || 0,
@@ -597,13 +596,13 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
           
           setBaseMonthlyData(monthlyData);
         } else {
-          // If no data found, set all months to 0
           setBaseMonthlyData(Object.fromEntries(months.map((m) => [m.toLowerCase(), 0])));
         }
       } catch (error) {
         console.error('Error fetching wRVU data:', error);
-        // Keep the zeros as fallback
         setBaseMonthlyData(Object.fromEntries(months.map((m) => [m.toLowerCase(), 0])));
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -626,7 +625,11 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     [annualSalary, marketData, provider.specialty, fte]
   );
 
-  const totalWRVUs = useMemo(() => calculateTotalWRVUs(baseMonthlyData, adjustments), [adjustments]);
+  const totalWRVUs = useMemo(() => {
+    if (isLoading) return Object.fromEntries(months.map((m) => [m.toLowerCase(), 0]));
+    return calculateTotalWRVUs(baseMonthlyData, adjustments);
+  }, [baseMonthlyData, adjustments, isLoading]);
+
   const totalTargetsWithAdjustments = useMemo(() => calculateTotalTargets(targetMonthlyData, targetAdjustments), [targetMonthlyData, targetAdjustments]);
   const monthlyVariances = useMemo(() => calculateVariance(totalWRVUs, totalTargetsWithAdjustments), [totalWRVUs, totalTargetsWithAdjustments]);
 
@@ -1116,12 +1119,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         }
         if (params.data.component === 'Total Comp.' && params.data.percentile) {
           return (
-            <div className="flex items-center gap-2">
-              <span className="font-medium">{params.value}</span>
-              <span className="text-xs text-gray-500">
-                ({params.data.nearestBenchmark} percentile)
-              </span>
-            </div>
+            <span className="font-medium">{params.value}</span>
           );
         }
         return <span className={params.data.isSystem ? 'row-section-header' : ''}>{params.value}</span>;
