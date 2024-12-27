@@ -111,6 +111,18 @@ function classNames(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ');
 }
 
+const formatNumber = (value: number | null | undefined, isDecimal: boolean = false) => {
+  if (value === null || value === undefined) return '-';
+  
+  if (isDecimal) {
+    // For Conversion Factor values
+    return value.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  }
+  
+  // For other values, just use commas
+  return value.toLocaleString();
+};
+
 export default function ProvidersPage() {
   const router = useRouter();
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -196,6 +208,10 @@ export default function ProvidersPage() {
     { id: 'department', label: 'Department', key: 'department' },
     { id: 'fte', label: 'FTE', key: (provider: Provider) => provider.fte.toFixed(2) },
     { id: 'baseSalary', label: 'Base Salary', key: (provider: Provider) => formatCurrency(provider.baseSalary) },
+    { id: 'conversionFactor', label: 'Conv. Factor', key: (provider: Provider) => {
+      const marketDataMatch = marketData.find(data => data.specialty === provider.specialty);
+      return marketDataMatch ? formatCurrency(marketDataMatch.p50_cf) : '-';
+    }},
     { id: 'compensationModel', label: 'Comp Model', key: 'compensationModel' },
   ]);
 
@@ -232,76 +248,51 @@ export default function ProvidersPage() {
         throw new Error('Failed to fetch market data');
       }
       const data = await response.json();
-      setMarketData(data.marketData);
+      setMarketData(data);
     } catch (err) {
       console.error('Error fetching market data:', err);
     }
   };
 
-  // Add useEffect to fetch market data on mount
+  // Update useEffect to fetch both providers and market data
   useEffect(() => {
+    fetchProviders();
     fetchMarketData();
   }, []);
 
-  // Add useEffect to check for providers without benchmarks
+  // Update useEffect for filtering to include market data lookup
   useEffect(() => {
-    if (!marketData || !providers) return;
-    
-    const specialtiesWithBenchmarks = new Set(marketData.map(data => data.specialty));
-    const missingBenchmarks = providers.filter(
-      provider => !specialtiesWithBenchmarks.has(provider.specialty)
+    // Filter data based on search query and other filters
+    let filtered = providers.filter(provider => {
+      const matchesSearch = 
+        provider.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        provider.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        provider.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        provider.employeeId.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesSpecialty = !selectedSpecialty || provider.specialty === selectedSpecialty;
+      const matchesDepartment = !selectedDepartment || provider.department === selectedDepartment;
+      const matchesStatus = !selectedStatus || provider.status === selectedStatus;
+      const matchesFTE = provider.fte >= fteRange[0] && provider.fte <= fteRange[1];
+      const matchesSalary = provider.baseSalary >= baseSalaryRange[0] && provider.baseSalary <= baseSalaryRange[1];
+
+      // Check if provider has matching benchmark in market data
+      const hasMatchingBenchmark = marketData.some(data => data.specialty === provider.specialty);
+      const matchesMissingBenchmarks = !showMissingBenchmarks || !hasMatchingBenchmark;
+
+      return matchesSearch && matchesSpecialty && matchesDepartment && 
+             matchesStatus && matchesFTE && matchesSalary && matchesMissingBenchmarks;
+    });
+
+    // Update providers without benchmarks
+    const withoutBenchmarks = providers.filter(provider => 
+      !marketData.some(data => data.specialty === provider.specialty)
     );
-    setProvidersWithoutBenchmarks(missingBenchmarks);
-  }, [providers, marketData]);
+    setProvidersWithoutBenchmarks(withoutBenchmarks);
 
-  // Update filtering effect
-  useEffect(() => {
-    let result = [...providers];
-    
-    // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(provider => 
-        provider.firstName.toLowerCase().includes(query) ||
-        provider.lastName.toLowerCase().includes(query) ||
-        provider.employeeId.toLowerCase().includes(query) ||
-        provider.email.toLowerCase().includes(query)
-      );
-    }
-    
-    // Apply specialty filter
-    if (selectedSpecialty) {
-      result = result.filter(provider => provider.specialty === selectedSpecialty);
-    }
-    
-    // Apply department filter
-    if (selectedDepartment) {
-      result = result.filter(provider => provider.department === selectedDepartment);
-    }
-    
-    // Apply status filter
-    if (selectedStatus) {
-      result = result.filter(provider => provider.status === selectedStatus);
-    }
-
-    // Apply FTE range filter
-    result = result.filter(provider => 
-      provider.fte >= fteRange[0] && provider.fte <= fteRange[1]
-    );
-
-    // Apply base salary range filter
-    result = result.filter(provider => 
-      provider.baseSalary >= baseSalaryRange[0] && provider.baseSalary <= baseSalaryRange[1]
-    );
-
-    // Apply missing benchmarks filter
-    if (showMissingBenchmarks && marketData) {
-      const specialtiesWithBenchmarks = new Set(marketData.map(data => data.specialty));
-      result = result.filter(provider => !specialtiesWithBenchmarks.has(provider.specialty));
-    }
-    
-    setFilteredProviders(result);
-  }, [providers, searchQuery, selectedSpecialty, selectedDepartment, selectedStatus, fteRange, baseSalaryRange, showMissingBenchmarks, marketData]);
+    setFilteredProviders(filtered);
+  }, [providers, searchQuery, selectedSpecialty, selectedDepartment, selectedStatus, 
+      fteRange, baseSalaryRange, showMissingBenchmarks, marketData]);
 
   const paginatedProviders = filteredProviders.slice(
     (currentPage - 1) * rowsPerPage,
@@ -826,6 +817,9 @@ export default function ProvidersPage() {
                         <th scope="col" className="w-28 px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                           Base Salary
                         </th>
+                        <th scope="col" className="w-28 px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                          Conv. Factor
+                        </th>
                         <th scope="col" className="w-24 px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                           Comp Model
                         </th>
@@ -902,6 +896,12 @@ export default function ProvidersPage() {
                           <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-600 border-r border-gray-300">{provider.department}</td>
                           <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-600">{provider.fte.toFixed(2)}</td>
                           <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-600">{formatCurrency(provider.baseSalary)}</td>
+                          <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-600">
+                            {(() => {
+                              const marketDataMatch = marketData.find(data => data.specialty === provider.specialty);
+                              return marketDataMatch ? formatCurrency(marketDataMatch.p50_cf) : '-';
+                            })()}
+                          </td>
                           <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-600">{provider.compensationModel}</td>
                         </tr>
                       ))}

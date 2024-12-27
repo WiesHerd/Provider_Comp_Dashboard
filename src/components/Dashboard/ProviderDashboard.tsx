@@ -27,17 +27,16 @@ import { Fragment } from 'react';
 
 interface Provider {
   id: string;
-    firstName: string;
-    middleInitial?: string;
-    lastName: string;
-    suffix?: string;
-    employeeId: string;
-    specialty: string;
-    annualSalary: number;
-    annualWRVUTarget: number;
-    conversionFactor: number;
-    hireDate: Date;
-    fte?: number;
+  firstName: string;
+  middleInitial?: string;
+  lastName: string;
+  suffix?: string;
+  employeeId: string;
+  specialty: string;
+  baseSalary: number;
+  annualWRVUTarget: number;
+  hireDate: Date;
+  fte: number;
 }
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -202,9 +201,9 @@ function calculateVariance(totalWRVUs: any, targetData: any) {
   return result;
 }
 
-function calculateIncentive(variance: number, conversionFactor: number) {
-  return variance > 0 ? variance * conversionFactor : 0;
-}
+const calculateIncentive = (variance: number, cf: number): number => {
+  return variance > 0 ? variance * cf : 0;
+};
 
 function calculateYTD(baseData: any, adjustmentRows: any[]) {
   let ytd = 0;
@@ -524,8 +523,8 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   const [editingPayment, setEditingPayment] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  const [annualSalary, setAnnualSalary] = useState(provider.annualSalary);
-  const [fte, setFte] = useState(provider.fte || 1.0);
+  const [annualSalary, setAnnualSalary] = useState(provider.baseSalary);
+  const [fte, setFte] = useState(provider.fte);
 
   const [newSalary, setNewSalary] = useState<number>(0);
   const [newFTE, setNewFTE] = useState(1.0);
@@ -539,14 +538,38 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
 
   const [holdbackPercentage, setHoldbackPercentage] = useState(20);
 
+  const [marketData, setMarketData] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Fetch market data
+    const fetchMarketData = async () => {
+      try {
+        const response = await fetch('/api/market-data');
+        if (!response.ok) throw new Error('Failed to fetch market data');
+        const data = await response.json();
+        setMarketData(data);
+      } catch (error) {
+        console.error('Error fetching market data:', error);
+      }
+    };
+    
+    fetchMarketData();
+  }, []);
+
+  // Get conversion factor from market data
+  const getConversionFactor = () => {
+    const matchingMarketData = marketData.find(data => data.specialty === provider.specialty);
+    return matchingMarketData ? matchingMarketData.p50_cf : 0;
+  };
+
   const { monthlySalaries, monthlyDetails } = useMemo(
     () => getMonthlySalaries(annualSalary, fte, compensationHistory),
     [annualSalary, fte, compensationHistory]
   );
 
   const targetMonthlyData = useMemo(
-    () => calculateMonthlyTarget(annualSalary, provider.conversionFactor, fte),
-    [annualSalary, provider.conversionFactor, fte]
+    () => calculateMonthlyTarget(annualSalary, getConversionFactor(), fte),
+    [annualSalary, marketData, provider.specialty, fte]
   );
 
   const totalWRVUs = useMemo(() => calculateTotalWRVUs(baseMonthlyData, adjustments), [adjustments]);
@@ -554,11 +577,12 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   const monthlyVariances = useMemo(() => calculateVariance(totalWRVUs, totalTargetsWithAdjustments), [totalWRVUs, totalTargetsWithAdjustments]);
 
   const totalIncentives = useMemo(() => {
-    return months.reduce((sum: number, m: string) => {
+    const cf = getConversionFactor();
+    return months.reduce((acc: number, m: string) => {
       const v = monthlyVariances[m.toLowerCase()] || 0;
-      return sum + calculateIncentive(v, provider.conversionFactor);
+      return acc + calculateIncentive(v, cf);
     }, 0);
-  }, [monthlyVariances, provider.conversionFactor, months]);
+  }, [monthlyVariances, getConversionFactor, months]);
 
   const ytdWRVUs = totalWRVUs.ytd;
 
@@ -584,15 +608,15 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     ];
   }, [adjustments, targetAdjustments, totalWRVUs, totalTargetsWithAdjustments, monthlyVariances, targetMonthlyData]);
 
-  const getMonthlyIncentive = (month: string) => {
+  const getMonthlyIncentive = (month: string): number => {
     const monthKey = month.toLowerCase();
     const monthlyTarget = targetMonthlyData[monthKey] || 0;
     const monthlyActual = baseMonthlyData[monthKey] || 0;
     const variance = monthlyActual - monthlyTarget;
-    return variance > 0 ? variance * provider.conversionFactor : 0;
+    return calculateIncentive(variance, getConversionFactor());
   };
 
-  const monthlyBaseSalary = provider.annualSalary / 12;
+  const monthlyBaseSalary = provider.baseSalary / 12;
 
   const getCompensationData = () => {
     const baseData = [
@@ -785,19 +809,17 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     setChangeReason('');
   };
 
-  const handleCompensationChange = (data: {
-    effectiveDate: string;
-    newSalary: number;
-    newFTE: number;
-    conversionFactor: number;
-    reason: string;
-  }) => {
+  const handleCompensationChange = (data: Omit<CompensationChange, 'id' | 'providerId' | 'previousSalary' | 'previousFTE'>) => {
     const change: CompensationChange = {
       id: crypto.randomUUID(),
       providerId: provider.id,
       previousSalary: provider.baseSalary,
       previousFTE: provider.fte,
-      ...data
+      effectiveDate: data.effectiveDate,
+      newSalary: data.newSalary,
+      newFTE: data.newFTE,
+      conversionFactor: getConversionFactor(),
+      reason: data.reason
     };
     setCompensationHistory([...compensationHistory, change]);
     setIsCompChangeModalOpen(false);
@@ -1233,7 +1255,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
                   </div>
                   <h3 className="text-sm font-medium text-gray-600">Conversion Factor</h3>
                 </div>
-                <p className="mt-3 text-xl font-semibold text-gray-900">{formatCurrency(provider.conversionFactor)}</p>
+                <p className="mt-3 text-xl font-semibold text-gray-900">{formatCurrency(getConversionFactor())}</p>
               </div>
             </div>
           </div>
@@ -1642,7 +1664,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         onClose={handleCloseCompChangeModal}
         currentSalary={provider.baseSalary}
         currentFTE={provider.fte}
-        conversionFactor={provider.conversionFactor}
+        conversionFactor={getConversionFactor()}
         onSave={handleCompensationChange}
       />
     </>
