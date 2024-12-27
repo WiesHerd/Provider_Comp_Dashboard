@@ -575,8 +575,11 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
           throw new Error('Failed to fetch wRVU data');
         }
         const data = await response.json();
+        console.log('All wRVU data:', data);
         
         const providerData = data.find((d: any) => d.employee_id === provider.employeeId);
+        console.log('Provider employeeId:', provider.employeeId);
+        console.log('Found provider data:', providerData);
         
         if (providerData) {
           const monthlyData = {
@@ -593,9 +596,10 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
             nov: providerData.nov || 0,
             dec: providerData.dec || 0
           };
-          
+          console.log('Setting monthly data:', monthlyData);
           setBaseMonthlyData(monthlyData);
         } else {
+          console.log('No provider data found, setting zeros');
           setBaseMonthlyData(Object.fromEntries(months.map((m) => [m.toLowerCase(), 0])));
         }
       } catch (error) {
@@ -883,27 +887,54 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     setChangeReason('');
   };
 
-  const handleCompensationChange = (data: any) => {
-    if (editingChangeId) {
-      // Update existing change
-      setCompensationHistory(prev => prev.map(change => 
-        change.id === editingChangeId 
-          ? { ...change, ...data }
-          : change
-      ));
-    } else {
-      // Add new change
-      const newChange = {
-        id: crypto.randomUUID(),
+  const handleCompensationChange = async (data: {
+    effectiveDate: string;
+    previousSalary: number;
+    newSalary: number;
+    previousFTE: number;
+    newFTE: number;
+    previousConversionFactor: number;
+    newConversionFactor: number;
+    reason?: string;
+  }) => {
+    try {
+      console.log('Sending compensation change data:', {
+        ...data,
         providerId: provider.id,
-        previousSalary: provider.baseSalary,
-        previousFTE: provider.fte,
-        ...data
-      };
-      setCompensationHistory(prev => [...prev, newChange]);
+      });
+
+      const response = await fetch(`/api/providers/${provider.id}/compensation-changes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          providerId: provider.id,
+          effectiveDate: data.effectiveDate,
+          previousSalary: data.previousSalary,
+          newSalary: data.newSalary,
+          previousFTE: data.previousFTE,
+          newFTE: data.newFTE,
+          previousConversionFactor: data.previousConversionFactor,
+          newConversionFactor: data.newConversionFactor,
+          reason: data.reason || ''
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Server error response:', errorData);
+        throw new Error(`Failed to save compensation change: ${response.status} - ${errorData?.error || 'Unknown error'}`);
+      }
+
+      const savedChange = await response.json();
+      console.log('Saved compensation change:', savedChange);
+      setCompensationHistory(prev => [...prev, savedChange]);
+      setIsCompChangeModalOpen(false);
+      setEditingChangeId(null);
+    } catch (error) {
+      console.error('Error saving compensation change:', error);
     }
-    setIsCompChangeModalOpen(false);
-    setEditingChangeId(null);
   };
 
   const handleEditCompensationChange = (change: CompensationChange) => {

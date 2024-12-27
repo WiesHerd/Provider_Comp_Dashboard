@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     const currentYear = new Date().getFullYear();
+    console.log('Fetching wRVU data for year:', currentYear);
+    
     const wrvuData = await prisma.wRVUData.findMany({
       where: {
         year: currentYear
@@ -19,6 +21,8 @@ export async function GET() {
         }
       }
     });
+    
+    console.log('Raw wRVU data from database:', wrvuData);
 
     // Transform the data to match the expected format
     const formattedData = wrvuData.map(data => ({
@@ -41,10 +45,12 @@ export async function GET() {
       nov: data.nov,
       dec: data.dec
     }));
+    
+    console.log('Formatted data being returned:', formattedData);
 
     return NextResponse.json(formattedData);
   } catch (error) {
-    console.error('Error fetching wRVU data:', error);
+    console.error('Detailed error in wRVU data fetch:', error);
     return NextResponse.json(
       { error: 'Failed to fetch wRVU data' },
       { status: 500 }

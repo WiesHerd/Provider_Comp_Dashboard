@@ -33,18 +33,19 @@ model Provider {
 }
 
 model CompensationChange {
-  id               String    @id @default(cuid())
-  effectiveDate    DateTime
-  previousSalary   Float
-  newSalary        Float
-  previousFTE      Float
-  newFTE           Float
-  conversionFactor Float
-  reason           String?
-  providerId       String
-  provider         Provider  @relation(fields: [providerId], references: [id])
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id                      String    @id @default(cuid())
+  effectiveDate           DateTime
+  previousSalary          Float
+  newSalary              Float
+  previousFTE            Float
+  newFTE                 Float
+  previousConversionFactor Float
+  newConversionFactor    Float
+  reason                 String?
+  providerId             String
+  provider               Provider  @relation(fields: [providerId], references: [id])
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   @@index([providerId, effectiveDate])
 }

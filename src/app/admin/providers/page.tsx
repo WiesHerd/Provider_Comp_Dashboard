@@ -19,6 +19,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { utils, writeFile } from 'xlsx';
 
 interface Provider {
   id: string;
@@ -146,6 +147,8 @@ export default function ProvidersPage() {
   const [fteRange, setFteRange] = useState<[number, number]>([0, 1]);
   const [baseSalaryRange, setBaseSalaryRange] = useState<[number, number]>([0, 1000000]);
   const [showMissingBenchmarks, setShowMissingBenchmarks] = useState(false);
+  const [showMissingWRVUs, setShowMissingWRVUs] = useState(false);
+  const [providersWithoutWRVUs, setProvidersWithoutWRVUs] = useState<Provider[]>([]);
 
   // Add state for market data
   const [marketData, setMarketData] = useState<any[]>([]);
@@ -261,45 +264,75 @@ export default function ProvidersPage() {
     fetchMarketData();
   }, []);
 
-  // Update useEffect for filtering to include market data lookup
+  // Add wRVU data check to providers
+  useEffect(() => {
+    const fetchWRVUData = async () => {
+      try {
+        const response = await fetch('/api/wrvu-data');
+        if (!response.ok) throw new Error('Failed to fetch wRVU data');
+        const wrvuData = await response.json();
+        
+        // Create a map of provider IDs to wRVU data
+        const wrvuMap = new Map(wrvuData.map((d: any) => [d.employee_id, d]));
+        
+        // Update providers without wRVUs
+        const providersWithNoWRVUs = providers.filter(provider => !wrvuMap.has(provider.employeeId));
+        setProvidersWithoutWRVUs(providersWithNoWRVUs);
+      } catch (error) {
+        console.error('Error fetching wRVU data:', error);
+      }
+    };
+    
+    if (providers.length > 0) {
+      fetchWRVUData();
+    }
+  }, [providers]);
+
   useEffect(() => {
     // Filter data based on search query and other filters
     let filtered = providers.filter(provider => {
-      // Split search query into words
-      const searchTerms = searchQuery.toLowerCase().split(' ').filter(term => term.length > 0);
-      
-      const matchesSearch = searchTerms.length === 0 || searchTerms.every(term => 
-        provider.firstName.toLowerCase().includes(term) ||
-        provider.lastName.toLowerCase().includes(term) ||
-        `${provider.firstName} ${provider.lastName}`.toLowerCase().includes(term) ||
-        provider.specialty.toLowerCase().includes(term) ||
-        provider.employeeId.toLowerCase().includes(term)
-      );
+      // Apply search filter
+      if (searchQuery) {
+        const searchLower = searchQuery.toLowerCase();
+        const matchesSearch = 
+          provider.firstName.toLowerCase().includes(searchLower) ||
+          provider.lastName.toLowerCase().includes(searchLower) ||
+          provider.specialty.toLowerCase().includes(searchLower) ||
+          provider.employeeId.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
+      }
 
-      const matchesSpecialty = !selectedSpecialty || provider.specialty === selectedSpecialty;
-      const matchesDepartment = !selectedDepartment || provider.department === selectedDepartment;
-      const matchesStatus = !selectedStatus || provider.status === selectedStatus;
-      const matchesCompModel = !selectedCompModel || provider.compensationModel === selectedCompModel;
-      const matchesFTE = provider.fte >= fteRange[0] && provider.fte <= fteRange[1];
-      const matchesSalary = provider.baseSalary >= baseSalaryRange[0] && provider.baseSalary <= baseSalaryRange[1];
+      // Apply specialty filter
+      if (selectedSpecialty && provider.specialty !== selectedSpecialty) return false;
 
-      // Check if provider has matching benchmark in market data
-      const hasMatchingBenchmark = marketData.some(data => data.specialty === provider.specialty);
-      const matchesMissingBenchmarks = !showMissingBenchmarks || !hasMatchingBenchmark;
+      // Apply department filter
+      if (selectedDepartment && provider.department !== selectedDepartment) return false;
 
-      return matchesSearch && matchesSpecialty && matchesDepartment && 
-             matchesStatus && matchesCompModel && matchesFTE && matchesSalary && matchesMissingBenchmarks;
+      // Apply status filter
+      if (selectedStatus && provider.status !== selectedStatus) return false;
+
+      // Apply comp model filter
+      if (selectedCompModel && provider.compensationModel !== selectedCompModel) return false;
+
+      // Apply FTE range filter
+      if (provider.fte < fteRange[0] || provider.fte > fteRange[1]) return false;
+
+      // Apply salary range filter
+      if (provider.baseSalary < baseSalaryRange[0] || provider.baseSalary > baseSalaryRange[1]) return false;
+
+      // Apply missing benchmarks filter
+      if (showMissingBenchmarks && !providersWithoutBenchmarks.some(p => p.id === provider.id)) return false;
+
+      // Apply missing wRVUs filter
+      if (showMissingWRVUs && !providersWithoutWRVUs.some(p => p.id === provider.id)) return false;
+
+      return true;
     });
-
-    // Update providers without benchmarks
-    const withoutBenchmarks = providers.filter(provider => 
-      !marketData.some(data => data.specialty === provider.specialty)
-    );
-    setProvidersWithoutBenchmarks(withoutBenchmarks);
 
     setFilteredProviders(filtered);
   }, [providers, searchQuery, selectedSpecialty, selectedDepartment, selectedStatus, 
-      selectedCompModel, fteRange, baseSalaryRange, showMissingBenchmarks, marketData]);
+      selectedCompModel, fteRange, baseSalaryRange, showMissingBenchmarks, showMissingWRVUs,
+      providersWithoutBenchmarks, providersWithoutWRVUs]);
 
   const paginatedProviders = filteredProviders.slice(
     (currentPage - 1) * rowsPerPage,
@@ -473,6 +506,7 @@ export default function ProvidersPage() {
     setFteRange([0, 1]);
     setBaseSalaryRange([0, 1000000]);
     setShowMissingBenchmarks(false);
+    setShowMissingWRVUs(false);
   };
 
   // Add this function to generate page numbers
@@ -525,6 +559,33 @@ export default function ProvidersPage() {
     return pageNumbers;
   };
 
+  const handleExportToExcel = () => {
+    // Create worksheet data from filtered providers
+    const worksheetData = filteredProviders.map(provider => ({
+      'Name': `${provider.firstName} ${provider.lastName}`,
+      'ID': provider.employeeId,
+      'Specialty': provider.specialty,
+      'Department': provider.department,
+      'Status': provider.status,
+      'FTE': provider.fte,
+      'Base Salary': provider.baseSalary,
+      'Conversion Factor': marketData.find(data => data.specialty === provider.specialty)?.p50_cf || '-',
+      'Comp Model': provider.compensationModel
+    }));
+
+    // Create workbook and worksheet
+    const worksheet = utils.json_to_sheet(worksheetData);
+    const workbook = utils.book_new();
+    utils.book_append_sheet(workbook, worksheet, 'Providers');
+
+    // Generate file name with current date
+    const date = new Date().toISOString().split('T')[0];
+    const fileName = `providers_export_${date}.xlsx`;
+
+    // Save file
+    writeFile(workbook, fileName);
+  };
+
   return (
     <>
       {!mounted ? null : (
@@ -559,6 +620,12 @@ export default function ProvidersPage() {
                       />
                       <MagnifyingGlassIcon className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
                     </div>
+                    <button
+                      onClick={handleExportToExcel}
+                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                    >
+                      Export to Excel
+                    </button>
                     <button
                       onClick={() => setIsAddModalOpen(true)}
                       className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
@@ -726,17 +793,32 @@ export default function ProvidersPage() {
 
                     {/* Third Row - Toggle and Reset */}
                     <div className="flex items-center justify-between pt-2">
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={showMissingBenchmarks}
-                          onChange={(e) => setShowMissingBenchmarks(e.target.checked)}
-                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                        />
-                        <span className="text-sm text-gray-700">
-                          Show Missing Benchmarks Only ({providersWithoutBenchmarks.length})
-                        </span>
-                      </label>
+                      <div className="flex items-center space-x-4">
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={showMissingBenchmarks}
+                            onChange={(e) => setShowMissingBenchmarks(e.target.checked)}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                          />
+                          <span className="text-sm text-gray-700">
+                            Show Missing Benchmarks Only ({providersWithoutBenchmarks.length})
+                          </span>
+                        </label>
+
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={showMissingWRVUs}
+                            onChange={(e) => setShowMissingWRVUs(e.target.checked)}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                          />
+                          <span className="text-sm text-gray-700">
+                            Show Missing wRVUs Only ({providersWithoutWRVUs.length})
+                          </span>
+                        </label>
+                      </div>
+
                       <button
                         onClick={handleResetFilters}
                         className="text-sm text-gray-600 hover:text-gray-900"
@@ -786,12 +868,12 @@ export default function ProvidersPage() {
                             window.location.href = `/provider/${provider.employeeId}`;
                           }
                         } else {
-                          alert('Please select only one provider to view metrics');
+                          alert('Please select only one provider to view dashboard');
                         }
                       }}
                     >
                       <ChartBarIcon className="h-4 w-4 mr-1.5" />
-                      View Metrics
+                      View Dashboard
                     </button>
                   </div>
                 </div>
