@@ -47,7 +47,6 @@ interface Provider {
 }
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const baseMonthlyData = Object.fromEntries(months.map((m) => [m.toLowerCase(), 400]));
 
 interface MonthlyDetail {
   changed: boolean;
@@ -517,6 +516,9 @@ function CompensationChangeModal({
 export default function ProviderDashboard({ provider }: ProviderDashboardProps) {
   const [metricsGridApi, setMetricsGridApi] = useState<GridApi | null>(null);
   const [compensationGridApi, setCompensationGridApi] = useState<GridApi | null>(null);
+  const [baseMonthlyData, setBaseMonthlyData] = useState<Record<string, number>>(
+    Object.fromEntries(months.map((m) => [m.toLowerCase(), 0]))
+  );
 
   const [activeView, setActiveView] = useState('compensation');
   const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
@@ -543,8 +545,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   const [isMetricsTableVisible, setIsMetricsTableVisible] = useState(true);
   const [isCompTableVisible, setIsCompTableVisible] = useState(true);
 
-  const [holdbackPercentage, setHoldbackPercentage] = useState(20);
-
+  const [holdbackPercentage, setHoldbackPercentage] = useState(5);
   const [marketData, setMarketData] = useState<any[]>([]);
 
   useEffect(() => {
@@ -559,9 +560,54 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         console.error('Error fetching market data:', error);
       }
     };
-    
+
     fetchMarketData();
   }, []);
+
+  useEffect(() => {
+    const fetchWRVUData = async () => {
+      try {
+        // First get the wRVU data from the database
+        const response = await fetch('/api/wrvu-data');
+        if (!response.ok) {
+          throw new Error('Failed to fetch wRVU data');
+        }
+        const data = await response.json();
+        
+        // Find the provider's wRVU data
+        const providerData = data.find((d: any) => d.employee_id === provider.employeeId);
+        
+        if (providerData) {
+          // Map the monthly data directly from the database fields
+          const monthlyData = {
+            jan: providerData.jan || 0,
+            feb: providerData.feb || 0,
+            mar: providerData.mar || 0,
+            apr: providerData.apr || 0,
+            may: providerData.may || 0,
+            jun: providerData.jun || 0,
+            jul: providerData.jul || 0,
+            aug: providerData.aug || 0,
+            sep: providerData.sep || 0,
+            oct: providerData.oct || 0,
+            nov: providerData.nov || 0,
+            dec: providerData.dec || 0
+          };
+          
+          setBaseMonthlyData(monthlyData);
+        } else {
+          // If no data found, set all months to 0
+          setBaseMonthlyData(Object.fromEntries(months.map((m) => [m.toLowerCase(), 0])));
+        }
+      } catch (error) {
+        console.error('Error fetching wRVU data:', error);
+        // Keep the zeros as fallback
+        setBaseMonthlyData(Object.fromEntries(months.map((m) => [m.toLowerCase(), 0])));
+      }
+    };
+
+    fetchWRVUData();
+  }, [provider.employeeId]);
 
   // Get conversion factor from market data
   const getConversionFactor = () => {
@@ -640,7 +686,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
           ...acc,
           [month.toLowerCase()]: getMonthlyIncentive(month) || 0,
         }), {}),
-        ytd: months.reduce((sum, month) => sum + (getMonthlyIncentive(month) || 0), 0),
+        ytd: months.reduce((sum, month) => sum + (getMonthlyIncentive(month) || 0), 0)
       },
       {
         component: `Holdback (${holdbackPercentage}%)`,
@@ -649,7 +695,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
           ...acc,
           [month.toLowerCase()]: -1 * (monthlySalaries[month.toLowerCase()] || 0) * (holdbackPercentage / 100),
         }), {}),
-        ytd: -1 * Object.values(monthlySalaries).reduce((sum, val) => sum + (Number(val) || 0), 0) * (holdbackPercentage / 100),
+        ytd: -1 * Object.values(monthlySalaries).reduce((sum, val) => sum + (Number(val) || 0), 0)
       },
       ...additionalPayments.map(pay => ({
         ...pay,
@@ -816,20 +862,32 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     setChangeReason('');
   };
 
-  const handleCompensationChange = (data: Omit<CompensationChange, 'id' | 'providerId' | 'previousSalary' | 'previousFTE'>) => {
-    const change: CompensationChange = {
-      id: crypto.randomUUID(),
-      providerId: provider.id,
-      previousSalary: provider.baseSalary,
-      previousFTE: provider.fte,
-      effectiveDate: data.effectiveDate,
-      newSalary: data.newSalary,
-      newFTE: data.newFTE,
-      conversionFactor: getConversionFactor(),
-      reason: data.reason
-    };
-    setCompensationHistory([...compensationHistory, change]);
+  const handleCompensationChange = (data: any) => {
+    if (editingChangeId) {
+      // Update existing change
+      setCompensationHistory(prev => prev.map(change => 
+        change.id === editingChangeId 
+          ? { ...change, ...data }
+          : change
+      ));
+    } else {
+      // Add new change
+      const newChange = {
+        id: crypto.randomUUID(),
+        providerId: provider.id,
+        previousSalary: provider.baseSalary,
+        previousFTE: provider.fte,
+        ...data
+      };
+      setCompensationHistory(prev => [...prev, newChange]);
+    }
     setIsCompChangeModalOpen(false);
+    setEditingChangeId(null);
+  };
+
+  const handleEditCompensationChange = (change: CompensationChange) => {
+    setEditingChangeId(change.id);
+    setIsCompChangeModalOpen(true);
   };
 
   const customStyles = `
@@ -841,19 +899,20 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       --ag-odd-row-background-color: #ffffff;
       --ag-row-border-color: #f3f4f6;
       --ag-border-color: #e5e7eb;
-      --ag-font-size: 13px;
+      --ag-font-size: 12px;
       --ag-font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       border: 1px solid var(--ag-border-color);
       border-radius: 8px;
     }
 
-    /* Remove gap between pinned right column */
-    .ag-pinned-right-cols-container {
-      margin-left: -1px !important;
+    .ag-root-wrapper {
+      border: none !important;
     }
 
+    /* Remove gap between pinned right column */
+    .ag-pinned-right-cols-container,
     .ag-pinned-right-header {
-      margin-left: -1px !important;
+      margin-left: 0 !important;
     }
 
     /* Hide the vertical separator between main and pinned sections */
@@ -873,11 +932,11 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     }
 
     .ag-header-cell {
-      padding: 0 3px !important;
+      padding: 0 2px !important;
     }
 
     .ag-cell {
-      padding: 0 3px !important;
+      padding: 0 2px !important;
     }
 
     .number-cell {
@@ -891,17 +950,6 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     .ag-cell-value {
       overflow: hidden;
       text-overflow: ellipsis;
-    }
-
-    /* Ensure the grid container doesn't overflow */
-    .ag-theme-alpine .ag-root-wrapper {
-      max-width: 100%;
-      overflow-x: hidden !important;
-    }
-
-    /* Remove horizontal scrollbar */
-    .ag-body-horizontal-scroll {
-      display: none !important;
     }
   `;
 
@@ -924,7 +972,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       field: 'metric',
       headerName: '',
       pinned: 'left' as const,
-      width: 180,
+      width: 160,
       flex: 0,
       suppressSizeToFit: true,
       headerClass: 'left-align',
@@ -971,7 +1019,6 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       field: month.toLowerCase(),
       headerName: month.toUpperCase(),
       flex: 1,
-      minWidth: 90,
       suppressSizeToFit: false,
       headerClass: 'text-right',
       cellClass: (params: any) => {
@@ -992,7 +1039,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       field: 'ytd',
       headerName: 'YTD',
       pinned: 'right' as const,
-      width: 130,
+      width: 100,
       flex: 0,
       suppressSizeToFit: true,
       headerClass: 'text-right',
@@ -1011,7 +1058,8 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       },
       lockPinned: true,
       lockPosition: true,
-      suppressMovable: true
+      suppressMovable: true,
+      suppressSeparator: true
     }
   ];
 
@@ -1020,7 +1068,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       field: 'component',
       headerName: '',
       pinned: 'left' as const,
-      width: 150,
+      width: 160,
       flex: 0,
       suppressSizeToFit: true,
       headerClass: 'left-align',
@@ -1062,19 +1110,18 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       field: month.toLowerCase(),
       headerName: month.toUpperCase(),
       flex: 1,
-      minWidth: 90,
       suppressSizeToFit: false,
       headerClass: 'text-right',
       cellClass: (params: any) => {
-        const classes = ['text-right', 'number-cell'];
+        const classes = ['text-right'];
         if (params.value < 0) classes.push('text-red-600');
+        if (params.data.component === 'Total Comp.') classes.push('font-semibold');
         return classes.join(' ');
       },
       cellStyle: { textAlign: 'right' },
-      cellRenderer: (params: any) => {
-        const value = params.value;
-        const formattedValue = formatNegativeCurrency(value);
-        return <span title={formattedValue} className="truncate block">{formattedValue}</span>;
+      valueFormatter: (params: any) => {
+        if (params.data.isHeader) return '';
+        return formatNegativeCurrency(params.value);
       },
     })) as ColDef[],
     {
@@ -1086,11 +1133,11 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       suppressSizeToFit: true,
       headerClass: 'text-right',
       cellClass: (params: any) => {
-        const classes = ['text-right', 'number-cell'];
+        const classes = ['text-right'];
         if (params.value < 0) classes.push('text-red-600');
+        if (params.data.component === 'Total Comp.') classes.push('font-semibold');
         return classes.join(' ');
       },
-      cellStyle: { textAlign: 'right' },
       valueFormatter: (params: any) => formatNegativeCurrency(params.value),
       lockPinned: true,
       lockPosition: true,
@@ -1349,7 +1396,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         <div className="transition-all duration-300 ease-in-out">
           {activeView === 'compensation' && (
             <div className="space-y-6">
-              <div id="metrics-table" className="bg-white rounded-lg shadow-sm border border-gray-200" style={{width: '100%'}}>
+              <div id="metrics-table" className="bg-white rounded-lg shadow-sm border border-gray-200">
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h2 className="text-lg font-medium text-gray-900">Metrics & Adjustments</h2>
                 </div>
@@ -1390,7 +1437,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
                 </div>
               </div>
 
-              <div id="compensation-table" className="bg-white rounded-lg shadow-sm border border-gray-200" style={{width: '100%'}}>
+              <div id="compensation-table" className="bg-white rounded-lg shadow-sm border border-gray-200">
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h2 className="text-lg font-medium text-gray-900">Compensation Details</h2>
                 </div>
@@ -1521,14 +1568,6 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
                               ? ' You are exceeding your target!' 
                               : ' Keep pushing to reach your target.'}
                           </p>
-                          <div className="mt-3 flex gap-3">
-                            <button className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
-                              View Details
-                            </button>
-                            <button className="inline-flex items-center px-3 py-1.5 bg-white text-blue-600 text-sm font-medium rounded-lg hover:bg-blue-50 transition-colors">
-                              Set Reminders
-                            </button>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -1560,96 +1599,65 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
                   <h2 className="text-lg font-medium">Compensation Management</h2>
                 </div>
                 <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-gray-50 p-6 rounded-lg">
-                      <h3 className="text-lg font-medium mb-4">Holdback Settings</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Holdback Percentage
-                          </label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={holdbackPercentage}
-                              onChange={(e) => setHoldbackPercentage(Number(e.target.value))}
-                              className="w-full"
-                            />
-                            <span className="text-sm font-medium text-gray-900 min-w-[4rem]">
-                              {holdbackPercentage}%
-                            </span>
-                          </div>
+                  {/* Holdback and Actions Row */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="flex items-center gap-4 flex-1">
+                        <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                          Holdback:
+                        </label>
+                        <div className="flex items-center gap-2 flex-1">
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={holdbackPercentage}
+                            onChange={(e) => setHoldbackPercentage(Number(e.target.value))}
+                            className="w-full"
+                          />
+                          <span className="text-sm font-medium text-gray-900 min-w-[2rem]">
+                            {holdbackPercentage}%
+                          </span>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="bg-gray-50 p-6 rounded-lg">
-                      <h3 className="text-lg font-medium mb-4">Record Compensation Change</h3>
-                      <p className="text-gray-600 mb-4">Update provider's base salary, FTE, or other compensation details.</p>
-                      <button
-                        onClick={handleOpenCompChangeModal}
-                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                      >
-                        <CurrencyDollarIcon className="h-5 w-5 mr-2"/>
-                        Record Change
-                      </button>
-                    </div>
-
-                    <div className="bg-gray-50 p-6 rounded-lg">
-                      <h3 className="text-lg font-medium mb-4">Additional Pay Management</h3>
-                      <p className="text-gray-600 mb-4">Add or manage additional payments and adjustments.</p>
-                      <button
-                        onClick={()=>handleOpenAdjustmentModal('additionalPay')}
-                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                      >
-                        <PlusIcon className="h-5 w-5 mr-2"/>
-                        Add Additional Pay
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                    <div className="bg-gray-50 p-6 rounded-lg">
-                      <h3 className="text-lg font-medium mb-4">wRVU Adjustments</h3>
-                      <p className="text-gray-600 mb-4">Add or manage wRVU adjustments.</p>
-                      <button
-                        onClick={()=>handleOpenAdjustmentModal('wrvu')}
-                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                      >
-                        <PlusIcon className="h-5 w-5 mr-2"/>
-                        Add wRVU Adjustment
-                      </button>
-                    </div>
-
-                    <div className="bg-gray-50 p-6 rounded-lg">
-                      <h3 className="text-lg font-medium mb-4">Target Adjustments</h3>
-                      <p className="text-gray-600 mb-4">Add or manage target adjustments.</p>
-                      <button
-                        onClick={()=>handleOpenAdjustmentModal('target')}
-                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                      >
-                        <PlusIcon className="h-5 w-5 mr-2"/>
-                        Add Target Adjustment
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={()=>handleOpenAdjustmentModal('additionalPay')}
+                          className="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200"
+                        >
+                          <PlusIcon className="h-4 w-4 mr-1"/>
+                          Additional Pay
+                        </button>
+                        <button
+                          onClick={()=>handleOpenAdjustmentModal('wrvu')}
+                          className="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200"
+                        >
+                          <PlusIcon className="h-4 w-4 mr-1"/>
+                          wRVU Adjustment
+                        </button>
+                        <button
+                          onClick={()=>handleOpenAdjustmentModal('target')}
+                          className="inline-flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200"
+                        >
+                          <PlusIcon className="h-4 w-4 mr-1"/>
+                          Target Adjustment
+                        </button>
+                        <button
+                          onClick={handleOpenCompChangeModal}
+                          className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+                        >
+                          <CurrencyDollarIcon className="h-4 w-4 mr-1"/>
+                          Record Change
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="mt-8">
-                    <CompensationHistory
-                      changes={compensationHistory}
-                      onDelete={(id)=>setCompensationHistory(prev=>prev.filter(change=>change.id!==id))}
-                      onEdit={(change)=>{
-                        setIsCompChangeModalOpen(true);
-                        setEditingChangeId(change.id);
-                        setNewSalary(change.newSalary);
-                        setNewFTE(change.newFTE);
-                        setEffectiveDate(change.effectiveDate);
-                        setChangeReason(change.reason||'');
-                      }}
-                    />
-                  </div>
+                  <CompensationHistory
+                    changes={compensationHistory}
+                    onDelete={(id)=>setCompensationHistory(prev=>prev.filter(change=>change.id!==id))}
+                    onEdit={handleEditCompensationChange}
+                  />
                 </div>
               </div>
             </div>
@@ -1676,6 +1684,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         currentFTE={provider.fte}
         conversionFactor={getConversionFactor()}
         onSave={handleCompensationChange}
+        editingData={editingChangeId ? compensationHistory.find(c => c.id === editingChangeId) : undefined}
       />
     </>
   );

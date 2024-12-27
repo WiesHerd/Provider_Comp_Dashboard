@@ -18,47 +18,43 @@ const AddAdjustmentModal: React.FC<AddAdjustmentModalProps> = ({ isOpen, onClose
 
   useEffect(() => {
     if (editingData) {
-      // Set name and description
-      setName(editingData.name || editingData.metric || '');
+      setName(editingData.name || editingData.component || editingData.metric || '');
       setDescription(editingData.description || '');
-
-      // Set monthly amounts
-      const amounts: Record<string, string> = {};
+      
+      const newMonthlyValues: Record<string, string> = {};
       months.forEach(month => {
-        const key = month.toLowerCase();
-        amounts[key] = editingData[key]?.toString() || '0';
+        const monthKey = month.toLowerCase();
+        newMonthlyValues[monthKey] = editingData[monthKey]?.toString() || '0';
       });
-      setMonthlyAmounts(amounts);
+      setMonthlyAmounts(newMonthlyValues);
     } else {
-      // Clear form for new adjustment
       setName('');
       setDescription('');
-      const amounts: Record<string, string> = {};
+      const emptyValues: Record<string, string> = {};
       months.forEach(month => {
-        amounts[month.toLowerCase()] = '';
+        emptyValues[month.toLowerCase()] = '';
       });
-      setMonthlyAmounts(amounts);
+      setMonthlyAmounts(emptyValues);
     }
   }, [editingData, isOpen]);
 
-  const handleSubmit = () => {
-    if (!name) return;
-
-    // Convert monthly amounts to numbers
-    const processedAmounts = Object.fromEntries(
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const monthlyValues = Object.fromEntries(
       Object.entries(monthlyAmounts).map(([key, value]) => [
         key,
         value === '' ? 0 : Number(value)
       ])
     );
 
-    onAdd({
+    const data = {
+      id: editingData?.id,
       name,
       description,
       type,
-      ...processedAmounts
-    });
-
+      ...monthlyValues
+    };
+    onAdd(data);
     onClose();
   };
 

@@ -10,7 +10,8 @@ interface CompensationChangeModalProps {
   currentSalary: number;
   currentFTE: number;
   conversionFactor: number;
-  onSave: (data: Omit<CompensationChange, 'id' | 'providerId' | 'previousSalary' | 'previousFTE'>) => void;
+  onSave: (data: any) => void;
+  editingData?: CompensationChange;
 }
 
 const CompensationChangeModal: React.FC<CompensationChangeModalProps> = ({
@@ -19,31 +20,46 @@ const CompensationChangeModal: React.FC<CompensationChangeModalProps> = ({
   currentSalary,
   currentFTE,
   conversionFactor,
-  onSave
+  onSave,
+  editingData
 }) => {
-  const [newSalary, setNewSalary] = useState<number>(currentSalary || 0);
-  const [newFTE, setNewFTE] = useState<number>(currentFTE || 1.0);
+  const [newSalary, setNewSalary] = useState<number>(currentSalary);
+  const [newFTE, setNewFTE] = useState<number>(currentFTE);
   const [effectiveDate, setEffectiveDate] = useState('');
-  const [reason, setReason] = useState('');
+  const [changeReason, setChangeReason] = useState('');
 
   useEffect(() => {
     if (isOpen) {
-      setNewSalary(currentSalary || 0);
-      setNewFTE(currentFTE || 1.0);
-      setEffectiveDate('');
-      setReason('');
+      if (editingData) {
+        // If editing, use the editing data values
+        setNewSalary(editingData.newSalary);
+        setNewFTE(editingData.newFTE);
+        setEffectiveDate(editingData.effectiveDate);
+        setChangeReason(editingData.reason || '');
+      } else {
+        // If new change, use current values
+        setNewSalary(currentSalary);
+        setNewFTE(currentFTE);
+        setEffectiveDate('');
+        setChangeReason('');
+      }
     }
-  }, [isOpen, currentSalary, currentFTE]);
+  }, [isOpen, editingData, currentSalary, currentFTE]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({
+    const data = {
       effectiveDate,
       newSalary,
       newFTE,
       conversionFactor,
-      reason: reason || ''
-    });
+      reason: changeReason,
+      ...(editingData && { id: editingData.id }),
+      ...(editingData && { providerId: editingData.providerId }),
+      previousSalary: editingData?.previousSalary || currentSalary,
+      previousFTE: editingData?.previousFTE || currentFTE
+    };
+    onSave(data);
     onClose();
   };
 
@@ -76,7 +92,7 @@ const CompensationChangeModal: React.FC<CompensationChangeModalProps> = ({
               <Dialog.Panel className="w-full max-w-2xl transform overflow-hidden rounded-xl bg-white p-6 shadow-xl transition-all">
                 <div className="flex items-center justify-between mb-6">
                   <Dialog.Title as="h3" className="text-lg font-semibold text-gray-900">
-                    Record Compensation Change
+                    {editingData ? 'Edit Compensation Change' : 'Record Compensation Change'}
                   </Dialog.Title>
                   <button
                     onClick={onClose}
@@ -107,7 +123,7 @@ const CompensationChangeModal: React.FC<CompensationChangeModalProps> = ({
                       </label>
                       <input
                         type="text"
-                        value={formatCurrency(currentSalary || 0)}
+                        value={formatCurrency(editingData ? editingData.previousSalary : currentSalary)}
                         disabled
                         className="block w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-gray-500 sm:text-sm"
                       />
@@ -139,7 +155,7 @@ const CompensationChangeModal: React.FC<CompensationChangeModalProps> = ({
                       </label>
                       <input
                         type="text"
-                        value={currentFTE || 1.0}
+                        value={editingData ? editingData.previousFTE : currentFTE}
                         disabled
                         className="block w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-gray-500 sm:text-sm"
                       />
@@ -164,26 +180,11 @@ const CompensationChangeModal: React.FC<CompensationChangeModalProps> = ({
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Conversion Factor
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
-                      <input
-                        type="text"
-                        value={formatCurrency(conversionFactor || 0)}
-                        disabled
-                        className="block w-full rounded-lg border border-gray-300 bg-gray-50 pl-8 pr-4 py-2.5 text-gray-500 sm:text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Reason for Change <span className="text-red-500">*</span>
                     </label>
                     <textarea
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
+                      value={changeReason}
+                      onChange={(e) => setChangeReason(e.target.value)}
                       rows={3}
                       className="block w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                       placeholder="Enter reason for compensation change..."
@@ -194,8 +195,8 @@ const CompensationChangeModal: React.FC<CompensationChangeModalProps> = ({
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h4 className="text-sm font-medium text-gray-900 mb-3">Change Summary</h4>
                     <div className="space-y-2 text-sm text-gray-600">
-                      <p>Salary Change: {formatCurrency(currentSalary || 0)} → {formatCurrency(newSalary || 0)}</p>
-                      <p>FTE Change: {currentFTE || 1.0} → {newFTE || 1.0}</p>
+                      <p>Salary Change: {formatCurrency(editingData ? editingData.previousSalary : currentSalary)} → {formatCurrency(newSalary)}</p>
+                      <p>FTE Change: {editingData ? editingData.previousFTE : currentFTE} → {newFTE}</p>
                       <p>Effective: {effectiveDate || 'Not set'}</p>
                     </div>
                   </div>
@@ -212,7 +213,7 @@ const CompensationChangeModal: React.FC<CompensationChangeModalProps> = ({
                       type="submit"
                       className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                     >
-                      Save Change
+                      {editingData ? 'Save Changes' : 'Save Change'}
                     </button>
                   </div>
                 </form>
