@@ -532,7 +532,10 @@ export default function ProvidersPage() {
                 className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
                 onClick={() => {
                   if (selectedProviders.length === 1) {
-                    window.location.href = `/provider/${selectedProviders[0]}`;
+                    const provider = providers.find(p => p.id === selectedProviders[0]);
+                    if (provider) {
+                      window.location.href = `/provider/${provider.employeeId}`;
+                    }
                   } else {
                     alert('Please select only one provider to view metrics');
                   }
