@@ -7,7 +7,7 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 import AddAdjustmentModal from './AddAdjustmentModal';
 import WRVUChart from './WRVUChart';
 import WRVUGauge from './WRVUGauge';
-import { CurrencyDollarIcon, ChartBarIcon, PencilIcon, TrashIcon, PlusIcon, Cog6ToothIcon, BanknotesIcon, ChartPieIcon, ScaleIcon, ArrowTrendingUpIcon, ArrowPathIcon, ArrowDownTrayIcon, InformationCircleIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { CurrencyDollarIcon, ChartBarIcon, PencilIcon, TrashIcon, PlusIcon, Cog6ToothIcon, BanknotesIcon, ChartPieIcon, ScaleIcon, ArrowTrendingUpIcon, ArrowPathIcon, ArrowDownTrayIcon, InformationCircleIcon, DocumentTextIcon, ChevronDownIcon, ArrowLeftIcon, ChevronLeftIcon } from '@heroicons/react/24/outline';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -25,26 +25,19 @@ import {
 } from 'ag-grid-community';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface Provider {
   id: string;
   employeeId: string;
   firstName: string;
-  middleInitial?: string;
   lastName: string;
   suffix?: string;
-  email: string;
   specialty: string;
-  department: string;
-  status: string;
-  terminationDate?: string;
-  hireDate: string;
   fte: number;
   baseSalary: number;
   compensationModel: string;
-  annualWRVUTarget: number;
-  createdAt: string;
-  updatedAt: string;
 }
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -515,6 +508,10 @@ function CompensationChangeModal({
 }
 
 export default function ProviderDashboard({ provider }: ProviderDashboardProps) {
+  const router = useRouter();
+  const [providers, setProviders] = useState<any[]>([]);
+  const [isProviderSelectorOpen, setIsProviderSelectorOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [metricsGridApi, setMetricsGridApi] = useState<GridApi | null>(null);
   const [compensationGridApi, setCompensationGridApi] = useState<GridApi | null>(null);
   const [baseMonthlyData, setBaseMonthlyData] = useState<Record<string, number>>(
@@ -549,6 +546,15 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
 
   const [holdbackPercentage, setHoldbackPercentage] = useState(5);
   const [marketData, setMarketData] = useState<any[]>([]);
+
+  // Add filtered providers based on search
+  const filteredProviders = useMemo(() => {
+    return providers.filter(p => 
+      `${p.firstName} ${p.lastName} ${p.employeeId}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
+    );
+  }, [providers, searchTerm]);
 
   useEffect(() => {
     // Fetch market data
@@ -898,26 +904,14 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     reason?: string;
   }) => {
     try {
-      console.log('Sending compensation change data:', {
-        ...data,
-        providerId: provider.id,
-      });
-
       const response = await fetch(`/api/providers/${provider.id}/compensation-changes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          ...data,
           providerId: provider.id,
-          effectiveDate: data.effectiveDate,
-          previousSalary: data.previousSalary,
-          newSalary: data.newSalary,
-          previousFTE: data.previousFTE,
-          newFTE: data.newFTE,
-          previousConversionFactor: data.previousConversionFactor,
-          newConversionFactor: data.newConversionFactor,
-          reason: data.reason || ''
         }),
       });
 
@@ -934,6 +928,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       setEditingChangeId(null);
     } catch (error) {
       console.error('Error saving compensation change:', error);
+      throw error;
     }
   };
 
@@ -1345,10 +1340,83 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     setFte(provider.fte);
   }, [provider]);
 
+  useEffect(() => {
+    // Fetch all providers for the selector
+    async function fetchAllProviders() {
+      try {
+        const response = await fetch('/api/providers');
+        const data = await response.json();
+        if (response.ok) {
+          setProviders(data.providers);
+        }
+      } catch (error) {
+        console.error('Error fetching providers:', error);
+      }
+    }
+    fetchAllProviders();
+  }, []);
+
   return (
     <>
       <div className="w-full">
         <style>{customStyles}</style>
+        <div className="flex items-center justify-between mb-8">
+          <Link 
+            href="/admin/providers" 
+            className="group flex items-center"
+            title="Back to Providers"
+          >
+            <div className="flex items-center justify-center w-10 h-10 rounded-[12px] bg-blue-500 hover:bg-blue-600 transition-colors">
+              <ChevronLeftIcon className="h-6 w-6 text-white" aria-hidden={true} />
+            </div>
+            <span className="ml-3 text-sm text-gray-600 group-hover:text-gray-900 transition-colors">Back to Providers</span>
+          </Link>
+          <div className="relative">
+            <button
+              onClick={() => setIsProviderSelectorOpen(!isProviderSelectorOpen)}
+              className="w-[220px] inline-flex items-center justify-between px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Switch Provider
+              <ChevronDownIcon className="w-4 h-4" />
+            </button>
+            {isProviderSelectorOpen && (
+              <div className="absolute right-0 z-10 mt-2 w-[220px] origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                <div className="p-2">
+                  <input
+                    type="text"
+                    placeholder="Search providers..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+                <div className="max-h-96 overflow-y-auto py-1">
+                  {filteredProviders.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        setIsProviderSelectorOpen(false);
+                        setSearchTerm('');
+                        router.push(`/provider/${p.employeeId}`);
+                      }}
+                      className={`block w-full px-4 py-2 text-left text-sm hover:bg-gray-100 ${
+                        p.id === provider.id ? 'bg-gray-50 text-blue-600' : 'text-gray-700'
+                      }`}
+                    >
+                      {p.firstName} {p.lastName} ({p.employeeId})
+                    </button>
+                  ))}
+                  {filteredProviders.length === 0 && (
+                    <div className="px-4 py-2 text-sm text-gray-500">
+                      No providers found
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
         <div className="dashboard-header bg-white rounded-lg shadow-sm mb-8 border border-gray-200">
           <div className="px-8 py-6">
             <div className="flex flex-col items-center text-center">

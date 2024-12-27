@@ -113,16 +113,6 @@ export default function ProviderLayout({
       {/* Main content */}
       <div className={`transition-all duration-300 ${isCollapsed ? 'pl-16' : 'pl-64'}`}>
         <main className="py-6 px-8">
-          {/* Back button header */}
-          <div className="mb-6">
-            <Link 
-              href="/admin/providers"
-              className="inline-flex items-center text-gray-600 hover:text-gray-900"
-            >
-              <ArrowLeftIcon className="h-5 w-5 mr-2" />
-              <span>Back to Providers</span>
-            </Link>
-          </div>
           {children}
         </main>
       </div>
