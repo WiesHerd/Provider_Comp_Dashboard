@@ -20,6 +20,8 @@ import { CSS } from '@dnd-kit/utilities';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { utils, writeFile } from 'xlsx';
+import { Dialog, Transition } from '@headlessui/react';
+import { Fragment } from 'react';
 
 interface Provider {
   id: string;
@@ -154,6 +156,38 @@ export default function ProvidersPage() {
   const [marketData, setMarketData] = useState<any[]>([]);
   const [providersWithoutBenchmarks, setProvidersWithoutBenchmarks] = useState<Provider[]>([]);
 
+  // Add state for comp model editing
+  const [editingCompModel, setEditingCompModel] = useState<string | null>(null);
+  const [isCompModelModalOpen, setIsCompModelModalOpen] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
+  const [newCompModel, setNewCompModel] = useState('');
+
+  const compModelOptions = ['Base Pay', 'Custom', 'Standard', 'Tiered CF'];
+
+  const handleCompModelUpdate = async (providerId: string, newModel: string) => {
+    try {
+      const response = await fetch(`/api/providers/${providerId}/comp-model`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ compensationModel: newModel }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update compensation model');
+      }
+
+      // Refresh the providers list
+      await fetchProviders();
+      setIsCompModelModalOpen(false);
+      setSelectedProvider(null);
+      setNewCompModel('');
+    } catch (error) {
+      console.error('Error updating compensation model:', error);
+    }
+  };
+
   const [columns, setColumns] = useState<Column[]>([
     { 
       id: 'select', 
@@ -174,31 +208,6 @@ export default function ProvidersPage() {
         />
       )
     },
-    { id: 'status', label: 'Status', key: (provider: Provider) => (
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          handleStatusChange(provider.id, provider.status);
-        }}
-        className={`inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-medium
-          ${provider.status === 'Active'
-            ? 'bg-green-100 text-green-800'
-            : 'bg-red-100 text-red-800'
-          }`}
-      >
-        {provider.status === 'Active' ? (
-          <>
-            <CheckCircleIcon className="w-4 h-4 mr-1" />
-            Active
-          </>
-        ) : (
-          <>
-            <XCircleIcon className="w-4 h-4 mr-1" />
-            Inactive
-          </>
-        )}
-      </button>
-    )},
     { id: 'name', label: 'Name', key: (provider: Provider) => (
       <Link 
         href={`/provider/${provider.employeeId}`}
@@ -210,13 +219,59 @@ export default function ProvidersPage() {
     { id: 'employeeId', label: 'ID', key: 'employeeId' },
     { id: 'specialty', label: 'Specialty', key: 'specialty' },
     { id: 'department', label: 'Department', key: 'department' },
+    { id: 'status', label: 'Status', key: (provider: Provider) => (
+      <div className="flex items-center gap-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            if (provider.status === 'Active') {
+              setSelectedProviderForTermination(provider);
+              setIsTerminationModalOpen(true);
+            } else {
+              updateProviderStatus(provider.employeeId, 'Active', null);
+            }
+          }}
+          className={`inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-medium ${
+            provider.status === 'Active'
+              ? 'bg-green-100 text-green-800 hover:bg-green-200'
+              : 'bg-red-100 text-red-800 hover:bg-red-200'
+          }`}
+        >
+          {provider.status === 'Active' ? (
+            <>
+              <CheckCircleIcon className="w-4 h-4 mr-1" />
+              Active
+            </>
+          ) : (
+            <>
+              <XCircleIcon className="w-4 h-4 mr-1" />
+              Inactive
+            </>
+          )}
+        </button>
+        {provider.terminationDate && (
+          <span className="text-xs text-gray-500">
+            {new Date(provider.terminationDate).toLocaleDateString()}
+          </span>
+        )}
+      </div>
+    )},
     { id: 'fte', label: 'FTE', key: (provider: Provider) => provider.fte.toFixed(2) },
     { id: 'baseSalary', label: 'Base Salary', key: (provider: Provider) => formatCurrency(provider.baseSalary) },
-    { id: 'conversionFactor', label: 'Conv. Factor', key: (provider: Provider) => {
-      const marketDataMatch = marketData.find(data => data.specialty === provider.specialty);
-      return marketDataMatch ? formatCurrency(marketDataMatch.p50_cf) : '-';
-    }},
-    { id: 'compensationModel', label: 'Comp Model', key: 'compensationModel' },
+    { id: 'compensationModel', label: 'Comp Model', key: (provider: Provider) => (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setSelectedProvider(provider);
+          setNewCompModel(provider.compensationModel);
+          setIsCompModelModalOpen(true);
+        }}
+        className="text-left text-blue-600 hover:text-blue-800 inline-flex items-center gap-1 focus:outline-none"
+      >
+        <span>{provider.compensationModel}</span>
+        <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
+      </button>
+    )},
   ]);
 
   const sensors = useSensors(
@@ -289,45 +344,61 @@ export default function ProvidersPage() {
   }, [providers]);
 
   useEffect(() => {
-    // Filter data based on search query and other filters
-    let filtered = providers.filter(provider => {
-      // Apply search filter
-      if (searchQuery) {
-        const searchLower = searchQuery.toLowerCase();
-        const matchesSearch = 
-          provider.firstName.toLowerCase().includes(searchLower) ||
-          provider.lastName.toLowerCase().includes(searchLower) ||
-          provider.specialty.toLowerCase().includes(searchLower) ||
-          provider.employeeId.toLowerCase().includes(searchLower);
-        if (!matchesSearch) return false;
-      }
+    let filtered = [...providers];
 
-      // Apply specialty filter
-      if (selectedSpecialty && provider.specialty !== selectedSpecialty) return false;
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(provider => 
+        `${provider.firstName} ${provider.lastName} ${provider.employeeId} ${provider.specialty} ${provider.status}`
+          .toLowerCase()
+          .includes(query)
+      );
+    }
 
-      // Apply department filter
-      if (selectedDepartment && provider.department !== selectedDepartment) return false;
+    // Apply specialty filter
+    if (selectedSpecialty) {
+      filtered = filtered.filter(provider => provider.specialty === selectedSpecialty);
+    }
 
-      // Apply status filter
-      if (selectedStatus && provider.status !== selectedStatus) return false;
+    // Apply department filter
+    if (selectedDepartment) {
+      filtered = filtered.filter(provider => provider.department === selectedDepartment);
+    }
 
-      // Apply comp model filter
-      if (selectedCompModel && provider.compensationModel !== selectedCompModel) return false;
+    // Apply status filter
+    if (selectedStatus) {
+      filtered = filtered.filter(provider => provider.status === selectedStatus);
+    }
 
-      // Apply FTE range filter
-      if (provider.fte < fteRange[0] || provider.fte > fteRange[1]) return false;
+    // Apply comp model filter
+    if (selectedCompModel) {
+      filtered = filtered.filter(provider => provider.compensationModel === selectedCompModel);
+    }
 
-      // Apply salary range filter
-      if (provider.baseSalary < baseSalaryRange[0] || provider.baseSalary > baseSalaryRange[1]) return false;
+    // Apply FTE range filter
+    filtered = filtered.filter(provider => 
+      provider.fte >= fteRange[0] && provider.fte <= fteRange[1]
+    );
 
-      // Apply missing benchmarks filter
-      if (showMissingBenchmarks && !providersWithoutBenchmarks.some(p => p.id === provider.id)) return false;
+    // Apply base salary range filter
+    filtered = filtered.filter(provider => 
+      provider.baseSalary >= baseSalaryRange[0] && provider.baseSalary <= baseSalaryRange[1]
+    );
 
-      // Apply missing wRVUs filter
-      if (showMissingWRVUs && !providersWithoutWRVUs.some(p => p.id === provider.id)) return false;
+    // Apply missing benchmarks filter
+    if (showMissingBenchmarks) {
+      filtered = filtered.filter(provider => 
+        providersWithoutBenchmarks.some(p => p.id === provider.id)
+      );
+    }
 
-      return true;
-    });
+    // Apply missing wRVUs filter
+    if (showMissingWRVUs) {
+      filtered = filtered.filter(provider => 
+        providersWithoutWRVUs.some(p => p.id === provider.id)
+      );
+    }
 
     setFilteredProviders(filtered);
   }, [providers, searchQuery, selectedSpecialty, selectedDepartment, selectedStatus, 
@@ -352,6 +423,7 @@ export default function ProvidersPage() {
         throw new Error('Failed to fetch providers');
       }
       const data = await response.json();
+      console.log('Fetched providers:', data.providers);
       setProviders(data.providers);
       setLoading(false);
     } catch (err) {
@@ -377,50 +449,42 @@ export default function ProvidersPage() {
     });
   };
 
-  const handleStatusChange = async (providerId: string, currentStatus: string) => {
+  const handleStatusChange = async (provider: Provider) => {
+    if (provider.status === 'Active') {
+      setSelectedProviderForTermination(provider);
+      setIsTerminationModalOpen(true);
+    } else {
+      await updateProviderStatus(provider.employeeId, 'Active', null);
+    }
+  };
+
+  const handleTermination = async () => {
+    if (selectedProviderForTermination && terminationDate) {
+      await updateProviderStatus(selectedProviderForTermination.employeeId, 'Inactive', terminationDate);
+      setIsTerminationModalOpen(false);
+      setSelectedProviderForTermination(null);
+      setTerminationDate('');
+    }
+  };
+
+  const updateProviderStatus = async (employeeId: string, status: string, terminationDate: string | null) => {
     try {
-      console.log('Updating status for provider:', providerId);
-      console.log('Current status:', currentStatus);
-      
-      const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
-      console.log('New status:', newStatus);
-      
-      const url = `/api/providers/${providerId}/status`;
-      console.log('Request URL:', url);
-      
-      const response = await fetch(url, {
+      const response = await fetch(`/api/providers/${employeeId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status, terminationDate }),
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      const responseData = await response.json();
-      console.log('Response data:', responseData);
-
       if (!response.ok) {
-        throw new Error(responseData.error || `Failed to update status: ${response.statusText}`);
+        throw new Error('Failed to update provider status');
       }
 
-      // Update the provider's status in the local state
-      setProviders(prevProviders =>
-        prevProviders.map(provider =>
-          provider.id === providerId
-            ? { ...provider, status: newStatus }
-            : provider
-        )
-      );
-
-      // Show success message
-      alert('Provider status updated successfully');
+      // Refresh the providers list
+      fetchProviders();
     } catch (error) {
       console.error('Error updating provider status:', error);
-      // Show error message to user
-      alert(error instanceof Error ? error.message : 'Failed to update provider status. Please try again.');
     }
   };
 
@@ -585,6 +649,10 @@ export default function ProvidersPage() {
     // Save file
     writeFile(workbook, fileName);
   };
+
+  const [isTerminationModalOpen, setIsTerminationModalOpen] = useState(false);
+  const [selectedProviderForTermination, setSelectedProviderForTermination] = useState<Provider | null>(null);
+  const [terminationDate, setTerminationDate] = useState('');
 
   return (
     <>
@@ -885,102 +953,50 @@ export default function ProvidersPage() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">
                       <tr>
-                        <th scope="col" className="sticky left-0 z-20 w-10 px-2 py-3 text-left bg-gray-50 border-r border-gray-200">
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                            checked={filteredProviders.length > 0 && selectedProviders.length === filteredProviders.length}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedProviders(filteredProviders.map(p => p.id));
-                              } else {
-                                setSelectedProviders([]);
-                              }
-                            }}
-                          />
-                        </th>
-                        <th scope="col" className="sticky left-[41px] z-20 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-r border-gray-200">
-                          Name
-                        </th>
-                        <th scope="col" className="sticky left-[200px] z-20 px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 border-r border-gray-200">
-                          ID
-                        </th>
-                        <th scope="col" className="w-36 px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                          Specialty
-                        </th>
-                        <th scope="col" className="w-36 px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider border-r border-gray-300">
-                          Department
-                        </th>
-                        <th scope="col" className="w-16 px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                          FTE
-                        </th>
-                        <th scope="col" className="w-28 px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                          Base Salary
-                        </th>
-                        <th scope="col" className="w-28 px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                          Conv. Factor
-                        </th>
-                        <th scope="col" className="w-24 px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                          Comp Model
-                        </th>
+                        <DndContext
+                          sensors={sensors}
+                          collisionDetection={closestCenter}
+                          onDragEnd={handleDragEnd}
+                        >
+                          <SortableContext
+                            items={columns.map(col => col.id)}
+                            strategy={horizontalListSortingStrategy}
+                          >
+                            {columns.map((column) => (
+                              <SortableHeader
+                                key={column.id}
+                                column={column}
+                                selectedProviders={selectedProviders}
+                                setSelectedProviders={setSelectedProviders}
+                                paginatedProviders={paginatedProviders}
+                              />
+                            ))}
+                          </SortableContext>
+                        </DndContext>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {paginatedProviders.map((provider) => (
-                        <tr 
+                        <tr
                           key={provider.id}
-                          onClick={() => {
-                            if (selectedProviders.includes(provider.id)) {
-                              setSelectedProviders(selectedProviders.filter(id => id !== provider.id));
-                            } else {
-                              setSelectedProviders([...selectedProviders, provider.id]);
-                            }
-                          }}
-                          className={`hover:bg-gray-50 cursor-pointer transition-colors duration-150 ${
-                            selectedProviders.includes(provider.id) ? 'bg-indigo-50' : ''
-                          } ${provider.status === 'Inactive' ? 'text-gray-500' : ''}`}
+                          className="hover:bg-gray-50 cursor-pointer"
+                          onClick={() => router.push(`/provider/${provider.employeeId}`)}
                         >
-                          <td className={classNames(
-                            'sticky left-0 z-10 whitespace-nowrap px-2 py-4 text-sm',
-                            selectedProviders.includes(provider.id) ? 'bg-indigo-50' : 'bg-white'
-                          )}>
-                            <input
-                              type="checkbox"
-                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                              checked={selectedProviders.includes(provider.id)}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                if (e.target.checked) {
-                                  setSelectedProviders([...selectedProviders, provider.id]);
-                                } else {
-                                  setSelectedProviders(selectedProviders.filter(id => id !== provider.id));
+                          {columns.map((column) => (
+                            <td
+                              key={column.id}
+                              className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                              onClick={(e) => {
+                                if (column.id === 'status') {
+                                  e.stopPropagation();
                                 }
                               }}
-                            />
-                          </td>
-                          <td className={classNames(
-                            'sticky left-[41px] z-10 whitespace-nowrap px-3 py-4 text-sm font-medium text-blue-600 border-r border-gray-200',
-                            selectedProviders.includes(provider.id) ? 'bg-indigo-50' : 'bg-white'
-                          )}>
-                            <Link href={`/provider/${provider.employeeId}`}>{provider.firstName} {provider.lastName}</Link>
-                          </td>
-                          <td className={classNames(
-                            'sticky left-[200px] z-10 whitespace-nowrap px-3 py-4 text-sm text-gray-900 border-r border-gray-200',
-                            selectedProviders.includes(provider.id) ? 'bg-indigo-50' : 'bg-white'
-                          )}>
-                            {provider.employeeId}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-600">{provider.specialty}</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-600 border-r border-gray-300">{provider.department}</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-600">{provider.fte.toFixed(2)}</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-600">{formatCurrency(provider.baseSalary)}</td>
-                          <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-600">
-                            {(() => {
-                              const marketDataMatch = marketData.find(data => data.specialty === provider.specialty);
-                              return marketDataMatch ? formatCurrency(marketDataMatch.p50_cf) : '-';
-                            })()}
-                          </td>
-                          <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-600">{provider.compensationModel}</td>
+                            >
+                              {typeof column.key === 'function'
+                                ? column.key(provider)
+                                : provider[column.key]}
+                            </td>
+                          ))}
                         </tr>
                       ))}
                     </tbody>
@@ -1046,6 +1062,172 @@ export default function ProvidersPage() {
                 provider={editingProvider}
                 mode="edit"
               />
+
+              {/* Termination Modal */}
+              <Transition appear show={isTerminationModalOpen} as={Fragment}>
+                <Dialog
+                  as="div"
+                  className="relative z-50"
+                  onClose={() => setIsTerminationModalOpen(false)}
+                >
+                  <Transition.Child
+                    as={Fragment}
+                    enter="ease-out duration-300"
+                    enterFrom="opacity-0"
+                    enterTo="opacity-100"
+                    leave="ease-in duration-200"
+                    leaveFrom="opacity-100"
+                    leaveTo="opacity-0"
+                  >
+                    <div className="fixed inset-0 bg-black bg-opacity-25" />
+                  </Transition.Child>
+
+                  <div className="fixed inset-0 overflow-y-auto">
+                    <div className="flex min-h-full items-center justify-center p-4 text-center">
+                      <Transition.Child
+                        as={Fragment}
+                        enter="ease-out duration-300"
+                        enterFrom="opacity-0 scale-95"
+                        enterTo="opacity-100 scale-100"
+                        leave="ease-in duration-200"
+                        leaveFrom="opacity-100 scale-100"
+                        leaveTo="opacity-0 scale-95"
+                      >
+                        <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                          <Dialog.Title
+                            as="h3"
+                            className="text-lg font-medium leading-6 text-gray-900 mb-4"
+                          >
+                            Provider Termination
+                          </Dialog.Title>
+                          <div className="mt-2">
+                            <p className="text-sm text-gray-500 mb-4">
+                              Please enter the termination date for {selectedProviderForTermination?.firstName} {selectedProviderForTermination?.lastName}
+                            </p>
+                            <input
+                              type="date"
+                              value={terminationDate}
+                              onChange={(e) => setTerminationDate(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              required
+                            />
+                          </div>
+
+                          <div className="mt-6 flex justify-end gap-3">
+                            <button
+                              type="button"
+                              className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                              onClick={() => setIsTerminationModalOpen(false)}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                              onClick={handleTermination}
+                              disabled={!terminationDate}
+                            >
+                              Terminate
+                            </button>
+                          </div>
+                        </Dialog.Panel>
+                      </Transition.Child>
+                    </div>
+                  </div>
+                </Dialog>
+              </Transition>
+
+              {/* Status Filter Dropdown */}
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+              >
+                <option value="">All Status</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+
+              {/* Comp Model Edit Modal */}
+              <Transition appear show={isCompModelModalOpen} as={Fragment}>
+                <Dialog
+                  as="div"
+                  className="relative z-50"
+                  onClose={() => setIsCompModelModalOpen(false)}
+                >
+                  <Transition.Child
+                    as={Fragment}
+                    enter="ease-out duration-300"
+                    enterFrom="opacity-0"
+                    enterTo="opacity-100"
+                    leave="ease-in duration-200"
+                    leaveFrom="opacity-100"
+                    leaveTo="opacity-0"
+                  >
+                    <div className="fixed inset-0 bg-black bg-opacity-25" />
+                  </Transition.Child>
+
+                  <div className="fixed inset-0 overflow-y-auto">
+                    <div className="flex min-h-full items-center justify-center p-4 text-center">
+                      <Transition.Child
+                        as={Fragment}
+                        enter="ease-out duration-300"
+                        enterFrom="opacity-0 scale-95"
+                        enterTo="opacity-100 scale-100"
+                        leave="ease-in duration-200"
+                        leaveFrom="opacity-100 scale-100"
+                        leaveTo="opacity-0 scale-95"
+                      >
+                        <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                          <Dialog.Title
+                            as="h3"
+                            className="text-lg font-medium leading-6 text-gray-900 mb-4"
+                          >
+                            Update Compensation Model
+                          </Dialog.Title>
+                          <div className="mt-2">
+                            <p className="text-sm text-gray-500 mb-4">
+                              Select a new compensation model for {selectedProvider?.firstName} {selectedProvider?.lastName}
+                            </p>
+                            <select
+                              value={newCompModel}
+                              onChange={(e) => setNewCompModel(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              {compModelOptions.map((model) => (
+                                <option key={model} value={model}>
+                                  {model}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="mt-6 flex justify-end gap-3">
+                            <button
+                              type="button"
+                              className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                              onClick={() => setIsCompModelModalOpen(false)}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              className="inline-flex justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                              onClick={() => {
+                                if (selectedProvider && newCompModel) {
+                                  handleCompModelUpdate(selectedProvider.employeeId, newCompModel);
+                                }
+                              }}
+                            >
+                              Update
+                            </button>
+                          </div>
+                        </Dialog.Panel>
+                      </Transition.Child>
+                    </div>
+                  </div>
+                </Dialog>
+              </Transition>
 
               {/* Add these styles to your global CSS file (e.g., globals.css) */}
               <style jsx global>{`

@@ -1,20 +1,23 @@
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { NextRequest, NextResponse } from 'next/server';
 
 export async function PATCH(
-  request: NextRequest,
-  context: { params: { providerId: string } }
+  request: Request,
+  { params }: { params: { providerId: string } }
 ) {
   try {
-    const providerId = await context.params.providerId;
-    const { status } = await request.json();
-
+    const { status, terminationDate } = await request.json();
+    
+    // If reactivating a provider, clear the termination date
+    const updateData = status === 'Active' 
+      ? { status, terminationDate: null }
+      : { status, terminationDate: terminationDate ? new Date(terminationDate) : null };
+    
     const provider = await prisma.provider.update({
-      where: { id: providerId },
-      data: {
-        status,
-        terminationDate: status === 'Inactive' ? new Date() : null,
+      where: {
+        employeeId: params.providerId,
       },
+      data: updateData,
     });
 
     return NextResponse.json(provider);

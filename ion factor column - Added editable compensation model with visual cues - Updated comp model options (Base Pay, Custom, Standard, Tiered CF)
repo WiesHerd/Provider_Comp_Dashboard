@@ -1,0 +1,15 @@
+[33mcommit c97bb51aa47d208d4ae608ce9b28652084377789[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfix/table-layouts[m[33m)[m
+Author: Wieslaw Herdzik <wherdzik@gmail.com>
+Date:   Fri Dec 27 16:09:26 2024 -0700
+
+    feat(ui): enhance provider navigation and back button
+    
+    - Add searchable provider selector dropdown
+    
+    - Update back button with modern rounded design
+    
+    - Match provider selector width with dashboard cards
+    
+    - Remove duplicate back button from layout
+    
+    - Improve UI consistency and accessibility
