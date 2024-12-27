@@ -14,6 +14,7 @@ import html2canvas from 'html2canvas';
 import CompensationHistory from './CompensationHistory';
 import CompensationChangeModalComponent from './CompensationChangeModal';
 import { CompensationChange } from '@/types/compensation';
+import { MarketData } from '@/types/market-data';
 import { 
   ColDef, 
   GridApi, 
@@ -695,7 +696,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
           ...acc,
           [month.toLowerCase()]: -1 * (monthlySalaries[month.toLowerCase()] || 0) * (holdbackPercentage / 100),
         }), {}),
-        ytd: -1 * Object.values(monthlySalaries).reduce((sum, val) => sum + (Number(val) || 0), 0)
+        ytd: -1 * Object.values(monthlySalaries).reduce((sum, val) => sum + (Number(val) || 0), 0) * (holdbackPercentage / 100)
       },
       ...additionalPayments.map(pay => ({
         ...pay,
@@ -713,7 +714,6 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       isSystem: true,
       ...months.reduce((acc, month, index) => {
         const monthKey = month.toLowerCase();
-        // Sum all incentives up to and including current month
         const cumulative = months
           .slice(0, index + 1)
           .reduce((sum, m) => sum + (Number(incentivesRow?.[m.toLowerCase()]) || 0), 0);
@@ -727,17 +727,33 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     if (callPayIndex !== -1) {
       baseData.splice(callPayIndex + 1, 0, ytdIncentivesRow);
     } else {
-      // If Call Pay doesn't exist, add it after the system rows
       const lastSystemRowIndex = baseData.filter(row => row.isSystem).length - 1;
       baseData.splice(lastSystemRowIndex + 1, 0, ytdIncentivesRow);
     }
 
     const totals = months.reduce((acc, month) => {
-      const monthTotal = baseData.reduce((sum, row) => sum + (Number(row[month.toLowerCase()]) || 0), 0);
-      return { ...acc, [month.toLowerCase()]: monthTotal };
+      const monthKey = month.toLowerCase();
+      const baseSalary = baseData.find(row => row.component === 'Base Salary')?.[monthKey] || 0;
+      const incentives = baseData.find(row => row.component === 'Incentives')?.[monthKey] || 0;
+      const holdback = baseData.find(row => row.component.includes('Holdback'))?.[monthKey] || 0;
+      const additionalPays = baseData
+        .filter(row => !row.isSystem)
+        .reduce((sum, row) => sum + (Number(row[monthKey]) || 0), 0);
+      
+      const monthTotal = baseSalary + incentives + holdback + additionalPays;
+      return { ...acc, [monthKey]: monthTotal };
     }, {});
 
-    const ytdTotal = baseData.reduce((sum, row) => sum + (Number(row.ytd) || 0), 0);
+    const baseSalaryYTD = baseData.find(row => row.component === 'Base Salary')?.ytd || 0;
+    const incentivesYTD = baseData.find(row => row.component === 'Incentives')?.ytd || 0;
+    const holdbackYTD = baseData.find(row => row.component.includes('Holdback'))?.ytd || 0;
+    const additionalPaysYTD = baseData
+      .filter(row => !row.isSystem)
+      .reduce((sum, row) => sum + (Number(row.ytd) || 0), 0);
+    const ytdTotal = baseSalaryYTD + incentivesYTD + holdbackYTD + additionalPaysYTD;
+
+    // Calculate the percentile for YTD total compensation
+    const { percentile, nearestBenchmark } = calculateTotalCompPercentile(ytdTotal, marketData);
 
     return [
       ...baseData,
@@ -746,6 +762,8 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         isSystem: true,
         ...totals,
         ytd: ytdTotal,
+        percentile,
+        nearestBenchmark
       },
     ];
   };
@@ -1096,6 +1114,16 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
             </div>
           );
         }
+        if (params.data.component === 'Total Comp.' && params.data.percentile) {
+          return (
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{params.value}</span>
+              <span className="text-xs text-gray-500">
+                ({params.data.nearestBenchmark} percentile)
+              </span>
+            </div>
+          );
+        }
         return <span className={params.data.isSystem ? 'row-section-header' : ''}>{params.value}</span>;
       },
       cellClass: (params: any) => {
@@ -1238,6 +1266,48 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     if (progress >= 70) return { class: 'bg-green-400/10 text-green-400', text: 'On Track' };
     if (progress >= 40) return { class: 'bg-amber-400/10 text-amber-400', text: 'Needs Attention' };
     return { class: 'bg-red-400/10 text-red-400', text: 'Below Target' };
+  };
+
+  const calculateTotalCompPercentile = (totalComp: number, marketData: MarketData[]): { percentile: number, nearestBenchmark: string } => {
+    const matchingMarket = marketData.find(data => data.specialty === provider.specialty);
+    if (!matchingMarket) return { percentile: 0, nearestBenchmark: 'Unknown' };
+
+    const benchmarks = [
+      { percentile: 25, value: matchingMarket.p25_total },
+      { percentile: 50, value: matchingMarket.p50_total },
+      { percentile: 75, value: matchingMarket.p75_total },
+      { percentile: 90, value: matchingMarket.p90_total }
+    ];
+
+    // If below 25th percentile
+    if (totalComp < benchmarks[0].value) {
+      const percentile = (totalComp / benchmarks[0].value) * 25;
+      return { percentile, nearestBenchmark: '< 25th' };
+    }
+
+    // If above 90th percentile
+    if (totalComp > benchmarks[3].value) {
+      const percentile = 90 + ((totalComp - benchmarks[3].value) / benchmarks[3].value) * 10;
+      return { percentile: Math.min(100, percentile), nearestBenchmark: '> 90th' };
+    }
+
+    // Find which benchmarks we're between
+    for (let i = 0; i < benchmarks.length - 1; i++) {
+      const lower = benchmarks[i];
+      const upper = benchmarks[i + 1];
+      if (totalComp >= lower.value && totalComp <= upper.value) {
+        const range = upper.value - lower.value;
+        const position = totalComp - lower.value;
+        const percentileRange = upper.percentile - lower.percentile;
+        const percentile = lower.percentile + (position / range) * percentileRange;
+        return { 
+          percentile,
+          nearestBenchmark: `${lower.percentile}th-${upper.percentile}th`
+        };
+      }
+    }
+
+    return { percentile: 0, nearestBenchmark: 'Unknown' };
   };
 
   useEffect(() => {
@@ -1442,13 +1512,27 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
                   <h2 className="text-lg font-medium text-gray-900">Compensation Details</h2>
                 </div>
                 <div className="p-6">
-                  <button 
-                    onClick={() => handleOpenAdjustmentModal('additionalPay')} 
-                    className="inline-flex items-center px-6 py-2.5 mb-6 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
-                  >
-                    <PlusIcon className="h-4 w-4 mr-2" />
-                    Add Additional Pay
-                  </button>
+                  <div className="flex justify-between items-center mb-6">
+                    <button 
+                      onClick={() => handleOpenAdjustmentModal('additionalPay')} 
+                      className="inline-flex items-center px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
+                    >
+                      <PlusIcon className="h-4 w-4 mr-2" />
+                      Add Additional Pay
+                    </button>
+                    {(() => {
+                      const ytdTotal = getCompensationData().find(row => row.component === 'Total Comp.')?.ytd || 0;
+                      const { percentile } = calculateTotalCompPercentile(ytdTotal, marketData);
+                      return (
+                        <div className="bg-gray-50 rounded-lg p-4 flex items-center gap-3 border border-gray-200">
+                          <div className="text-sm">
+                            <span className="text-gray-500">Total Comp. Percentile:</span>
+                            <span className="ml-2 font-semibold text-gray-900">{percentile.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
                   <div className="ag-theme-alpine w-full">
                     <AgGridReact
                       context={{ monthlyDetails }}
