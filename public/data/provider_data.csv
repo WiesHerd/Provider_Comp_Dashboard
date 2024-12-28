@@ -1,6 +1,6 @@
 employee_id,first_name,last_name,email,specialty,department,hire_date,fte,base_salary,compensation_model
-EMP1001,Michael,Johnson,michael.johnson@healthsystem.org,Dermatology,Dermatology,9/18/2016,1,327560,Standard
-EMP1002,Linda,Miller,linda.miller@healthsystem.org,Cardiothoracic Surgery,Cardiothoracic Surgery,4/10/2024,1,232343,Standard
+EMP1001,Terry,Moore,michael.johnson@healthsystem.org,Dermatology,Dermatology,9/18/2016,1,327560,Standard
+EMP1002,Cinthia ,Brooks,linda.miller@healthsystem.org,Cardiothoracic Surgery,Cardiothoracic Surgery,4/10/2024,1,232343,Standard
 EMP1003,Emily,Garcia,emily.garcia@healthsystem.org,General Surgery,General Surgery,3/1/2023,1,295883,Standard
 EMP1004,Emily,Brown,emily.brown@healthsystem.org,Internal Medicine,Internal Medicine,12/12/2022,0.5,397579,Standard
 EMP1005,David,Brown,david.brown@healthsystem.org,Internal Medicine,Internal Medicine,11/1/2018,0.8,262603,Standard

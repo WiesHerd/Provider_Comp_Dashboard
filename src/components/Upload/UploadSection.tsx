@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 
 interface UploadSectionProps {
   onFileSelect: (file: File) => void;

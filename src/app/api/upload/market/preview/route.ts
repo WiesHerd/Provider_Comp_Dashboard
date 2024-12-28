@@ -54,26 +54,39 @@ export async function POST(request: Request) {
     
     // Convert to JSON with header mapping
     const rawData = XLSX.utils.sheet_to_json(worksheet, {
-      raw: false,
-      defval: '0'
+      raw: true,
+      defval: 0
     });
 
     // Transform the data to match our interface
-    const data = rawData.map((row: any) => ({
-      specialty: row.specialty || '',
-      p25_total: Number(row.p25_TCC) || 0,
-      p50_total: Number(row.p50_TCC) || 0,
-      p75_total: Number(row.p75_TCC) || 0,
-      p90_total: Number(row.p90_TCC) || 0,
-      p25_wrvu: Number(row.p25_wrvu) || 0,
-      p50_wrvu: Number(row.p50_wrvu) || 0,
-      p75_wrvu: Number(row.p75_wrvu) || 0,
-      p90_wrvu: Number(row.p90_wrvu) || 0,
-      p25_cf: Number(row.p25_cf) || 0,
-      p50_cf: Number(row.p50_cf) || 0,
-      p75_cf: Number(row.p75_cf) || 0,
-      p90_cf: Number(row.p90_cf) || 0
-    }));
+    const data = rawData.map((row: any) => {
+      // Helper function to parse numeric values
+      const parseNumeric = (value: any) => {
+        if (typeof value === 'number') return value;
+        if (typeof value === 'string') {
+          // Remove any currency symbols and commas
+          const cleaned = value.replace(/[$,]/g, '');
+          return Number(cleaned) || 0;
+        }
+        return 0;
+      };
+
+      return {
+        specialty: row.specialty || '',
+        p25_TCC: parseNumeric(row.p25_TCC),
+        p50_TCC: parseNumeric(row.p50_TCC),
+        p75_TCC: parseNumeric(row.p75_TCC),
+        p90_TCC: parseNumeric(row.p90_TCC),
+        p25_wrvu: parseNumeric(row.p25_wrvu),
+        p50_wrvu: parseNumeric(row.p50_wrvu),
+        p75_wrvu: parseNumeric(row.p75_wrvu),
+        p90_wrvu: parseNumeric(row.p90_wrvu),
+        p25_cf: parseNumeric(row.p25_cf),
+        p50_cf: parseNumeric(row.p50_cf),
+        p75_cf: parseNumeric(row.p75_cf),
+        p90_cf: parseNumeric(row.p90_cf)
+      };
+    });
 
     // Validate the data
     if (!Array.isArray(data) || data.length === 0) {

@@ -26,6 +26,7 @@ export async function POST(request: Request) {
     console.log('Starting wRVU data upload process');
     const formData = await request.formData();
     const file = formData.get('file');
+    const mode = formData.get('mode') as string || 'append';
 
     if (!file || !(file instanceof File)) {
       console.error('No file found in request');
@@ -33,6 +34,15 @@ export async function POST(request: Request) {
         { error: 'No file uploaded' },
         { status: 400 }
       );
+    }
+
+    // If mode is 'clear', delete all existing wRVU data for the current year
+    if (mode === 'clear') {
+      const currentYear = new Date().getFullYear();
+      await prisma.wRVUData.deleteMany({
+        where: { year: currentYear }
+      });
+      console.log('Cleared existing wRVU data for year:', currentYear);
     }
 
     // Read file content

@@ -20,6 +20,7 @@ export async function POST(request: Request) {
     console.log('Starting provider upload process');
     const formData = await request.formData();
     const file = formData.get('file');
+    const mode = formData.get('mode') as string || 'append';
 
     if (!file || !(file instanceof File)) {
       console.error('No file found in request');
@@ -27,6 +28,19 @@ export async function POST(request: Request) {
         { error: 'No file uploaded' },
         { status: 400 }
       );
+    }
+
+    // If mode is 'clear', delete all existing providers
+    if (mode === 'clear') {
+      // First delete related data
+      await prisma.wRVUData.deleteMany();
+      await prisma.wRVUAdjustment.deleteMany();
+      await prisma.targetAdjustment.deleteMany();
+      await prisma.additionalPayment.deleteMany();
+      await prisma.compensationChange.deleteMany();
+      // Then delete providers
+      await prisma.provider.deleteMany();
+      console.log('Cleared all existing provider data');
     }
 
     console.log('File received:', file.name, 'Size:', file.size, 'Type:', file.type);

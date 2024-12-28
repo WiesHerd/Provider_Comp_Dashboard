@@ -28,6 +28,7 @@ export default function MarketDataUpload() {
   const [error, setError] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<PreviewData[] | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [uploadMode, setUploadMode] = useState<'append' | 'clear'>('append');
 
   const handleFileSelect = (selectedFile: File) => {
     setFile(selectedFile);
@@ -83,6 +84,7 @@ export default function MarketDataUpload() {
 
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('mode', uploadMode);
 
       const response = await fetch('/api/upload/market', {
         method: 'POST',
@@ -131,7 +133,22 @@ export default function MarketDataUpload() {
 
   return (
     <div className="space-y-4">
-      <div className="h-10 flex justify-end">
+      <div className="h-10 flex justify-between items-center">
+        <div className="flex items-center space-x-4">
+          <select
+            value={uploadMode}
+            onChange={(e) => setUploadMode(e.target.value as 'append' | 'clear')}
+            className="block rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          >
+            <option value="append">Append Data</option>
+            <option value="clear">Clear & Replace</option>
+          </select>
+          {uploadMode === 'clear' && (
+            <span className="text-sm text-amber-600">
+              Warning: This will delete all existing market data before upload
+            </span>
+          )}
+        </div>
         <button
           onClick={handleDownload}
           className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"

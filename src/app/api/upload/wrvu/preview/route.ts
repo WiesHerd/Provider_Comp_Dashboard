@@ -1,6 +1,16 @@
 import { NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 
+interface WRVURecord {
+  employee_id: string;
+  first_name: string;
+  last_name: string;
+  specialty: string;
+  month: string;
+  wrvu: number;
+  year: number;
+}
+
 export async function POST(request: Request) {
   try {
     console.log('Starting wRVU data preview process');
@@ -33,43 +43,58 @@ export async function POST(request: Request) {
     
     // Convert to JSON with header mapping
     const rawData = XLSX.utils.sheet_to_json(worksheet, {
-      raw: false,
-      defval: '0'
+      raw: true,
+      defval: 0
     });
 
-    // Transform and validate the data
-    const wrvuData = rawData.map((row: any) => ({
-      employeeId: row.employee_id,
-      firstName: row.first_name,
-      lastName: row.last_name,
-      specialty: row.specialty,
-      jan: Number(row.Jan) || 0,
-      feb: Number(row.Feb) || 0,
-      mar: Number(row.Mar) || 0,
-      apr: Number(row.Apr) || 0,
-      may: Number(row.May) || 0,
-      jun: Number(row.Jun) || 0,
-      jul: Number(row.Jul) || 0,
-      aug: Number(row.Aug) || 0,
-      sep: Number(row.Sep) || 0,
-      oct: Number(row.Oct) || 0,
-      nov: Number(row.Nov) || 0,
-      dec: Number(row.Dec) || 0
-    }));
+    // Transform the data into monthly records
+    const monthlyData: WRVURecord[] = [];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentYear = new Date().getFullYear();
+    
+    rawData.forEach((row: any) => {
+      // Validate employee data
+      if (!row.employee_id) {
+        throw new Error('Missing employee ID in row');
+      }
 
-    // Return preview data (first 5 records)
-    const previewData = wrvuData.slice(0, 5);
-    const totalRecords = wrvuData.length;
+      months.forEach((month) => {
+        const wrvuValue = parseFloat(row[month]);
+        if (!isNaN(wrvuValue)) {
+          monthlyData.push({
+            employee_id: row.employee_id,
+            first_name: row.first_name || '',
+            last_name: row.last_name || '',
+            specialty: row.specialty || '',
+            month: month,
+            year: currentYear,
+            wrvu: wrvuValue
+          });
+        }
+      });
+    });
+
+    // Validate the data
+    if (monthlyData.length === 0) {
+      return NextResponse.json(
+        { error: 'No valid wRVU data found in file.' },
+        { status: 400 }
+      );
+    }
+
+    // Return preview data (first few records for each unique employee)
+    const previewData = monthlyData.slice(0, 50); // Limit preview to first 50 records
 
     return NextResponse.json({
-      data: wrvuData,
-      message: `Found ${totalRecords} records in the file`
+      message: `Found ${monthlyData.length} wRVU records for ${new Set(monthlyData.map(d => d.employee_id)).size} providers`,
+      count: monthlyData.length,
+      data: previewData
     });
   } catch (error) {
-    console.error('Error generating wRVU data preview:', error);
+    console.error('Error previewing wRVU data:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to generate preview',
+        error: 'Failed to preview wRVU data',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }

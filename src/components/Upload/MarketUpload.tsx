@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 import UploadSection from './UploadSection';
 
-interface ProviderUploadProps {
+interface MarketUploadProps {
   onPreview: (data: any[] | null, columns: { key: string; header: string; formatter?: (value: any) => string }[], mode: 'append' | 'clear') => void;
 }
 
-export default function ProviderUpload({ onPreview }: ProviderUploadProps) {
+export default function MarketUpload({ onPreview }: MarketUploadProps) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [uploadMode, setUploadMode] = useState<'append' | 'clear'>('append');
@@ -24,7 +24,7 @@ export default function ProviderUpload({ onPreview }: ProviderUploadProps) {
       const formData = new FormData();
       formData.append('file', selectedFile);
 
-      const response = await fetch('/api/upload/provider/preview', {
+      const response = await fetch('/api/upload/market/preview', {
         method: 'POST',
         body: formData,
       });
@@ -35,25 +35,58 @@ export default function ProviderUpload({ onPreview }: ProviderUploadProps) {
 
       const result = await response.json();
       
+      const formatCurrency = (value: number) => {
+        if (typeof value !== 'number' || isNaN(value)) return '$0';
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(value);
+      };
+
+      const formatNumber = (value: number) => {
+        if (typeof value !== 'number' || isNaN(value)) return '0.0';
+        return new Intl.NumberFormat('en-US', {
+          minimumFractionDigits: 1,
+          maximumFractionDigits: 1,
+        }).format(value);
+      };
+
+      // Transform the data to match prisma schema
+      const transformedData = result.data.map((row: any) => ({
+        specialty: row.specialty,
+        p25_total: row.p25_TCC,
+        p50_total: row.p50_TCC,
+        p75_total: row.p75_TCC,
+        p90_total: row.p90_TCC,
+        p25_wrvu: row.p25_wrvu,
+        p50_wrvu: row.p50_wrvu,
+        p75_wrvu: row.p75_wrvu,
+        p90_wrvu: row.p90_wrvu,
+        p25_cf: row.p25_cf,
+        p50_cf: row.p50_cf,
+        p75_cf: row.p75_cf,
+        p90_cf: row.p90_cf,
+      }));
+
       const columns = [
-        { key: 'employeeId', header: 'Employee ID' },
-        { key: 'firstName', header: 'First Name' },
-        { key: 'lastName', header: 'Last Name' },
         { key: 'specialty', header: 'Specialty' },
-        { key: 'department', header: 'Department' },
-        { key: 'fte', header: 'FTE' },
-        { key: 'baseSalary', header: 'Base Salary', formatter: (value: number) => 
-          new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-          }).format(value)
-        },
-        { key: 'compensationModel', header: 'Compensation Model' },
+        { key: 'p25_total', header: '25th Percentile TCC', formatter: formatCurrency },
+        { key: 'p50_total', header: 'Median TCC', formatter: formatCurrency },
+        { key: 'p75_total', header: '75th Percentile TCC', formatter: formatCurrency },
+        { key: 'p90_total', header: '90th Percentile TCC', formatter: formatCurrency },
+        { key: 'p25_wrvu', header: '25th Percentile wRVU', formatter: formatNumber },
+        { key: 'p50_wrvu', header: 'Median wRVU', formatter: formatNumber },
+        { key: 'p75_wrvu', header: '75th Percentile wRVU', formatter: formatNumber },
+        { key: 'p90_wrvu', header: '90th Percentile wRVU', formatter: formatNumber },
+        { key: 'p25_cf', header: '25th Percentile CF', formatter: formatNumber },
+        { key: 'p50_cf', header: 'Median CF', formatter: formatNumber },
+        { key: 'p75_cf', header: '75th Percentile CF', formatter: formatNumber },
+        { key: 'p90_cf', header: '90th Percentile CF', formatter: formatNumber },
       ];
 
-      onPreview(result.data, columns, uploadMode);
+      onPreview(transformedData, columns, uploadMode);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to preview file');
     }
@@ -70,7 +103,7 @@ export default function ProviderUpload({ onPreview }: ProviderUploadProps) {
       formData.append('file', file);
       formData.append('mode', uploadMode);
 
-      const response = await fetch('/api/upload/provider', {
+      const response = await fetch('/api/upload/market', {
         method: 'POST',
         body: formData,
       });
@@ -87,8 +120,8 @@ export default function ProviderUpload({ onPreview }: ProviderUploadProps) {
         throw new Error(result.message || result.error || 'Upload failed');
       }
 
-      alert(`Successfully uploaded ${result.count} provider records`);
-      router.push('/admin/providers');
+      alert(`Successfully uploaded ${result.count} market data records`);
+      router.push('/admin/market-data');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
@@ -106,13 +139,13 @@ export default function ProviderUpload({ onPreview }: ProviderUploadProps) {
     <div className="p-6">
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h2 className="text-lg font-medium text-gray-900">Provider Data</h2>
+          <h2 className="text-lg font-medium text-gray-900">Market Data</h2>
           <p className="mt-1 text-sm text-gray-500">
-            Upload provider information including employee ID, name, and specialty.
+            Upload market data for provider specialties. Loaded annually from survey data.
           </p>
         </div>
         <button
-          onClick={() => window.location.href = '/api/templates/provider'}
+          onClick={() => window.location.href = '/api/templates/market'}
           className="inline-flex items-center px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
         >
           <DocumentArrowDownIcon className="w-4 h-4 mr-1.5" />

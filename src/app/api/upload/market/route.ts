@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     console.log('Starting market data upload process');
     const formData = await request.formData();
     const file = formData.get('file');
+    const mode = formData.get('mode') as string || 'append';
 
     if (!file || !(file instanceof File)) {
       console.error('No file found in request');
@@ -30,6 +31,12 @@ export async function POST(request: Request) {
         { error: 'No file uploaded' },
         { status: 400 }
       );
+    }
+
+    // If mode is 'clear', delete all existing market data
+    if (mode === 'clear') {
+      await prisma.marketData.deleteMany();
+      console.log('Cleared all existing market data');
     }
 
     // Read file content
