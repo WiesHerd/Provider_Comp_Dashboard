@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from '@/lib/prisma';
 
 // GET endpoint to fetch all WRVU adjustments for a provider
 export async function GET(

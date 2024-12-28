@@ -9,6 +9,7 @@ interface AddAdjustmentModalProps {
   onAdd: (data: any) => void;
   type: 'wrvu' | 'target' | 'additionalPay';
   editingData?: any;
+  isEditing?: boolean;
 }
 
 export default function AddAdjustmentModal({
@@ -16,7 +17,8 @@ export default function AddAdjustmentModal({
   onClose,
   onAdd,
   type,
-  editingData
+  editingData,
+  isEditing
 }: AddAdjustmentModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -34,7 +36,7 @@ export default function AddAdjustmentModal({
       const values: Record<string, number | string> = {};
       months.forEach(month => {
         const key = month.toLowerCase();
-        values[key] = editingData[key] || '';
+        values[key] = editingData[key] || editingData.monthlyValues?.[key] || '';
       });
       setMonthlyValues(values);
     } else {
@@ -86,6 +88,10 @@ export default function AddAdjustmentModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!name.trim()) {
+      alert('Name is required');
+      return;
+    }
     const submissionValues = Object.fromEntries(
       Object.entries(monthlyValues).map(([key, value]) => [
         key,
@@ -93,8 +99,8 @@ export default function AddAdjustmentModal({
       ])
     );
     onAdd({
-      name,
-      description,
+      name: name.trim(),
+      description: description.trim(),
       ...submissionValues
     });
     setName('');
@@ -122,9 +128,15 @@ export default function AddAdjustmentModal({
           {/* Draggable handle */}
           <div className="modal-handle cursor-grab px-6 py-4 border-b border-gray-200 flex justify-between items-center select-none">
             <Dialog.Title className="text-lg font-medium text-gray-900">
-              {type === 'wrvu' ? 'Add wRVU Adjustment' : 
-               type === 'target' ? 'Add Target Adjustment' : 
-               'Add Additional Pay'}
+              {isEditing ? (
+                type === 'wrvu' ? 'Edit wRVU Adjustment' : 
+                type === 'target' ? 'Edit Target Adjustment' : 
+                'Edit Additional Pay'
+              ) : (
+                type === 'wrvu' ? 'Add wRVU Adjustment' : 
+                type === 'target' ? 'Add Target Adjustment' : 
+                'Add Additional Pay'
+              )}
             </Dialog.Title>
             <button
               onClick={onClose}
@@ -193,7 +205,7 @@ export default function AddAdjustmentModal({
                 type="submit"
                 className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
               >
-                {editingData ? 'Save Changes' : 'Add Adjustment'}
+                {isEditing ? 'Save Changes' : 'Add Adjustment'}
               </button>
             </div>
           </form>

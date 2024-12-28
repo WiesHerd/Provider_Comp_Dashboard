@@ -7,10 +7,14 @@ async function main() {
       employeeId: "EMP001",
       firstName: "John",
       lastName: "Doe",
+      email: "john.doe@healthsystem.org",
       specialty: "Internal Medicine",
-      annualSalary: 250000,
-      annualWRVUTarget: 5000,
-      conversionFactor: 45.00,
+      department: "Internal Medicine",
+      status: "Active",
+      hireDate: new Date("2023-01-01"),
+      fte: 1.0,
+      baseSalary: 250000,
+      compensationModel: "Standard"
     },
   });
 

@@ -53,29 +53,51 @@ model CompensationChange {
 model WRVUAdjustment {
   id          String   @id @default(cuid())
   name        String
-  amount      Float
-  month       String
+  description String?
   year        Int
+  jan         Float    @default(0)
+  feb         Float    @default(0)
+  mar         Float    @default(0)
+  apr         Float    @default(0)
+  may         Float    @default(0)
+  jun         Float    @default(0)
+  jul         Float    @default(0)
+  aug         Float    @default(0)
+  sep         Float    @default(0)
+  oct         Float    @default(0)
+  nov         Float    @default(0)
+  dec         Float    @default(0)
   providerId  String
   provider    Provider @relation(fields: [providerId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([providerId, year, month])
+  @@index([providerId, year])
 }
 
 model TargetAdjustment {
   id          String   @id @default(cuid())
   name        String
-  amount      Float
-  month       String
+  description String?
   year        Int
+  jan         Float    @default(0)
+  feb         Float    @default(0)
+  mar         Float    @default(0)
+  apr         Float    @default(0)
+  may         Float    @default(0)
+  jun         Float    @default(0)
+  jul         Float    @default(0)
+  aug         Float    @default(0)
+  sep         Float    @default(0)
+  oct         Float    @default(0)
+  nov         Float    @default(0)
+  dec         Float    @default(0)
   providerId  String
   provider    Provider @relation(fields: [providerId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([providerId, year, month])
+  @@index([providerId, year])
 }
 
 model AdditionalPayment {

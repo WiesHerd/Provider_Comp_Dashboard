@@ -23,4 +23,60 @@ export interface PayoutConfig {
   period: PayoutPeriod;
   holdbackPercentage: number;
   conversionFactor: number;
+}
+
+export interface WRVUAdjustment {
+  id: string;
+  name: string;
+  description?: string;
+  providerId: string;
+  year: number;
+  jan: number;
+  feb: number;
+  mar: number;
+  apr: number;
+  may: number;
+  jun: number;
+  jul: number;
+  aug: number;
+  sep: number;
+  oct: number;
+  nov: number;
+  dec: number;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface TargetAdjustment {
+  id: string;
+  name: string;
+  description?: string;
+  providerId: string;
+  year: number;
+  jan: number;
+  feb: number;
+  mar: number;
+  apr: number;
+  may: number;
+  jun: number;
+  jul: number;
+  aug: number;
+  sep: number;
+  oct: number;
+  nov: number;
+  dec: number;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface WRVUAdjustmentResponse {
+  success: boolean;
+  error?: string;
+  data?: WRVUAdjustment;
+}
+
+export interface TargetAdjustmentResponse {
+  success: boolean;
+  error?: string;
+  data?: TargetAdjustment;
 } 

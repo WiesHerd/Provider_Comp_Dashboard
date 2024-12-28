@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { WRVUAdjustment, WRVUAdjustmentFormData } from '@/types/wrvu-adjustment';
+import { TargetAdjustmentFormData } from '@/types/target-adjustment';
 
-// GET /api/wrvu-adjustments
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -14,7 +13,7 @@ export async function GET(request: Request) {
       ...(year && { year: parseInt(year) })
     };
 
-    const adjustments = await prisma.wRVUAdjustment.findMany({
+    const adjustments = await prisma.targetAdjustment.findMany({
       where,
       include: {
         provider: {
@@ -29,15 +28,14 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ success: true, data: adjustments });
   } catch (error) {
-    console.error('Error fetching wRVU adjustments:', error);
+    console.error('Error fetching target adjustments:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch wRVU adjustments' },
+      { success: false, error: 'Failed to fetch target adjustments' },
       { status: 500 }
     );
   }
 }
 
-// POST /api/wrvu-adjustments
 export async function POST(request: Request) {
   try {
     const contentType = request.headers.get('content-type');
@@ -48,8 +46,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const data: WRVUAdjustmentFormData = await request.json();
-    console.log('1. Received wRVU adjustment data:', JSON.stringify(data, null, 2));
+    const data: TargetAdjustmentFormData = await request.json();
+    console.log('1. Received target adjustment data:', JSON.stringify(data, null, 2));
 
     // Validate required fields
     if (!data.name?.trim()) {
@@ -119,26 +117,8 @@ export async function POST(request: Request) {
     console.log('4. Attempting to create adjustment with data:', JSON.stringify(adjustmentData, null, 2));
 
     try {
-      // Create the adjustment with explicit type information
-      const adjustment = await prisma.wRVUAdjustment.create({
-        data: {
-          name: adjustmentData.name,
-          description: adjustmentData.description,
-          year: adjustmentData.year,
-          providerId: adjustmentData.providerId,
-          jan: adjustmentData.jan,
-          feb: adjustmentData.feb,
-          mar: adjustmentData.mar,
-          apr: adjustmentData.apr,
-          may: adjustmentData.may,
-          jun: adjustmentData.jun,
-          jul: adjustmentData.jul,
-          aug: adjustmentData.aug,
-          sep: adjustmentData.sep,
-          oct: adjustmentData.oct,
-          nov: adjustmentData.nov,
-          dec: adjustmentData.dec
-        },
+      const adjustment = await prisma.targetAdjustment.create({
+        data: adjustmentData,
         include: {
           provider: {
             select: {
@@ -164,10 +144,8 @@ export async function POST(request: Request) {
       );
     }
   } catch (error) {
-    console.error('Error creating wRVU adjustment:', error);
+    console.error('Error creating target adjustment:', error);
     if (error instanceof Error) {
-      console.error('Error details:', error.message);
-      console.error('Error stack:', error.stack);
       return NextResponse.json(
         { success: false, error: error.message },
         { status: 500 }
@@ -175,56 +153,6 @@ export async function POST(request: Request) {
     }
     return NextResponse.json(
       { success: false, error: 'An unexpected error occurred' },
-      { status: 500 }
-    );
-  }
-}
-
-// PUT /api/wrvu-adjustments/:id
-export async function PUT(request: Request) {
-  try {
-    const data: WRVUAdjustment = await request.json();
-    const { id, ...updateData } = data;
-
-    if (!id) {
-      return NextResponse.json(
-        { success: false, error: 'Missing adjustment ID' },
-        { status: 400 }
-      );
-    }
-
-    const adjustment = await prisma.wRVUAdjustment.update({
-      where: { id },
-      data: updateData
-    });
-
-    return NextResponse.json({ success: true, data: adjustment });
-  } catch (error) {
-    console.error('Error updating wRVU adjustment:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to update wRVU adjustment' },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE /api/wrvu-adjustments/:id
-export async function DELETE(request: Request) {
-  try {
-    const { id } = await request.json();
-
-    await prisma.wRVUAdjustment.delete({
-      where: { id }
-    });
-
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Adjustment deleted successfully' 
-    });
-  } catch (error) {
-    console.error('Error deleting wRVU adjustment:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to delete wRVU adjustment' },
       { status: 500 }
     );
   }

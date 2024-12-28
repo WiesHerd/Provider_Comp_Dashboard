@@ -3,11 +3,14 @@
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import ProviderDashboard from '@/components/Dashboard/ProviderDashboard';
+import type { WRVUAdjustment, TargetAdjustment } from '@/types';
 
 export default function ProviderPage() {
   const params = useParams();
   const [provider, setProvider] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [adjustments, setAdjustments] = useState<WRVUAdjustment[]>([]);
+  const [targetAdjustments, setTargetAdjustments] = useState<TargetAdjustment[]>([]);
 
   useEffect(() => {
     async function fetchProvider() {
@@ -53,6 +56,10 @@ export default function ProviderPage() {
   return (
     <ProviderDashboard 
       provider={provider}
+      adjustments={adjustments}
+      targetAdjustments={targetAdjustments}
+      setAdjustments={setAdjustments}
+      setTargetAdjustments={setTargetAdjustments}
     />
   );
 } 

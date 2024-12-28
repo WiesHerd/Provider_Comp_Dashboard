@@ -27,6 +27,10 @@ import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { createWRVUAdjustment, deleteWRVUAdjustment } from '@/services/wrvu-adjustment';
+import { createTargetAdjustment, deleteTargetAdjustment } from '@/services/target-adjustment';
+import { useToast } from '@/components/ui/use-toast';
+import type { WRVUAdjustment, TargetAdjustment } from '@/types';
 
 interface Provider {
   id: string;
@@ -547,6 +551,9 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   const [holdbackPercentage, setHoldbackPercentage] = useState(5);
   const [marketData, setMarketData] = useState<any[]>([]);
 
+  const [editingWRVUAdjustment, setEditingWRVUAdjustment] = useState<any>(null);
+  const [editingTargetAdjustment, setEditingTargetAdjustment] = useState<any>(null);
+
   // Add filtered providers based on search
   const filteredProviders = useMemo(() => {
     return providers.filter(p => 
@@ -662,13 +669,25 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       { metric: 'wRVU Generation', isHeader: true, section: 'generation' },
       { metric: 'Actual wRVUs', ...baseMonthlyData, ytd: calculateYTD(baseMonthlyData, []), section: 'generation' },
       ...adjustments.map(adj => ({
-        ...adj, type: 'wrvu', isAdjustment: true, editable: true, ytd: calculateYTD(adj, []), section: 'generation'
+        metric: adj.name,
+        ...adj,
+        type: 'wrvu',
+        isAdjustment: true,
+        editable: true,
+        ytd: calculateYTD(adj, []),
+        section: 'generation'
       })),
       { metric: 'Total wRVUs', ...totalWRVUs, ytd: totalWRVUs.ytd, section: 'generation' },
       { metric: 'wRVU Target', isHeader: true, section: 'target' },
       { metric: 'Target wRVUs', ...targetMonthlyData, ytd: calculateYTD(targetMonthlyData, []), section: 'target' },
       ...targetAdjustments.map(adj => ({
-        ...adj, type: 'target', isAdjustment: true, editable: true, ytd: calculateYTD(adj, []), section: 'target'
+        metric: adj.name,
+        ...adj,
+        type: 'target',
+        isAdjustment: true,
+        editable: true,
+        ytd: calculateYTD(adj, []),
+        section: 'target'
       })),
       { metric: 'Total Target', ...totalTargetsWithAdjustments, ytd: calculateYTD(targetMonthlyData, targetAdjustments), section: 'target' },
       { metric: 'Variance', ...monthlyVariances, ytd: varianceYTD }
@@ -786,77 +805,197 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     setIsAdjustmentModalOpen(true);
   };
 
-  const handleAddAdjustment = (data: any) => {
-    const id = editingPayment?.id || Math.random().toString(36).substr(2, 9);
-    
-    // Extract monthly values directly from data
-    const monthlyValues = months.reduce((acc, month) => ({
-      ...acc,
-      [month.toLowerCase()]: Number(data[month.toLowerCase()] || 0)
-    }), {});
+  const handleAddAdjustment = async (data: any) => {
+    try {
+      if (adjustmentType === 'wrvu') {
+        const adjustmentData = {
+          id: isEditing ? editingWRVUAdjustment?.id : undefined,
+          name: data.name || editingWRVUAdjustment?.name || '',
+          description: data.description || editingWRVUAdjustment?.description || '',
+          year: new Date().getFullYear(),
+          providerId: provider.id,
+          monthlyValues: {
+            jan: Number(data.jan || 0),
+            feb: Number(data.feb || 0),
+            mar: Number(data.mar || 0),
+            apr: Number(data.apr || 0),
+            may: Number(data.may || 0),
+            jun: Number(data.jun || 0),
+            jul: Number(data.jul || 0),
+            aug: Number(data.aug || 0),
+            sep: Number(data.sep || 0),
+            oct: Number(data.oct || 0),
+            nov: Number(data.nov || 0),
+            dec: Number(data.dec || 0)
+          }
+        };
 
-    if (adjustmentType === 'additionalPay') {
-      const paymentData = {
-        id,
-        name: data.name,
-        component: data.name,
-        description: data.description,
-        type: 'additionalPay',
-        isSystem: false,
-        ...monthlyValues,
-        ytd: Object.values(monthlyValues).reduce((sum, val) => sum + (Number(val) || 0), 0)
-      };
-      
-      if (editingPayment) {
-        setAdditionalPayments(prev => prev.map(p => p.id === id ? paymentData : p));
-      } else {
-        setAdditionalPayments(prev => [...prev, paymentData]);
+        console.log('Sending adjustment data:', JSON.stringify(adjustmentData, null, 2));
+        
+        try {
+          let apiResponse;
+          if (isEditing && editingWRVUAdjustment?.id) {
+            // Update existing adjustment
+            apiResponse = await fetch(`/api/wrvu-adjustments/${editingWRVUAdjustment.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(adjustmentData)
+            }).then(res => res.json());
+          } else {
+            // Create new adjustment
+            apiResponse = await createWRVUAdjustment(adjustmentData);
+          }
+
+          console.log('API Response:', JSON.stringify(apiResponse, null, 2));
+
+          if (!apiResponse.success) {
+            console.error('Failed to save wRVU adjustment:', apiResponse.error);
+            return;
+          }
+
+          // Update local state
+          if (isEditing) {
+            setAdjustments(prev => prev.map(adj => 
+              adj.id === editingWRVUAdjustment?.id ? apiResponse.data : adj
+            ));
+          } else {
+            setAdjustments(prev => [...prev, apiResponse.data]);
+          }
+          
+          setIsAdjustmentModalOpen(false);
+          setIsEditing(false);
+          setEditingWRVUAdjustment(null);
+        } catch (apiError) {
+          console.error('API call failed:', apiError);
+          return;
+        }
+      } else if (adjustmentType === 'target') {
+        const adjustmentData = {
+          id: isEditing ? editingTargetAdjustment?.id : undefined,
+          name: data.name,
+          description: data.description,
+          year: new Date().getFullYear(),
+          providerId: provider.id,
+          monthlyValues: {
+            jan: Number(data.jan || 0),
+            feb: Number(data.feb || 0),
+            mar: Number(data.mar || 0),
+            apr: Number(data.apr || 0),
+            may: Number(data.may || 0),
+            jun: Number(data.jun || 0),
+            jul: Number(data.jul || 0),
+            aug: Number(data.aug || 0),
+            sep: Number(data.sep || 0),
+            oct: Number(data.oct || 0),
+            nov: Number(data.nov || 0),
+            dec: Number(data.dec || 0)
+          }
+        };
+
+        console.log('Sending target adjustment data:', JSON.stringify(adjustmentData, null, 2));
+        
+        try {
+          let response;
+          if (isEditing && editingTargetAdjustment?.id) {
+            // Update existing adjustment
+            response = await fetch(`/api/target-adjustments/${editingTargetAdjustment.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(adjustmentData)
+            });
+          } else {
+            // Create new adjustment
+            response = await createTargetAdjustment(adjustmentData);
+          }
+
+          const result = await response.json();
+          console.log('API Response:', JSON.stringify(result, null, 2));
+
+          if (!result.success) {
+            console.error('Failed to save target adjustment:', result.error);
+            return;
+          }
+
+          // Update local state
+          if (isEditing) {
+            setTargetAdjustments(prev => prev.map(adj => 
+              adj.id === editingTargetAdjustment?.id ? result.data : adj
+            ));
+          } else {
+            setTargetAdjustments(prev => [...prev, result.data]);
+          }
+          
+          setIsAdjustmentModalOpen(false);
+          setIsEditing(false);
+          setEditingTargetAdjustment(null);
+        } catch (apiError) {
+          console.error('API call failed:', apiError);
+          return;
+        }
       }
-    } else if (adjustmentType === 'wrvu') {
-      const adjustmentData = {
-        id,
-        metric: data.name,
-        description: data.description,
-        type: 'wrvu',
-        isAdjustment: true,
-        ...monthlyValues
-      };
-      
-      if (editingPayment) {
-        setAdjustments(prev => prev.map(adj => adj.id === id ? adjustmentData : adj));
-      } else {
-        setAdjustments(prev => [...prev, adjustmentData]);
-      }
-    } else if (adjustmentType === 'target') {
-      const targetData = {
-        id,
-        metric: data.name,
-        description: data.description,
-        type: 'target',
-        isAdjustment: true,
-        ...monthlyValues
-      };
-      
-      if (editingPayment) {
-        setTargetAdjustments(prev => prev.map(adj => adj.id === id ? targetData : adj));
-      } else {
-        setTargetAdjustments(prev => [...prev, targetData]);
+
+      setIsAdjustmentModalOpen(false);
+    } catch (error) {
+      console.error('Error in handleAddAdjustment:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
+        console.error('Error stack:', error.stack);
       }
     }
-    
-    setIsAdjustmentModalOpen(false);
-    setEditingPayment(null);
-    setIsEditing(false);
   };
 
-  const handleEditAdjustment = (adjustment: any) => {
-    console.log('Raw adjustment data:', adjustment);
+  const handleEditAdjustment = (data: any) => {
+    console.log('Raw adjustment data:', data);
     
-    // Pass the adjustment data directly without transformation
-    setEditingPayment(adjustment);
-    setAdjustmentType(adjustment.type);
-    setIsEditing(true);
-    setIsAdjustmentModalOpen(true);
+    if (data.type === 'wrvu') {
+      const wrvuAdjustment = {
+        id: data.id,
+        name: data.metric,
+        description: data.description || '',
+        providerId: provider.id,
+        year: new Date().getFullYear(),
+        jan: data.jan || 0,
+        feb: data.feb || 0,
+        mar: data.mar || 0,
+        apr: data.apr || 0,
+        may: data.may || 0,
+        jun: data.jun || 0,
+        jul: data.jul || 0,
+        aug: data.aug || 0,
+        sep: data.sep || 0,
+        oct: data.oct || 0,
+        nov: data.nov || 0,
+        dec: data.dec || 0
+      };
+      setEditingWRVUAdjustment(wrvuAdjustment);
+      setAdjustmentType('wrvu');
+      setIsEditing(true);
+      setIsAdjustmentModalOpen(true);
+    } else if (data.type === 'target') {
+      const targetAdjustment = {
+        id: data.id,
+        name: data.metric,
+        description: data.description || '',
+        providerId: provider.id,
+        year: new Date().getFullYear(),
+        jan: data.jan || 0,
+        feb: data.feb || 0,
+        mar: data.mar || 0,
+        apr: data.apr || 0,
+        may: data.may || 0,
+        jun: data.jun || 0,
+        jul: data.jul || 0,
+        aug: data.aug || 0,
+        sep: data.sep || 0,
+        oct: data.oct || 0,
+        nov: data.nov || 0,
+        dec: data.dec || 0
+      };
+      setEditingTargetAdjustment(targetAdjustment);
+      setAdjustmentType('target');
+      setIsEditing(true);
+      setIsAdjustmentModalOpen(true);
+    }
   };
 
   const handleRemoveAdjustment = (id: string) => {
@@ -933,8 +1072,10 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   };
 
   const handleEditCompensationChange = (change: CompensationChange) => {
-    setEditingChangeId(change.id);
-    setIsCompChangeModalOpen(true);
+    if (change.id) {
+      setEditingChangeId(change.id);
+      setIsCompChangeModalOpen(true);
+    }
   };
 
   const customStyles = `
@@ -1355,6 +1496,34 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     }
     fetchAllProviders();
   }, []);
+
+  useEffect(() => {
+    const fetchAdjustments = async () => {
+      try {
+        // Fetch wRVU adjustments
+        const wrvuResponse = await fetch(`/api/wrvu-adjustments?providerId=${provider.id}`);
+        if (wrvuResponse.ok) {
+          const wrvuData = await wrvuResponse.json();
+          if (wrvuData.success) {
+            setAdjustments(wrvuData.data);
+          }
+        }
+
+        // Fetch target adjustments
+        const targetResponse = await fetch(`/api/target-adjustments?providerId=${provider.id}`);
+        if (targetResponse.ok) {
+          const targetData = await targetResponse.json();
+          if (targetData.success) {
+            setTargetAdjustments(targetData.data);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching adjustments:', error);
+      }
+    };
+
+    fetchAdjustments();
+  }, [provider.id]);
 
   return (
     <>
@@ -1848,14 +2017,16 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
 
       <AddAdjustmentModal
         isOpen={isAdjustmentModalOpen}
-        onClose={()=>{
+        onClose={() => {
           setIsAdjustmentModalOpen(false);
           setIsEditing(false);
-          setEditingPayment(null);
+          setEditingWRVUAdjustment(null);
+          setEditingTargetAdjustment(null);
         }}
         onAdd={handleAddAdjustment}
         type={adjustmentType}
-        editingData={editingPayment}
+        editingData={adjustmentType === 'wrvu' ? editingWRVUAdjustment : editingTargetAdjustment}
+        isEditing={isEditing}
       />
 
       <CompensationChangeModalComponent
