@@ -660,14 +660,81 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
 
   const ytdWRVUs = totalWRVUs.ytd;
 
+  const calculateWRVUPercentile = (actualWRVUs: number, monthsCompleted: number, fte: number, marketData: MarketData[]): { percentile: number, nearestBenchmark: string } => {
+    const matchingMarket = marketData.find(data => data.specialty === provider.specialty);
+    if (!matchingMarket) return { percentile: 0, nearestBenchmark: 'Unknown' };
+
+    // Annualize wRVUs
+    const annualizedWRVUs = monthsCompleted > 0 
+      ? (actualWRVUs / monthsCompleted) * 12 
+      : 0;
+
+    // Adjust for FTE
+    const fteAdjustedWRVUs = fte < 1.0 
+      ? annualizedWRVUs / fte 
+      : annualizedWRVUs;
+
+    const benchmarks = [
+      { percentile: 25, value: matchingMarket.p25_wrvu },
+      { percentile: 50, value: matchingMarket.p50_wrvu },
+      { percentile: 75, value: matchingMarket.p75_wrvu },
+      { percentile: 90, value: matchingMarket.p90_wrvu }
+    ];
+
+    // If below 25th percentile
+    if (fteAdjustedWRVUs < benchmarks[0].value) {
+      const percentile = (fteAdjustedWRVUs / benchmarks[0].value) * 25;
+      return { percentile, nearestBenchmark: '< 25th' };
+    }
+
+    // If above 90th percentile
+    if (fteAdjustedWRVUs > benchmarks[3].value) {
+      const percentile = 90 + ((fteAdjustedWRVUs - benchmarks[3].value) / benchmarks[3].value) * 10;
+      return { percentile: Math.min(100, percentile), nearestBenchmark: '> 90th' };
+    }
+
+    // Find which benchmarks we're between
+    for (let i = 0; i < benchmarks.length - 1; i++) {
+      const lower = benchmarks[i];
+      const upper = benchmarks[i + 1];
+      if (fteAdjustedWRVUs >= lower.value && fteAdjustedWRVUs <= upper.value) {
+        const range = upper.value - lower.value;
+        const position = fteAdjustedWRVUs - lower.value;
+        const percentileRange = upper.percentile - lower.percentile;
+        const percentile = lower.percentile + (position / range) * percentileRange;
+        return { 
+          percentile,
+          nearestBenchmark: `${lower.percentile}th-${upper.percentile}th`
+        };
+      }
+    }
+
+    return { percentile: 0, nearestBenchmark: 'Unknown' };
+  };
+
   const getRowData = useCallback(() => {
     const wrvuYTD = calculateYTD(baseMonthlyData, adjustments);
     const targetYTD = calculateYTD(targetMonthlyData, targetAdjustments);
     const varianceYTD = wrvuYTD - targetYTD;
 
+    // Calculate months with data for annualization
+    const monthsWithData = months.reduce((count, m) => 
+      (baseMonthlyData[m.toLowerCase()] > 0 ? count + 1 : count), 0);
+
+    // Calculate wRVU percentile
+    const { percentile: wrvuPercentile, nearestBenchmark: wrvuBenchmark } = 
+      calculateWRVUPercentile(wrvuYTD, monthsWithData, provider.fte, marketData);
+
     return [
       { metric: 'wRVU Generation', isHeader: true, section: 'generation' },
-      { metric: 'Actual wRVUs', ...baseMonthlyData, ytd: calculateYTD(baseMonthlyData, []), section: 'generation' },
+      { 
+        metric: 'Actual wRVUs', 
+        ...baseMonthlyData, 
+        ytd: calculateYTD(baseMonthlyData, []), 
+        section: 'generation',
+        percentile: wrvuPercentile,
+        nearestBenchmark: wrvuBenchmark
+      },
       ...adjustments.map(adj => ({
         metric: adj.name,
         ...adj,
@@ -692,7 +759,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       { metric: 'Total Target', ...totalTargetsWithAdjustments, ytd: calculateYTD(targetMonthlyData, targetAdjustments), section: 'target' },
       { metric: 'Variance', ...monthlyVariances, ytd: varianceYTD }
     ];
-  }, [adjustments, targetAdjustments, totalWRVUs, totalTargetsWithAdjustments, monthlyVariances, targetMonthlyData]);
+  }, [adjustments, targetAdjustments, totalWRVUs, totalTargetsWithAdjustments, monthlyVariances, targetMonthlyData, provider.fte, marketData]);
 
   const getMonthlyIncentive = (month: string): number => {
     const monthKey = month.toLowerCase();
@@ -1155,7 +1222,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     return formatCurrency(value);
   };
 
-  const metricsColumnDefs = [
+  const metricsColumnDefs = useMemo(() => [
     {
       field: 'metric',
       headerName: '',
@@ -1249,7 +1316,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       suppressMovable: true,
       suppressSeparator: true
     }
-  ];
+  ], [/* existing dependencies */]);
 
   const compensationColumnDefs = [
     {
@@ -1540,52 +1607,8 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
             </div>
             <span className="ml-3 text-sm text-gray-600 group-hover:text-gray-900 transition-colors">Back to Providers</span>
           </Link>
-          <div className="relative">
-            <button
-              onClick={() => setIsProviderSelectorOpen(!isProviderSelectorOpen)}
-              className="w-[220px] inline-flex items-center justify-between px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Switch Provider
-              <ChevronDownIcon className="w-4 h-4" />
-            </button>
-            {isProviderSelectorOpen && (
-              <div className="absolute right-0 z-10 mt-2 w-[220px] origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                <div className="p-2">
-                  <input
-                    type="text"
-                    placeholder="Search providers..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
-                <div className="max-h-96 overflow-y-auto py-1">
-                  {filteredProviders.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => {
-                        setIsProviderSelectorOpen(false);
-                        setSearchTerm('');
-                        router.push(`/provider/${p.employeeId}`);
-                      }}
-                      className={`block w-full px-4 py-2 text-left text-sm hover:bg-gray-100 ${
-                        p.id === provider.id ? 'bg-gray-50 text-blue-600' : 'text-gray-700'
-                      }`}
-                    >
-                      {p.firstName} {p.lastName} ({p.employeeId})
-                    </button>
-                  ))}
-                  {filteredProviders.length === 0 && (
-                    <div className="px-4 py-2 text-sm text-gray-500">
-                      No providers found
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
         </div>
+
         <div className="dashboard-header bg-white rounded-lg shadow-sm mb-8 border border-gray-200">
           <div className="px-8 py-6">
             <div className="flex flex-col items-center text-center">
@@ -1789,11 +1812,20 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
                     {(() => {
                       const ytdTotal = getCompensationData().find(row => row.component === 'Total Comp.')?.ytd || 0;
                       const { percentile } = calculateTotalCompPercentile(ytdTotal, marketData);
+                      const { percentile: wrvuPercentile } = calculateWRVUPercentile(ytdWRVUs, months.length, provider.fte, marketData);
                       return (
-                        <div className="bg-gray-50 rounded-lg p-4 flex items-center gap-3 border border-gray-200">
-                          <div className="text-sm">
-                            <span className="text-gray-500">Total Comp. Percentile:</span>
-                            <span className="ml-2 font-semibold text-gray-900">{percentile.toFixed(1)}%</span>
+                        <div className="flex items-center gap-4">
+                          <div className="bg-gray-50 rounded-lg p-4 flex items-center gap-3 border border-gray-200">
+                            <div className="text-sm">
+                              <span className="text-gray-500">wRVU Percentile:</span>
+                              <span className="ml-2 font-semibold text-gray-900">{wrvuPercentile.toFixed(1)}%</span>
+                            </div>
+                          </div>
+                          <div className="bg-gray-50 rounded-lg p-4 flex items-center gap-3 border border-gray-200">
+                            <div className="text-sm">
+                              <span className="text-gray-500">Total Comp. Percentile:</span>
+                              <span className="ml-2 font-semibold text-gray-900">{percentile.toFixed(1)}%</span>
+                            </div>
                           </div>
                         </div>
                       );
