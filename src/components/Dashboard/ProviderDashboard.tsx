@@ -1758,21 +1758,29 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
                   <h2 className="text-lg font-medium text-gray-900">Metrics & Adjustments</h2>
                 </div>
                 <div className="p-6">
-                  <div className="flex gap-3 mb-6">
-                    <button 
-                      onClick={() => handleOpenAdjustmentModal('wrvu')} 
-                      className="inline-flex items-center px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
-                    >
-                      <PlusIcon className="h-4 w-4 mr-2" />
-                      Add wRVU Adjustment
-                    </button>
-                    <button 
-                      onClick={() => handleOpenAdjustmentModal('target')} 
-                      className="inline-flex items-center px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
-                    >
-                      <PlusIcon className="h-4 w-4 mr-2" />
-                      Add Target Adjustment
-                    </button>
+                  <div className="flex justify-between items-center mb-6">
+                    <div className="flex gap-3">
+                      <button 
+                        onClick={() => handleOpenAdjustmentModal('wrvu')} 
+                        className="inline-flex items-center px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
+                      >
+                        <PlusIcon className="h-4 w-4 mr-2" />
+                        Add wRVU Adjustment
+                      </button>
+                      <button 
+                        onClick={() => handleOpenAdjustmentModal('target')} 
+                        className="inline-flex items-center px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
+                      >
+                        <PlusIcon className="h-4 w-4 mr-2" />
+                        Add Target Adjustment
+                      </button>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4 flex items-center gap-3 border border-gray-200">
+                      <div className="text-sm">
+                        <span className="text-gray-500">wRVU Percentile:</span>
+                        <span className="ml-2 font-semibold text-gray-900">{calculateWRVUPercentile(ytdWRVUs, months.length, provider.fte, marketData).percentile.toFixed(1)}%</span>
+                      </div>
+                    </div>
                   </div>
                   <div className="ag-theme-alpine w-full">
                     <AgGridReact
@@ -1810,15 +1818,8 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
                     {(() => {
                       const ytdTotal = getCompensationData().find(row => row.component === 'Total Comp.')?.ytd || 0;
                       const { percentile } = calculateTotalCompPercentile(ytdTotal, marketData);
-                      const { percentile: wrvuPercentile } = calculateWRVUPercentile(ytdWRVUs, months.length, provider.fte, marketData);
                       return (
                         <div className="flex items-center gap-4">
-                          <div className="bg-gray-50 rounded-lg p-4 flex items-center gap-3 border border-gray-200">
-                            <div className="text-sm">
-                              <span className="text-gray-500">wRVU Percentile:</span>
-                              <span className="ml-2 font-semibold text-gray-900">{wrvuPercentile.toFixed(1)}%</span>
-                            </div>
-                          </div>
                           <div className="bg-gray-50 rounded-lg p-4 flex items-center gap-3 border border-gray-200">
                             <div className="text-sm">
                               <span className="text-gray-500">Total Comp. Percentile:</span>
