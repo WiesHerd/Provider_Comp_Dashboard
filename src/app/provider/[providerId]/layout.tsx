@@ -10,9 +10,10 @@ import {
   HomeIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  CurrencyDollarIcon,
+  ChartBarSquareIcon,
   ArrowLeftIcon,
-  Cog6ToothIcon
+  Cog6ToothIcon,
+  PresentationChartLineIcon
 } from '@heroicons/react/24/outline';
 
 const navigation = [
@@ -24,12 +25,12 @@ const navigation = [
   {
     name: 'Market Data',
     href: '/admin/market-data',
-    icon: CurrencyDollarIcon
+    icon: ChartBarSquareIcon
   },
   {
     name: 'wRVU Data',
     href: '/admin/wrvu-data',
-    icon: ChartBarIcon
+    icon: PresentationChartLineIcon
   },
   { 
     name: 'Upload', 

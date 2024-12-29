@@ -1,13 +1,31 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 import AddAdjustmentModal from './AddAdjustmentModal';
 import WRVUChart from './WRVUChart';
 import WRVUGauge from './WRVUGauge';
-import { CurrencyDollarIcon, ChartBarIcon, PencilIcon, TrashIcon, PlusIcon, Cog6ToothIcon, BanknotesIcon, ChartPieIcon, ScaleIcon, ArrowTrendingUpIcon, ArrowPathIcon, ArrowDownTrayIcon, InformationCircleIcon, DocumentTextIcon, ChevronDownIcon, ArrowLeftIcon, ChevronLeftIcon } from '@heroicons/react/24/outline';
+import { 
+  CurrencyDollarIcon, 
+  ChartBarIcon, 
+  PencilIcon, 
+  TrashIcon, 
+  PlusIcon, 
+  Cog6ToothIcon, 
+  BanknotesIcon, 
+  ChartPieIcon, 
+  ScaleIcon, 
+  ArrowTrendingUpIcon, 
+  ArrowPathIcon, 
+  ArrowDownTrayIcon, 
+  InformationCircleIcon, 
+  DocumentTextIcon, 
+  ChevronDownIcon, 
+  ArrowLeftIcon, 
+  ChevronLeftIcon 
+} from '@heroicons/react/24/outline';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -516,6 +534,21 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   const [providers, setProviders] = useState<any[]>([]);
   const [isProviderSelectorOpen, setIsProviderSelectorOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const providerSelectorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (providerSelectorRef.current && !providerSelectorRef.current.contains(event.target as Node)) {
+        setIsProviderSelectorOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   const [metricsGridApi, setMetricsGridApi] = useState<GridApi | null>(null);
   const [compensationGridApi, setCompensationGridApi] = useState<GridApi | null>(null);
   const [baseMonthlyData, setBaseMonthlyData] = useState<Record<string, number>>(
@@ -554,13 +587,23 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   const [editingWRVUAdjustment, setEditingWRVUAdjustment] = useState<any>(null);
   const [editingTargetAdjustment, setEditingTargetAdjustment] = useState<any>(null);
 
+  // Add new state variables near the top with other states
+  const [isMetricsSectionCollapsed, setIsMetricsSectionCollapsed] = useState(false);
+  const [isCompensationSectionCollapsed, setIsCompensationSectionCollapsed] = useState(false);
+
+  const handleProviderSelect = (employeeId: string) => {
+    setIsProviderSelectorOpen(false);
+    setSearchTerm('');
+    router.push(`/provider/${employeeId}`);
+  };
+
   // Add filtered providers based on search
   const filteredProviders = useMemo(() => {
     return providers.filter(p => 
-      `${p.firstName} ${p.lastName} ${p.employeeId}`
+      `${p.firstName} ${p.lastName} ${p.employeeId} ${p.specialty}`
         .toLowerCase()
         .includes(searchTerm.toLowerCase())
-    );
+    ).slice(0, 10); // Limit to 10 results for better performance
   }, [providers, searchTerm]);
 
   useEffect(() => {
@@ -577,6 +620,22 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     };
 
     fetchMarketData();
+  }, []);
+
+  // Add effect to fetch providers
+  useEffect(() => {
+    const fetchProviders = async () => {
+      try {
+        const response = await fetch('/api/providers');
+        if (!response.ok) throw new Error('Failed to fetch providers');
+        const { providers: providersList } = await response.json();
+        setProviders(providersList);
+      } catch (error) {
+        console.error('Error fetching providers:', error);
+      }
+    };
+
+    fetchProviders();
   }, []);
 
   useEffect(() => {
@@ -1595,16 +1654,53 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       <div className="w-full">
         <style>{customStyles}</style>
         <div className="flex items-center justify-between mb-8">
-          <Link 
-            href="/admin/providers" 
-            className="group flex items-center"
-            title="Back to Providers"
+          <Link
+            href="/admin/providers"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
           >
-            <div className="flex items-center justify-center w-10 h-10 rounded-[12px] bg-blue-500 hover:bg-blue-600 transition-colors">
-              <ChevronLeftIcon className="h-6 w-6 text-white" aria-hidden={true} />
-            </div>
-            <span className="ml-3 text-sm text-gray-600 group-hover:text-gray-900 transition-colors">Back to Providers</span>
+            <ArrowLeftIcon className="w-4 h-4" />
+            Back to Providers
           </Link>
+          <div className="relative" ref={providerSelectorRef}>
+            <button
+              onClick={() => setIsProviderSelectorOpen(!isProviderSelectorOpen)}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              <span>Jump to Provider</span>
+              <ChevronDownIcon className="w-4 h-4" />
+            </button>
+            {isProviderSelectorOpen && (
+              <div className="absolute right-0 z-10 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg">
+                <div className="p-2">
+                  <input
+                    type="text"
+                    placeholder="Search providers..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  {filteredProviders.length > 0 ? (
+                    filteredProviders.map((p) => (
+                      <button
+                        key={p.employeeId}
+                        onClick={() => handleProviderSelect(p.employeeId)}
+                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50"
+                      >
+                        <div className="font-medium text-gray-900">{p.firstName} {p.lastName}</div>
+                        <div className="text-gray-500 text-xs">{p.specialty} • {p.employeeId}</div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-2 text-sm text-gray-500">
+                      {searchTerm ? 'No providers found' : 'Start typing to search...'}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="dashboard-header bg-white rounded-lg shadow-sm mb-8 border border-gray-200">
@@ -1755,98 +1851,142 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
             <div className="space-y-6">
               <div id="metrics-table" className="bg-white rounded-lg shadow-sm border border-gray-200">
                 <div className="px-6 py-4 border-b border-gray-200">
-                  <h2 className="text-lg font-medium text-gray-900">Metrics & Adjustments</h2>
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-lg font-medium text-gray-900">Metrics & Adjustments</h2>
+                    <button
+                      onClick={() => setIsMetricsSectionCollapsed(!isMetricsSectionCollapsed)}
+                      className="p-1 hover:bg-gray-100 rounded-md transition-colors"
+                    >
+                      <ChevronDownIcon 
+                        className={`h-5 w-5 text-gray-500 transition-transform duration-200 ${
+                          isMetricsSectionCollapsed ? '-rotate-90' : ''
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
-                <div className="p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <div className="flex gap-3">
-                      <button 
-                        onClick={() => handleOpenAdjustmentModal('wrvu')} 
-                        className="inline-flex items-center px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
-                      >
-                        <PlusIcon className="h-4 w-4 mr-2" />
-                        Add wRVU Adjustment
-                      </button>
-                      <button 
-                        onClick={() => handleOpenAdjustmentModal('target')} 
-                        className="inline-flex items-center px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
-                      >
-                        <PlusIcon className="h-4 w-4 mr-2" />
-                        Add Target Adjustment
-                      </button>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-4 flex items-center gap-3 border border-gray-200">
-                      <div className="text-sm">
-                        <span className="text-gray-500">wRVU Percentile:</span>
-                        <span className="ml-2 font-semibold text-gray-900">{calculateWRVUPercentile(ytdWRVUs, months.length, provider.fte, marketData).percentile.toFixed(1)}%</span>
+                <div className={`transition-all duration-200 ease-in-out ${
+                  isMetricsSectionCollapsed ? 'hidden' : 'block'
+                }`}>
+                  <div className="p-6">
+                    <div className="flex justify-between items-center mb-6">
+                      <div className="flex gap-3">
+                        <button 
+                          onClick={() => handleOpenAdjustmentModal('wrvu')} 
+                          className="inline-flex items-center px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
+                        >
+                          <PlusIcon className="h-4 w-4 mr-2" />
+                          Add wRVU Adjustment
+                        </button>
+                        <button 
+                          onClick={() => handleOpenAdjustmentModal('target')} 
+                          className="inline-flex items-center px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
+                        >
+                          <PlusIcon className="h-4 w-4 mr-2" />
+                          Add Target Adjustment
+                        </button>
+                      </div>
+                      <div className="bg-white rounded-md p-3 flex items-center gap-2 border border-gray-200 hover:border-blue-300 transition-all duration-200 shadow-sm">
+                        <div className="bg-blue-50 rounded-md p-1.5">
+                          <ChartBarIcon className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-medium text-gray-500">wRVU Percentile</div>
+                          <div className="text-base font-semibold text-gray-900 leading-tight">
+                            {calculateWRVUPercentile(ytdWRVUs, months.length, provider.fte, marketData).percentile.toFixed(1)}
+                            <span className="text-xs font-normal text-gray-500 ml-0.5">%</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="ag-theme-alpine w-full">
-                    <AgGridReact
-                      domLayout="autoHeight"
-                      rowHeight={40}
-                      headerHeight={40}
-                      defaultColDef={{
-                        resizable: true,
-                        sortable: false,
-                        suppressMenu: true,
-                        flex: 1,
-                        minWidth: 82
-                      }}
-                      columnDefs={metricsColumnDefs}
-                      rowData={getRowData()}
-                      onGridReady={onMetricsGridReady}
-                    />
+                    <div className="ag-theme-alpine w-full">
+                      <AgGridReact
+                        domLayout="autoHeight"
+                        rowHeight={40}
+                        headerHeight={40}
+                        defaultColDef={{
+                          resizable: true,
+                          sortable: false,
+                          suppressMenu: true,
+                          flex: 1,
+                          minWidth: 82
+                        }}
+                        columnDefs={metricsColumnDefs}
+                        rowData={getRowData()}
+                        onGridReady={onMetricsGridReady}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
               <div id="compensation-table" className="bg-white rounded-lg shadow-sm border border-gray-200">
                 <div className="px-6 py-4 border-b border-gray-200">
-                  <h2 className="text-lg font-medium text-gray-900">Compensation Details</h2>
-                </div>
-                <div className="p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <button 
-                      onClick={() => handleOpenAdjustmentModal('additionalPay')} 
-                      className="inline-flex items-center px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-lg font-medium text-gray-900">Compensation Details</h2>
+                    <button
+                      onClick={() => setIsCompensationSectionCollapsed(!isCompensationSectionCollapsed)}
+                      className="p-1 hover:bg-gray-100 rounded-md transition-colors"
                     >
-                      <PlusIcon className="h-4 w-4 mr-2" />
-                      Add Additional Pay
+                      <ChevronDownIcon 
+                        className={`h-5 w-5 text-gray-500 transition-transform duration-200 ${
+                          isCompensationSectionCollapsed ? '-rotate-90' : ''
+                        }`}
+                      />
                     </button>
-                    {(() => {
-                      const ytdTotal = getCompensationData().find(row => row.component === 'Total Comp.')?.ytd || 0;
-                      const { percentile } = calculateTotalCompPercentile(ytdTotal, marketData);
-                      return (
-                        <div className="flex items-center gap-4">
-                          <div className="bg-gray-50 rounded-lg p-4 flex items-center gap-3 border border-gray-200">
-                            <div className="text-sm">
-                              <span className="text-gray-500">Total Comp. Percentile:</span>
-                              <span className="ml-2 font-semibold text-gray-900">{percentile.toFixed(1)}%</span>
+                  </div>
+                </div>
+                <div className={`transition-all duration-200 ease-in-out ${
+                  isCompensationSectionCollapsed ? 'hidden' : 'block'
+                }`}>
+                  <div className="p-6">
+                    <div className="flex justify-between items-center mb-6">
+                      <button 
+                        onClick={() => handleOpenAdjustmentModal('additionalPay')} 
+                        className="inline-flex items-center px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
+                      >
+                        <PlusIcon className="h-4 w-4 mr-2" />
+                        Add Additional Pay
+                      </button>
+                      {(() => {
+                        const ytdTotal = getCompensationData().find(row => row.component === 'Total Comp.')?.ytd || 0;
+                        const { percentile } = calculateTotalCompPercentile(ytdTotal, marketData);
+                        return (
+                          <div className="flex items-center gap-4">
+                            <div className="bg-white rounded-md p-3 flex items-center gap-2 border border-gray-200 hover:border-blue-300 transition-all duration-200 shadow-sm">
+                              <div className="bg-blue-50 rounded-md p-1.5">
+                                <ChartBarIcon className="h-4 w-4 text-blue-600" />
+                              </div>
+                              <div>
+                                <div className="text-[11px] font-medium text-gray-500">Total Comp. Percentile</div>
+                                <div className="text-base font-semibold text-gray-900 leading-tight">
+                                  {percentile.toFixed(1)}
+                                  <span className="text-xs font-normal text-gray-500 ml-0.5">%</span>
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                  <div className="ag-theme-alpine w-full">
-                    <AgGridReact
-                      context={{ monthlyDetails }}
-                      domLayout="autoHeight"
-                      rowHeight={40}
-                      headerHeight={40}
-                      defaultColDef={{
-                        resizable: true,
-                        sortable: false,
-                        suppressMenu: true,
-                        flex: 1,
-                        minWidth: 82
-                      }}
-                      columnDefs={compensationColumnDefs}
-                      rowData={getCompensationData()}
-                      onGridReady={onCompensationGridReady}
-                    />
+                        );
+                      })()}
+                    </div>
+                    <div className="ag-theme-alpine w-full">
+                      <AgGridReact
+                        context={{ monthlyDetails }}
+                        domLayout="autoHeight"
+                        rowHeight={40}
+                        headerHeight={40}
+                        defaultColDef={{
+                          resizable: true,
+                          sortable: false,
+                          suppressMenu: true,
+                          flex: 1,
+                          minWidth: 82
+                        }}
+                        columnDefs={compensationColumnDefs}
+                        rowData={getCompensationData()}
+                        onGridReady={onCompensationGridReady}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

@@ -614,8 +614,6 @@ export default function ProvidersPage() {
   const handleResetFilters = () => {
     setSearchQuery('');
     setSelectedSpecialty('');
-    setSelectedDepartment('');
-    setSelectedStatus('');
     setSelectedCompModel('');
     setFteRange([0, 1]);
     setBaseSalaryRange([0, 1000000]);
@@ -731,8 +729,6 @@ export default function ProvidersPage() {
         <button
           onClick={() => {
             setSelectedSpecialty('');
-            setSelectedDepartment('');
-            setSelectedStatus('');
             setSelectedCompModel('');
             setFteRange([0, 1]);
             setBaseSalaryRange([0, 1000000]);
@@ -754,8 +750,8 @@ export default function ProvidersPage() {
       <div className="p-6 space-y-8 border-t">
         {/* First Row - Range Sliders */}
         <div className="grid grid-cols-2 gap-6">
-          <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
-            <label className="block text-sm font-medium text-gray-700">
+          <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               FTE Range
             </label>
             <div className="px-2">
@@ -773,8 +769,8 @@ export default function ProvidersPage() {
             </div>
           </div>
 
-          <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
-            <label className="block text-sm font-medium text-gray-700">
+          <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Base Salary Range
             </label>
             <div className="px-2">
@@ -793,8 +789,24 @@ export default function ProvidersPage() {
           </div>
         </div>
 
-        {/* Second Row - Dropdowns */}
+        {/* Second Row - Search, Specialty, and Comp Model */}
         <div className="grid grid-cols-3 gap-6">
+          <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <label className="block text-sm font-medium text-gray-700">
+              Search
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search providers..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10 pl-10"
+              />
+              <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            </div>
+          </div>
+
           <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
             <label className="block text-sm font-medium text-gray-700">
               Specialty
@@ -804,7 +816,7 @@ export default function ProvidersPage() {
               onChange={(e) => setSelectedSpecialty(e.target.value)}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10"
             >
-              <option value="">Select specialties</option>
+              <option value="">All specialties</option>
               {Array.from(new Set(providers.map(p => p.specialty))).sort().map(specialty => (
                 <option key={specialty} value={specialty}>{specialty}</option>
               ))}
@@ -813,33 +825,17 @@ export default function ProvidersPage() {
 
           <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
             <label className="block text-sm font-medium text-gray-700">
-              Risk Level
+              Comp Model
             </label>
             <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
+              value={selectedCompModel}
+              onChange={(e) => setSelectedCompModel(e.target.value)}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10"
             >
-              <option value="">Select risk levels</option>
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-            </select>
-          </div>
-
-          <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
-            <label className="block text-sm font-medium text-gray-700">
-              Status
-            </label>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10"
-            >
-              <option value="">Select statuses</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Pending">Pending</option>
+              <option value="">All models</option>
+              {compModelOptions.map((model) => (
+                <option key={model} value={model}>{model}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -880,19 +876,18 @@ export default function ProvidersPage() {
     </div>
   </div>
 
-  // Add useEffect to count active filters
+  // Update useEffect to count active filters
   useEffect(() => {
     let count = 0;
+    if (searchQuery) count++;
     if (selectedSpecialty) count++;
-    if (selectedDepartment) count++;
-    if (selectedStatus) count++;
     if (selectedCompModel) count++;
     if (fteRange[0] > 0 || fteRange[1] < 1) count++;
     if (baseSalaryRange[0] > 0 || baseSalaryRange[1] < 1000000) count++;
     if (showMissingBenchmarks) count++;
     if (showMissingWRVUs) count++;
     setActiveFilterCount(count);
-  }, [selectedSpecialty, selectedDepartment, selectedStatus, selectedCompModel, 
+  }, [searchQuery, selectedSpecialty, selectedCompModel, 
       fteRange, baseSalaryRange, showMissingBenchmarks, showMissingWRVUs]);
 
   return (
@@ -919,25 +914,15 @@ export default function ProvidersPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Search providers or specialties..."
-                        className="w-[300px] px-4 py-2 pr-10 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                      />
-                      <MagnifyingGlassIcon className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
-                    </div>
                     <button
                       onClick={handleExportToExcel}
-                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                      className="px-6 py-2.5 bg-green-600 text-white rounded-full text-sm font-medium hover:bg-green-700 transition-colors shadow-sm"
                     >
                       Export to Excel
                     </button>
                     <button
                       onClick={() => setIsAddModalOpen(true)}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                      className="px-6 py-2.5 bg-indigo-600 text-white rounded-full text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm"
                     >
                       Add Provider
                     </button>
@@ -965,16 +950,7 @@ export default function ProvidersPage() {
                   </button>
                   {activeFilterCount > 0 && (
                     <button
-                      onClick={() => {
-                        setSelectedSpecialty('');
-                        setSelectedDepartment('');
-                        setSelectedStatus('');
-                        setSelectedCompModel('');
-                        setFteRange([0, 1]);
-                        setBaseSalaryRange([0, 1000000]);
-                        setShowMissingBenchmarks(false);
-                        setShowMissingWRVUs(false);
-                      }}
+                      onClick={handleResetFilters}
                       className="flex items-center gap-2 text-gray-500 hover:text-gray-700"
                     >
                       <XMarkIcon className="h-5 w-5" />
@@ -990,8 +966,8 @@ export default function ProvidersPage() {
                   <div className="p-6 space-y-8 border-t">
                     {/* First Row - Range Sliders */}
                     <div className="grid grid-cols-2 gap-6">
-                      <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                        <label className="block text-sm font-medium text-gray-700">
+                      <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
                           FTE Range
                         </label>
                         <div className="px-2">
@@ -1009,8 +985,8 @@ export default function ProvidersPage() {
                         </div>
                       </div>
 
-                      <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                        <label className="block text-sm font-medium text-gray-700">
+                      <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
                           Base Salary Range
                         </label>
                         <div className="px-2">
@@ -1029,8 +1005,24 @@ export default function ProvidersPage() {
                       </div>
                     </div>
 
-                    {/* Second Row - Dropdowns */}
+                    {/* Second Row - Search, Specialty, and Comp Model */}
                     <div className="grid grid-cols-3 gap-6">
+                      <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Search
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Search providers..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10 pl-10"
+                          />
+                          <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                        </div>
+                      </div>
+
                       <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
                         <label className="block text-sm font-medium text-gray-700">
                           Specialty
@@ -1040,7 +1032,7 @@ export default function ProvidersPage() {
                           onChange={(e) => setSelectedSpecialty(e.target.value)}
                           className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10"
                         >
-                          <option value="">Select specialties</option>
+                          <option value="">All specialties</option>
                           {Array.from(new Set(providers.map(p => p.specialty))).sort().map(specialty => (
                             <option key={specialty} value={specialty}>{specialty}</option>
                           ))}
@@ -1049,33 +1041,17 @@ export default function ProvidersPage() {
 
                       <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
                         <label className="block text-sm font-medium text-gray-700">
-                          Risk Level
+                          Comp Model
                         </label>
                         <select
-                          value={selectedStatus}
-                          onChange={(e) => setSelectedStatus(e.target.value)}
+                          value={selectedCompModel}
+                          onChange={(e) => setSelectedCompModel(e.target.value)}
                           className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10"
                         >
-                          <option value="">Select risk levels</option>
-                          <option value="Low">Low</option>
-                          <option value="Medium">Medium</option>
-                          <option value="High">High</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Status
-                        </label>
-                        <select
-                          value={selectedStatus}
-                          onChange={(e) => setSelectedStatus(e.target.value)}
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10"
-                        >
-                          <option value="">Select statuses</option>
-                          <option value="Active">Active</option>
-                          <option value="Inactive">Inactive</option>
-                          <option value="Pending">Pending</option>
+                          <option value="">All models</option>
+                          {compModelOptions.map((model) => (
+                            <option key={model} value={model}>{model}</option>
+                          ))}
                         </select>
                       </div>
                     </div>
@@ -1167,19 +1143,19 @@ export default function ProvidersPage() {
 
               {/* Table */}
               <div className="flex flex-col bg-white shadow-lg rounded-lg flex-1 min-h-0 border border-gray-200">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">
-                      <tr>
-                        <DndContext
-                          sensors={sensors}
-                          collisionDetection={closestCenter}
-                          onDragEnd={handleDragEnd}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">
+                        <SortableContext
+                          items={columns.map(col => col.id)}
+                          strategy={horizontalListSortingStrategy}
                         >
-                          <SortableContext
-                            items={columns.map(col => col.id)}
-                            strategy={horizontalListSortingStrategy}
-                          >
+                          <tr>
                             {columns.map((column) => (
                               <SortableHeader
                                 key={column.id}
@@ -1189,76 +1165,71 @@ export default function ProvidersPage() {
                                 paginatedProviders={paginatedProviders}
                               />
                             ))}
-                          </SortableContext>
-                        </DndContext>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {paginatedProviders.map((provider) => (
-                        <tr
-                          key={provider.id}
-                          className="hover:bg-gray-50 cursor-pointer"
-                          onClick={() => router.push(`/provider/${provider.employeeId}`)}
-                        >
-                          {columns.map((column) => (
-                            <td
-                              key={column.id}
-                              className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
-                              onClick={(e) => {
-                                if (column.id === 'status') {
-                                  e.stopPropagation();
-                                }
-                              }}
-                            >
-                              {typeof column.key === 'function'
-                                ? column.key(provider)
-                                : provider[column.key]}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                          </tr>
+                        </SortableContext>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {paginatedProviders.map((provider) => (
+                          <tr
+                            key={provider.id}
+                            className="hover:bg-gray-50 cursor-pointer"
+                            onClick={() => router.push(`/provider/${provider.employeeId}`)}
+                          >
+                            {columns.map((column) => (
+                              <td
+                                key={column.id}
+                                className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                              >
+                                {typeof column.key === 'function'
+                                  ? column.key(provider)
+                                  : provider[column.key]}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </DndContext>
+              </div>
 
-                {/* Fixed Pagination */}
-                <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
-                  <div className="flex items-center">
-                    <p className="text-sm text-gray-700">
-                      Showing {((currentPage - 1) * rowsPerPage) + 1} to {Math.min(currentPage * rowsPerPage, filteredProviders.length)} of{' '}
-                      <span className="font-medium">{filteredProviders.length}</span> results
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2">
+              {/* Fixed Pagination */}
+              <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
+                <div className="flex items-center">
+                  <p className="text-sm text-gray-700">
+                    Showing {((currentPage - 1) * rowsPerPage) + 1} to {Math.min(currentPage * rowsPerPage, filteredProviders.length)} of{' '}
+                    <span className="font-medium">{filteredProviders.length}</span> results
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-2 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeftIcon className="w-5 h-5" />
+                  </button>
+                  {getPageNumbers().map((pageNumber, index) => (
                     <button
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                      className="relative inline-flex items-center px-2 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      key={index}
+                      onClick={() => typeof pageNumber === 'number' ? handlePageChange(pageNumber) : null}
+                      disabled={pageNumber === '...'}
+                      className={`relative inline-flex items-center px-4 py-2 text-sm font-medium ${
+                        pageNumber === currentPage
+                          ? 'z-10 bg-indigo-600 text-white'
+                          : 'text-gray-700 bg-white hover:bg-gray-50'
+                      } border border-gray-300 ${pageNumber === '...' ? 'cursor-default' : ''}`}
                     >
-                      <ChevronLeftIcon className="w-5 h-5" />
+                      {pageNumber}
                     </button>
-                    {getPageNumbers().map((pageNumber, index) => (
-                      <button
-                        key={index}
-                        onClick={() => typeof pageNumber === 'number' ? handlePageChange(pageNumber) : null}
-                        disabled={pageNumber === '...'}
-                        className={`relative inline-flex items-center px-4 py-2 text-sm font-medium ${
-                          pageNumber === currentPage
-                            ? 'z-10 bg-indigo-600 text-white'
-                            : 'text-gray-700 bg-white hover:bg-gray-50'
-                        } border border-gray-300 ${pageNumber === '...' ? 'cursor-default' : ''}`}
-                      >
-                        {pageNumber}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                      className="relative inline-flex items-center px-2 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <ChevronRightIcon className="w-5 h-5" />
-                    </button>
-                  </div>
+                  ))}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="relative inline-flex items-center px-2 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRightIcon className="w-5 h-5" />
+                  </button>
                 </div>
               </div>
 
