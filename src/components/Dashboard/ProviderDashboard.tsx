@@ -731,9 +731,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         metric: 'Actual wRVUs', 
         ...baseMonthlyData, 
         ytd: calculateYTD(baseMonthlyData, []), 
-        section: 'generation',
-        percentile: wrvuPercentile,
-        nearestBenchmark: wrvuBenchmark
+        section: 'generation'
       },
       ...adjustments.map(adj => ({
         metric: adj.name,
