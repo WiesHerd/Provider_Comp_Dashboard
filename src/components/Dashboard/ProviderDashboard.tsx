@@ -344,9 +344,12 @@ function CompensationChangeModal({
     e.preventDefault();
     onSave({
       effectiveDate,
+      previousSalary: currentSalary,
       newSalary,
+      previousFTE: currentFTE,
       newFTE,
-      conversionFactor,
+      previousConversionFactor: conversionFactor,
+      newConversionFactor: conversionFactor,
       reason: changeReason,
     });
     // Reset form
@@ -529,6 +532,19 @@ function CompensationChangeModal({
   );
 }
 
+// Add a NoDataMessage component at the top of the file
+const NoDataMessage = ({ message }: { message: string }) => (
+  <div className="flex flex-col items-center justify-center p-8 bg-gray-50 rounded-lg border border-gray-200">
+    <div className="text-gray-400 mb-2">
+      <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+      </svg>
+    </div>
+    <h3 className="text-lg font-medium text-gray-900 mb-1">No Data Available</h3>
+    <p className="text-gray-500 text-center">{message}</p>
+  </div>
+);
+
 export default function ProviderDashboard({ provider }: ProviderDashboardProps) {
   const router = useRouter();
   const [providers, setProviders] = useState<any[]>([]);
@@ -576,11 +592,6 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   const [effectiveDate, setEffectiveDate] = useState('');
   const [changeReason, setChangeReason] = useState('');
 
-  const [isGaugesVisible, setIsGaugesVisible] = useState(true);
-  const [isWRVUChartVisible, setIsWRVUChartVisible] = useState(true);
-  const [isMetricsTableVisible, setIsMetricsTableVisible] = useState(true);
-  const [isCompTableVisible, setIsCompTableVisible] = useState(true);
-
   const [holdbackPercentage, setHoldbackPercentage] = useState(5);
   const [marketData, setMarketData] = useState<any[]>([]);
 
@@ -590,6 +601,11 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   // Add new state variables near the top with other states
   const [isMetricsSectionCollapsed, setIsMetricsSectionCollapsed] = useState(false);
   const [isCompensationSectionCollapsed, setIsCompensationSectionCollapsed] = useState(false);
+
+  const { toast } = useToast();  // Add this line near the top of the component
+
+  // Add state for selected providers
+  const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
 
   const handleProviderSelect = (employeeId: string) => {
     setIsProviderSelectorOpen(false);
@@ -685,10 +701,85 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     fetchWRVUData();
   }, [provider.employeeId]);
 
-  // Get conversion factor from market data
+  // Update the calculateTotalCompPercentile function to handle missing market data
+  const calculateTotalCompPercentile = (totalComp: number, marketData: MarketData[]): { percentile: number } => {
+    if (!marketData || marketData.length === 0) return { percentile: 0 };
+    
+    const matchingMarket = marketData.find(data => data.specialty === provider.specialty);
+    if (!matchingMarket) return { percentile: 0 };
+
+    // Simple percentile calculation based on market data
+    return { percentile: Math.min(100, (totalComp / matchingMarket.p50_cf) * 50) };
+  };
+
+  // Update the getConversionFactor function to handle missing market data
   const getConversionFactor = () => {
+    if (!marketData || marketData.length === 0) return 0;
     const matchingMarketData = marketData.find(data => data.specialty === provider.specialty);
     return matchingMarketData ? matchingMarketData.p50_cf : 0;
+  };
+
+  // Update the calculateWRVUPercentile function to handle missing market data
+  const calculateWRVUPercentile = (actualWRVUs: number, monthsCompleted: number, fte: number, marketData: MarketData[]): { percentile: number, nearestBenchmark: string } => {
+    if (!marketData || marketData.length === 0) {
+      return { percentile: 0, nearestBenchmark: 'No market data' };
+    }
+
+    const matchingMarket = marketData.find(data => data.specialty === provider.specialty);
+    if (!matchingMarket) {
+      return { percentile: 0, nearestBenchmark: 'No specialty data' };
+    }
+
+    // Annualize wRVUs
+    const annualizedWRVUs = monthsCompleted > 0 
+      ? (actualWRVUs / monthsCompleted) * 12 
+      : 0;
+
+    // Adjust for FTE
+    const fteAdjustedWRVUs = fte < 1.0 
+      ? annualizedWRVUs / fte 
+      : annualizedWRVUs;
+
+    const benchmarks = [
+      { percentile: 25, value: matchingMarket.p25_wrvu || 0 },
+      { percentile: 50, value: matchingMarket.p50_wrvu || 0 },
+      { percentile: 75, value: matchingMarket.p75_wrvu || 0 },
+      { percentile: 90, value: matchingMarket.p90_wrvu || 0 }
+    ];
+
+    // If below 25th percentile
+    if (fteAdjustedWRVUs < benchmarks[0].value) {
+      const percentile = benchmarks[0].value > 0 ? (fteAdjustedWRVUs / benchmarks[0].value) * 25 : 0;
+      return { percentile, nearestBenchmark: '< 25th' };
+    }
+
+    // If above 90th percentile
+    if (fteAdjustedWRVUs > benchmarks[3].value) {
+      const percentile = benchmarks[3].value > 0 
+        ? 90 + ((fteAdjustedWRVUs - benchmarks[3].value) / benchmarks[3].value) * 10 
+        : 90;
+      return { percentile: Math.min(100, percentile), nearestBenchmark: '> 90th' };
+    }
+
+    // Find which benchmarks we're between
+    for (let i = 0; i < benchmarks.length - 1; i++) {
+      const lower = benchmarks[i];
+      const upper = benchmarks[i + 1];
+      if (fteAdjustedWRVUs >= lower.value && fteAdjustedWRVUs <= upper.value) {
+        const range = upper.value - lower.value;
+        const position = fteAdjustedWRVUs - lower.value;
+        const percentileRange = upper.percentile - lower.percentile;
+        const percentile = range > 0 
+          ? lower.percentile + (position / range) * percentileRange 
+          : lower.percentile;
+        return { 
+          percentile,
+          nearestBenchmark: `${lower.percentile}th-${upper.percentile}th`
+        };
+      }
+    }
+
+    return { percentile: 0, nearestBenchmark: 'Unknown' };
   };
 
   const { monthlySalaries, monthlyDetails } = useMemo(
@@ -719,80 +810,28 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
 
   const ytdWRVUs = totalWRVUs.ytd;
 
-  const calculateWRVUPercentile = (actualWRVUs: number, monthsCompleted: number, fte: number, marketData: MarketData[]): { percentile: number, nearestBenchmark: string } => {
-    const matchingMarket = marketData.find(data => data.specialty === provider.specialty);
-    if (!matchingMarket) return { percentile: 0, nearestBenchmark: 'Unknown' };
-
-    // Annualize wRVUs
-    const annualizedWRVUs = monthsCompleted > 0 
-      ? (actualWRVUs / monthsCompleted) * 12 
-      : 0;
-
-    // Adjust for FTE
-    const fteAdjustedWRVUs = fte < 1.0 
-      ? annualizedWRVUs / fte 
-      : annualizedWRVUs;
-
-    const benchmarks = [
-      { percentile: 25, value: matchingMarket.p25_wrvu },
-      { percentile: 50, value: matchingMarket.p50_wrvu },
-      { percentile: 75, value: matchingMarket.p75_wrvu },
-      { percentile: 90, value: matchingMarket.p90_wrvu }
-    ];
-
-    // If below 25th percentile
-    if (fteAdjustedWRVUs < benchmarks[0].value) {
-      const percentile = (fteAdjustedWRVUs / benchmarks[0].value) * 25;
-      return { percentile, nearestBenchmark: '< 25th' };
-    }
-
-    // If above 90th percentile
-    if (fteAdjustedWRVUs > benchmarks[3].value) {
-      const percentile = 90 + ((fteAdjustedWRVUs - benchmarks[3].value) / benchmarks[3].value) * 10;
-      return { percentile: Math.min(100, percentile), nearestBenchmark: '> 90th' };
-    }
-
-    // Find which benchmarks we're between
-    for (let i = 0; i < benchmarks.length - 1; i++) {
-      const lower = benchmarks[i];
-      const upper = benchmarks[i + 1];
-      if (fteAdjustedWRVUs >= lower.value && fteAdjustedWRVUs <= upper.value) {
-        const range = upper.value - lower.value;
-        const position = fteAdjustedWRVUs - lower.value;
-        const percentileRange = upper.percentile - lower.percentile;
-        const percentile = lower.percentile + (position / range) * percentileRange;
-        return { 
-          percentile,
-          nearestBenchmark: `${lower.percentile}th-${upper.percentile}th`
-        };
-      }
-    }
-
-    return { percentile: 0, nearestBenchmark: 'Unknown' };
-  };
-
   const getRowData = useCallback(() => {
-    const wrvuYTD = calculateYTD(baseMonthlyData, adjustments);
-    const targetYTD = calculateYTD(targetMonthlyData, targetAdjustments);
+    const wrvuYTD = calculateYTD(baseMonthlyData || {}, adjustments || []);
+    const targetYTD = calculateYTD(targetMonthlyData || {}, targetAdjustments || []);
     const varianceYTD = wrvuYTD - targetYTD;
 
     // Calculate months with data for annualization
     const monthsWithData = months.reduce((count, m) => 
-      (baseMonthlyData[m.toLowerCase()] > 0 ? count + 1 : count), 0);
+      ((baseMonthlyData || {})[m.toLowerCase()] > 0 ? count + 1 : count), 0);
 
     // Calculate wRVU percentile
     const { percentile: wrvuPercentile, nearestBenchmark: wrvuBenchmark } = 
-      calculateWRVUPercentile(wrvuYTD, monthsWithData, provider.fte, marketData);
+      calculateWRVUPercentile(wrvuYTD, monthsWithData, provider.fte, marketData || []);
 
     return [
       { metric: 'wRVU Generation', isHeader: true, section: 'generation' },
       { 
         metric: 'Actual wRVUs', 
-        ...baseMonthlyData, 
-        ytd: calculateYTD(baseMonthlyData, []), 
+        ...(baseMonthlyData || {}), 
+        ytd: calculateYTD(baseMonthlyData || {}, []), 
         section: 'generation'
       },
-      ...adjustments.map(adj => ({
+      ...(adjustments || []).map(adj => ({
         metric: adj.name,
         ...adj,
         type: 'wrvu',
@@ -803,8 +842,8 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       })),
       { metric: 'Total wRVUs', ...totalWRVUs, ytd: totalWRVUs.ytd, section: 'generation' },
       { metric: 'wRVU Target', isHeader: true, section: 'target' },
-      { metric: 'Target wRVUs', ...targetMonthlyData, ytd: calculateYTD(targetMonthlyData, []), section: 'target' },
-      ...targetAdjustments.map(adj => ({
+      { metric: 'Target wRVUs', ...targetMonthlyData, ytd: calculateYTD(targetMonthlyData || {}, []), section: 'target' },
+      ...(targetAdjustments || []).map(adj => ({
         metric: adj.name,
         ...adj,
         type: 'target',
@@ -813,7 +852,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         ytd: calculateYTD(adj, []),
         section: 'target'
       })),
-      { metric: 'Total Target', ...totalTargetsWithAdjustments, ytd: calculateYTD(targetMonthlyData, targetAdjustments), section: 'target' },
+      { metric: 'Total Target', ...totalTargetsWithAdjustments, ytd: calculateYTD(targetMonthlyData || {}, targetAdjustments || []), section: 'target' },
       { metric: 'Variance', ...monthlyVariances, ytd: varianceYTD }
     ];
   }, [adjustments, targetAdjustments, totalWRVUs, totalTargetsWithAdjustments, monthlyVariances, targetMonthlyData, provider.fte, marketData]);
@@ -909,7 +948,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     const ytdTotal = baseSalaryYTD + incentivesYTD + holdbackYTD + additionalPaysYTD;
 
     // Calculate the percentile for YTD total compensation
-    const { percentile, nearestBenchmark } = calculateTotalCompPercentile(ytdTotal, marketData);
+    const { percentile } = calculateTotalCompPercentile(ytdTotal, marketData);
 
     return [
       ...baseData,
@@ -918,8 +957,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         isSystem: true,
         ...totals,
         ytd: ytdTotal,
-        percentile,
-        nearestBenchmark
+        percentile
       },
     ];
   };
@@ -938,6 +976,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
           description: data.description || editingWRVUAdjustment?.description || '',
           year: new Date().getFullYear(),
           providerId: provider.id,
+          newConversionFactor: data.newConversionFactor,
           monthlyValues: {
             jan: Number(data.jan || 0),
             feb: Number(data.feb || 0),
@@ -1175,6 +1214,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         body: JSON.stringify({
           ...data,
           providerId: provider.id,
+          newConversionFactor: data.newConversionFactor, // Explicitly use newConversionFactor
         }),
       });
 
@@ -1462,60 +1502,42 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     }
   ];
 
-  const handleExportPDF=async()=>{
-    const pdf=new jsPDF({orientation:'landscape',unit:'pt',format:'a4'});
-    
-    setIsGaugesVisible(true);
-    setIsWRVUChartVisible(true);
-    setIsMetricsTableVisible(true);
-    setIsCompTableVisible(true);
-    
-    await new Promise(resolve=>setTimeout(resolve,100));
-
-    try{
-      const headerSection=document.querySelector('.dashboard-header');
-      const summaryCards=document.querySelector('.summary-cards');
-      const performanceMetrics=document.querySelector('.performance-metrics');
-
-      const addSection=async(pdf:jsPDF,element:HTMLElement|null,x:number,y:number,scale:number)=>{
-        if(!element)return y;
-        const canvas=await html2canvas(element,{
-          scale:2,logging:false,useCORS:true,allowTaint:true,backgroundColor:'#ffffff'
-        });
-        const imgData=canvas.toDataURL('image/png');
-        const imgWidth=canvas.width*scale;
-        const imgHeight=canvas.height*scale;
-        pdf.addImage(imgData,'PNG',x,y,imgWidth,imgHeight);
-        return y+imgHeight;
-      };
-
-      pdf.setFontSize(24);
-      pdf.setTextColor(0,0,0);
-      let currentY=40;
-      currentY=await addSection(pdf,headerSection as HTMLElement,40,currentY,0.8)||currentY;
-      currentY=await addSection(pdf,summaryCards as HTMLElement,40,currentY+40,0.8)||currentY;
-      currentY=await addSection(pdf,performanceMetrics as HTMLElement,40,currentY+40,0.8)||currentY;
-
-      pdf.addPage();
-      const wrvuChart=document.getElementById('wrvu-chart-section');
-      await addSection(pdf,wrvuChart as HTMLElement,40,40,0.8);
-
-      pdf.addPage();
-      const metricsTable=document.getElementById('metrics-table');
-      await addSection(pdf,metricsTable as HTMLElement,40,40,0.75);
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/wrvu-data');
+      if (!response.ok) {
+        throw new Error('Failed to fetch wRVU data');
+      }
+      const data = await response.json();
+      const providerData = data.find((d: any) => d.employee_id === provider.employeeId);
       
-      const compensationTable=document.getElementById('compensation-table');
-      await addSection(pdf,compensationTable as HTMLElement,40,400,0.75);
-
-      pdf.save(`${provider.firstName}_${provider.lastName}_Dashboard.pdf`);
-
-    }catch(error){
-      console.error('Error generating PDF:',error);
-    }finally{
-      setIsGaugesVisible(false);
-      setIsWRVUChartVisible(false);
-      setIsMetricsTableVisible(false);
-      setIsCompTableVisible(false);
+      if (providerData) {
+        const monthlyData = {
+          jan: providerData.jan || 0,
+          feb: providerData.feb || 0,
+          mar: providerData.mar || 0,
+          apr: providerData.apr || 0,
+          may: providerData.may || 0,
+          jun: providerData.jun || 0,
+          jul: providerData.jul || 0,
+          aug: providerData.aug || 0,
+          sep: providerData.sep || 0,
+          oct: providerData.oct || 0,
+          nov: providerData.nov || 0,
+          dec: providerData.dec || 0
+        };
+        setBaseMonthlyData(monthlyData);
+      }
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to refresh data. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -1555,48 +1577,6 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     if (progress >= 70) return { class: 'bg-green-400/10 text-green-400', text: 'On Track' };
     if (progress >= 40) return { class: 'bg-amber-400/10 text-amber-400', text: 'Needs Attention' };
     return { class: 'bg-red-400/10 text-red-400', text: 'Below Target' };
-  };
-
-  const calculateTotalCompPercentile = (totalComp: number, marketData: MarketData[]): { percentile: number, nearestBenchmark: string } => {
-    const matchingMarket = marketData.find(data => data.specialty === provider.specialty);
-    if (!matchingMarket) return { percentile: 0, nearestBenchmark: 'Unknown' };
-
-    const benchmarks = [
-      { percentile: 25, value: matchingMarket.p25_total },
-      { percentile: 50, value: matchingMarket.p50_total },
-      { percentile: 75, value: matchingMarket.p75_total },
-      { percentile: 90, value: matchingMarket.p90_total }
-    ];
-
-    // If below 25th percentile
-    if (totalComp < benchmarks[0].value) {
-      const percentile = (totalComp / benchmarks[0].value) * 25;
-      return { percentile, nearestBenchmark: '< 25th' };
-    }
-
-    // If above 90th percentile
-    if (totalComp > benchmarks[3].value) {
-      const percentile = 90 + ((totalComp - benchmarks[3].value) / benchmarks[3].value) * 10;
-      return { percentile: Math.min(100, percentile), nearestBenchmark: '> 90th' };
-    }
-
-    // Find which benchmarks we're between
-    for (let i = 0; i < benchmarks.length - 1; i++) {
-      const lower = benchmarks[i];
-      const upper = benchmarks[i + 1];
-      if (totalComp >= lower.value && totalComp <= upper.value) {
-        const range = upper.value - lower.value;
-        const position = totalComp - lower.value;
-        const percentileRange = upper.percentile - lower.percentile;
-        const percentile = lower.percentile + (position / range) * percentileRange;
-        return { 
-          percentile,
-          nearestBenchmark: `${lower.percentile}th-${upper.percentile}th`
-        };
-      }
-    }
-
-    return { percentile: 0, nearestBenchmark: 'Unknown' };
   };
 
   useEffect(() => {
@@ -1648,6 +1628,64 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
 
     fetchAdjustments();
   }, [provider.id]);
+
+  // Add the action buttons section above the table
+  <div className="flex items-center justify-between mb-4">
+    <div className="flex gap-2">
+      {selectedProviders.length > 0 && (
+        <>
+          <button
+            onClick={() => router.push(`/provider/${selectedProviders[0]}`)}
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Dashboard
+          </button>
+          <button
+            onClick={() => handleEditProvider(selectedProviders[0])}
+            className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => handleDeleteProvider(selectedProviders[0])}
+            className="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 text-sm font-medium rounded-full hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          >
+            Delete
+          </button>
+        </>
+      )}
+    </div>
+    <div className="flex gap-2">
+      <button
+        onClick={() => handleExportToExcel()}
+        className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-full hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+      >
+        Export to Excel
+      </button>
+      <button
+        onClick={() => setIsAddProviderModalOpen(true)}
+        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      >
+        Add Provider
+      </button>
+    </div>
+  </div>
+
+  // Add the handler functions
+  const handleEditProvider = (providerId: string) => {
+    // Implement edit functionality
+    console.log('Edit provider:', providerId);
+  };
+
+  const handleDeleteProvider = (providerId: string) => {
+    // Implement delete functionality
+    console.log('Delete provider:', providerId);
+  };
+
+  const handleExportToExcel = () => {
+    // Implement export functionality
+    console.log('Export to Excel');
+  };
 
   return (
     <>
@@ -1849,265 +1887,272 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         <div className="transition-all duration-300 ease-in-out">
           {activeView === 'compensation' && (
             <div className="space-y-6">
-              <div id="metrics-table" className="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-lg font-medium text-gray-900">Metrics & Adjustments</h2>
-                    <button
-                      onClick={() => setIsMetricsSectionCollapsed(!isMetricsSectionCollapsed)}
-                      className="p-1 hover:bg-gray-100 rounded-md transition-colors"
-                    >
-                      <ChevronDownIcon 
-                        className={`h-5 w-5 text-gray-500 transition-transform duration-200 ${
-                          isMetricsSectionCollapsed ? '-rotate-90' : ''
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-                <div className={`transition-all duration-200 ease-in-out ${
-                  isMetricsSectionCollapsed ? 'hidden' : 'block'
-                }`}>
-                  <div className="p-6">
-                    <div className="flex justify-between items-center mb-6">
-                      <div className="flex gap-3">
-                        <button 
-                          onClick={() => handleOpenAdjustmentModal('wrvu')} 
-                          className="inline-flex items-center px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
+              {!baseMonthlyData || Object.values(baseMonthlyData).every(v => v === 0) ? (
+                <NoDataMessage message="No wRVU data is currently available. Please upload wRVU data to see metrics." />
+              ) : (
+                <>
+                  <div id="metrics-table" className="bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div className="px-6 py-4 border-b border-gray-200">
+                      <div className="flex justify-between items-center">
+                        <h2 className="text-lg font-medium text-gray-900">Metrics & Adjustments</h2>
+                        <button
+                          onClick={() => setIsMetricsSectionCollapsed(!isMetricsSectionCollapsed)}
+                          className="p-1 hover:bg-gray-100 rounded-md transition-colors"
                         >
-                          <PlusIcon className="h-4 w-4 mr-2" />
-                          Add wRVU Adjustment
-                        </button>
-                        <button 
-                          onClick={() => handleOpenAdjustmentModal('target')} 
-                          className="inline-flex items-center px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
-                        >
-                          <PlusIcon className="h-4 w-4 mr-2" />
-                          Add Target Adjustment
+                          <ChevronDownIcon 
+                            className={`h-5 w-5 text-gray-500 transition-transform duration-200 ${
+                              isMetricsSectionCollapsed ? '-rotate-90' : ''
+                            }`}
+                          />
                         </button>
                       </div>
-                      <div className="bg-white rounded-md p-3 flex items-center gap-2 border border-gray-200 hover:border-blue-300 transition-all duration-200 shadow-sm">
-                        <div className="bg-blue-50 rounded-md p-1.5">
-                          <ChartBarIcon className="h-4 w-4 text-blue-600" />
-                        </div>
-                        <div>
-                          <div className="text-[11px] font-medium text-gray-500">wRVU Percentile</div>
-                          <div className="text-base font-semibold text-gray-900 leading-tight">
-                            {calculateWRVUPercentile(ytdWRVUs, months.length, provider.fte, marketData).percentile.toFixed(1)}
-                            <span className="text-xs font-normal text-gray-500 ml-0.5">%</span>
+                    </div>
+                    <div className={`transition-all duration-200 ease-in-out ${
+                      isMetricsSectionCollapsed ? 'hidden' : 'block'
+                    }`}>
+                      <div className="p-6">
+                        <div className="flex justify-between items-center mb-6">
+                          <div className="flex gap-3">
+                            <button 
+                              onClick={() => handleOpenAdjustmentModal('wrvu')} 
+                              className="inline-flex items-center px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
+                            >
+                              <PlusIcon className="h-4 w-4 mr-2" />
+                              Add wRVU Adjustment
+                            </button>
+                            <button 
+                              onClick={() => handleOpenAdjustmentModal('target')} 
+                              className="inline-flex items-center px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
+                            >
+                              <PlusIcon className="h-4 w-4 mr-2" />
+                              Add Target Adjustment
+                            </button>
                           </div>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="ag-theme-alpine w-full">
-                      <AgGridReact
-                        domLayout="autoHeight"
-                        rowHeight={40}
-                        headerHeight={40}
-                        defaultColDef={{
-                          resizable: true,
-                          sortable: false,
-                          suppressMenu: true,
-                          flex: 1,
-                          minWidth: 82
-                        }}
-                        columnDefs={metricsColumnDefs}
-                        rowData={getRowData()}
-                        onGridReady={onMetricsGridReady}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div id="compensation-table" className="bg-white rounded-lg shadow-sm border border-gray-200">
-                <div className="px-6 py-4 border-b border-gray-200">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-lg font-medium text-gray-900">Compensation Details</h2>
-                    <button
-                      onClick={() => setIsCompensationSectionCollapsed(!isCompensationSectionCollapsed)}
-                      className="p-1 hover:bg-gray-100 rounded-md transition-colors"
-                    >
-                      <ChevronDownIcon 
-                        className={`h-5 w-5 text-gray-500 transition-transform duration-200 ${
-                          isCompensationSectionCollapsed ? '-rotate-90' : ''
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-                <div className={`transition-all duration-200 ease-in-out ${
-                  isCompensationSectionCollapsed ? 'hidden' : 'block'
-                }`}>
-                  <div className="p-6">
-                    <div className="flex justify-between items-center mb-6">
-                      <button 
-                        onClick={() => handleOpenAdjustmentModal('additionalPay')} 
-                        className="inline-flex items-center px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
-                      >
-                        <PlusIcon className="h-4 w-4 mr-2" />
-                        Add Additional Pay
-                      </button>
-                      {(() => {
-                        const ytdTotal = getCompensationData().find(row => row.component === 'Total Comp.')?.ytd || 0;
-                        const { percentile } = calculateTotalCompPercentile(ytdTotal, marketData);
-                        return (
-                          <div className="flex items-center gap-4">
-                            <div className="bg-white rounded-md p-3 flex items-center gap-2 border border-gray-200 hover:border-blue-300 transition-all duration-200 shadow-sm">
-                              <div className="bg-blue-50 rounded-md p-1.5">
-                                <ChartBarIcon className="h-4 w-4 text-blue-600" />
-                              </div>
-                              <div>
-                                <div className="text-[11px] font-medium text-gray-500">Total Comp. Percentile</div>
-                                <div className="text-base font-semibold text-gray-900 leading-tight">
-                                  {percentile.toFixed(1)}
-                                  <span className="text-xs font-normal text-gray-500 ml-0.5">%</span>
-                                </div>
+                          <div className="bg-white rounded-md p-3 flex items-center gap-2 border border-gray-200 hover:border-blue-300 transition-all duration-200 shadow-sm">
+                            <div className="bg-blue-50 rounded-md p-1.5">
+                              <ChartBarIcon className="h-4 w-4 text-blue-600" />
+                            </div>
+                            <div>
+                              <div className="text-[11px] font-medium text-gray-500">wRVU Percentile</div>
+                              <div className="text-base font-semibold text-gray-900 leading-tight">
+                                {calculateWRVUPercentile(ytdWRVUs, months.length, provider.fte, marketData).percentile.toFixed(1)}
+                                <span className="text-xs font-normal text-gray-500 ml-0.5">%</span>
                               </div>
                             </div>
                           </div>
-                        );
-                      })()}
-                    </div>
-                    <div className="ag-theme-alpine w-full">
-                      <AgGridReact
-                        context={{ monthlyDetails }}
-                        domLayout="autoHeight"
-                        rowHeight={40}
-                        headerHeight={40}
-                        defaultColDef={{
-                          resizable: true,
-                          sortable: false,
-                          suppressMenu: true,
-                          flex: 1,
-                          minWidth: 82
-                        }}
-                        columnDefs={compensationColumnDefs}
-                        rowData={getCompensationData()}
-                        onGridReady={onCompensationGridReady}
-                      />
+                        </div>
+                        <div className="ag-theme-alpine w-full">
+                          <AgGridReact
+                            domLayout="autoHeight"
+                            rowHeight={40}
+                            headerHeight={40}
+                            defaultColDef={{
+                              resizable: true,
+                              sortable: false,
+                              suppressMenu: true,
+                              flex: 1,
+                              minWidth: 82
+                            }}
+                            columnDefs={metricsColumnDefs}
+                            rowData={getRowData()}
+                            onGridReady={onMetricsGridReady}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+
+                  <div id="compensation-table" className="bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div className="px-6 py-4 border-b border-gray-200">
+                      <div className="flex justify-between items-center">
+                        <h2 className="text-lg font-medium text-gray-900">Compensation Details</h2>
+                        <button
+                          onClick={() => setIsCompensationSectionCollapsed(!isCompensationSectionCollapsed)}
+                          className="p-1 hover:bg-gray-100 rounded-md transition-colors"
+                        >
+                          <ChevronDownIcon 
+                            className={`h-5 w-5 text-gray-500 transition-transform duration-200 ${
+                              isCompensationSectionCollapsed ? '-rotate-90' : ''
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                    <div className={`transition-all duration-200 ease-in-out ${
+                      isCompensationSectionCollapsed ? 'hidden' : 'block'
+                    }`}>
+                      <div className="p-6">
+                        <div className="flex justify-between items-center mb-6">
+                          <button 
+                            onClick={() => handleOpenAdjustmentModal('additionalPay')} 
+                            className="inline-flex items-center px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
+                          >
+                            <PlusIcon className="h-4 w-4 mr-2" />
+                            Add Additional Pay
+                          </button>
+                          {(() => {
+                            const ytdTotal = getCompensationData().find(row => row.component === 'Total Comp.')?.ytd || 0;
+                            const { percentile } = calculateTotalCompPercentile(ytdTotal, marketData);
+                            return (
+                              <div className="flex items-center gap-4">
+                                <div className="bg-white rounded-md p-3 flex items-center gap-2 border border-gray-200 hover:border-blue-300 transition-all duration-200 shadow-sm">
+                                  <div className="bg-blue-50 rounded-md p-1.5">
+                                    <ChartBarIcon className="h-4 w-4 text-blue-600" />
+                                  </div>
+                                  <div>
+                                    <div className="text-[11px] font-medium text-gray-500">Total Comp. Percentile</div>
+                                    <div className="text-base font-semibold text-gray-900 leading-tight">
+                                      {percentile.toFixed(1)}
+                                      <span className="text-xs font-normal text-gray-500 ml-0.5">%</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                        <div className="ag-theme-alpine w-full">
+                          <AgGridReact
+                            context={{ monthlyDetails }}
+                            domLayout="autoHeight"
+                            rowHeight={40}
+                            headerHeight={40}
+                            defaultColDef={{
+                              resizable: true,
+                              sortable: false,
+                              suppressMenu: true,
+                              flex: 1,
+                              minWidth: 82
+                            }}
+                            columnDefs={compensationColumnDefs}
+                            rowData={getCompensationData()}
+                            onGridReady={onCompensationGridReady}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
 
           {activeView === 'analytics' && (
             <div className="space-y-6">
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                  <div className="flex items-center gap-3">
-                    <h2 className="text-lg font-semibold text-gray-900 mb-2">
-                      Performance Metrics
-                    </h2>
-                    <div className="flex items-center gap-2 px-3 py-1 bg-gray-900 rounded-full text-sm">
-                      <span className="text-gray-400">Current:</span>
-                      <span className="font-medium text-white">{currentProgress.toFixed(1)}%</span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusIndicator(currentProgress).class}`}>
-                        {getStatusIndicator(currentProgress).text}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button className="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-50 transition-colors">
-                      <ArrowPathIcon className="h-5 w-5" />
-                    </button>
-                    <button className="text-gray-500 hover:text-gray-700 p-2 rounded-lg hover:bg-gray-50 transition-colors">
-                      <ArrowDownTrayIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-                      <WRVUGauge
-                        title="Plan Year Progress"
-                        value={calculatePlanYearProgress(getRowData()).percentage}
-                        subtitle={`${calculatePlanYearProgress(getRowData()).completed} of ${calculatePlanYearProgress(getRowData()).total} months`}
-                        size="large"
-                        showTrend={true}
-                      />
-                      <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-500">Last updated:</span>
-                          <span className="text-sm font-medium text-gray-900">{new Date().toLocaleDateString()}</span>
-                        </div>
+              {!marketData || marketData.length === 0 ? (
+                <NoDataMessage message="No market data is currently available. Please upload market data to see analytics." />
+              ) : (
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-200">
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                        Performance Metrics
+                      </h2>
+                      <div className="flex items-center gap-2 px-3 py-1 bg-gray-900 rounded-full text-sm">
+                        <span className="text-gray-400">Current:</span>
+                        <span className="font-medium text-white">{currentProgress.toFixed(1)}%</span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusIndicator(currentProgress).class}`}>
+                          {getStatusIndicator(currentProgress).text}
+                        </span>
                       </div>
                     </div>
+                  </div>
 
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-                      <WRVUGauge
-                        title="Target Progress"
-                        value={calculateYTDTargetProgress(getRowData()).percentage}
-                        subtitle={`${formatNumber(calculateYTDTargetProgress(getRowData()).actual)} of ${formatNumber(calculateYTDTargetProgress(getRowData()).target)}`}
-                        size="large"
-                        showTrend={true}
-                      />
-                      <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-500">YTD Progress</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-gray-900">
-                              {calculateYTDTargetProgress(getRowData()).percentage.toFixed(1)}%
-                            </span>
-                            <span className="text-xs text-emerald-500">↑</span>
+                  <div className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                        <WRVUGauge
+                          title="Plan Year Progress"
+                          value={calculatePlanYearProgress(getRowData()).percentage}
+                          subtitle={`${calculatePlanYearProgress(getRowData()).completed} of ${calculatePlanYearProgress(getRowData()).total} months`}
+                          size="large"
+                          showTrend={true}
+                        />
+                        <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-500">Last updated:</span>
+                            <span className="text-sm font-medium text-gray-900">{new Date().toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                        <WRVUGauge
+                          title="Target Progress"
+                          value={calculateYTDTargetProgress(getRowData()).percentage}
+                          subtitle={`${formatNumber(calculateYTDTargetProgress(getRowData()).actual)} of ${formatNumber(calculateYTDTargetProgress(getRowData()).target)}`}
+                          size="large"
+                          showTrend={true}
+                        />
+                        <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-500">YTD Progress</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-900">
+                                {calculateYTDTargetProgress(getRowData()).percentage.toFixed(1)}%
+                              </span>
+                              <span className="text-xs text-emerald-500">↑</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+                        <WRVUGauge
+                          title="Incentive % of Base"
+                          value={(totalIncentives / provider.baseSalary) * 100}
+                          subtitle={`${formatCurrency(totalIncentives)} of ${formatCurrency(provider.baseSalary)}`}
+                          size="large"
+                          showTrend={true}
+                        />
+                        <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-500">YTD Incentives</span>
+                            <span className="text-sm font-medium text-gray-900">{formatCurrency(totalIncentives)}</span>
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
-                      <WRVUGauge
-                        title="Incentive % of Base"
-                        value={(totalIncentives / provider.baseSalary) * 100}
-                        subtitle={`${formatCurrency(totalIncentives)} of ${formatCurrency(provider.baseSalary)}`}
-                        size="large"
-                        showTrend={true}
-                      />
-                      <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-500">YTD Incentives</span>
-                          <span className="text-sm font-medium text-gray-900">{formatCurrency(totalIncentives)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-8">
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-blue-100 rounded-lg">
-                          <InformationCircleIcon className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-semibold text-blue-900 mb-1">Performance Summary</h4>
-                          <p className="text-sm text-blue-700 leading-relaxed">
-                            Your YTD wRVU production is at {calculateYTDTargetProgress(getRowData()).percentage.toFixed(1)}% of target. 
-                            {calculateYTDTargetProgress(getRowData()).percentage >= 100 
-                              ? ' You are exceeding your target!' 
-                              : ' Keep pushing to reach your target.'}
-                          </p>
+                    <div className="mt-8">
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-blue-100 rounded-lg">
+                            <InformationCircleIcon className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-semibold text-blue-900 mb-1">Performance Summary</h4>
+                            <p className="text-sm text-blue-700 leading-relaxed">
+                              Your YTD wRVU production is at {calculateYTDTargetProgress(getRowData()).percentage.toFixed(1)}% of target. 
+                              {calculateYTDTargetProgress(getRowData()).percentage >= 100 
+                                ? ' You are exceeding your target!' 
+                                : ' Keep pushing to reach your target.'}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
 
+              {/* Add no-data state for wRVU chart */}
               <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden" id="wrvu-chart-section">
                 <div className="px-6 py-4 border-b border-gray-200">
                   <h2 className="text-lg font-medium text-gray-900">wRVU Performance</h2>
                 </div>
                 <div className="p-6">
-                  <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <WRVUChart
-                      actualWRVUs={getRowData().find(row=>row.metric==='Total wRVUs')?months.map(m=>getRowData().find(r=>r.metric==='Total wRVUs')?.[m.toLowerCase()]||0):[]}
-                      targetWRVUs={getRowData().find(row=>row.metric==='Total Target')?months.map(m=>getRowData().find(r=>r.metric==='Total Target')?.[m.toLowerCase()]||0):[]}
-                      months={months}
-                    />
-                  </div>
+                  {!baseMonthlyData || Object.values(baseMonthlyData).every(v => v === 0) ? (
+                    <NoDataMessage message="No wRVU data is currently available. Please upload wRVU data to see the performance chart." />
+                  ) : (
+                    <div className="bg-white rounded-lg border border-gray-200 p-6">
+                      <WRVUChart
+                        actualWRVUs={getRowData().find(row=>row.metric==='Total wRVUs')?months.map(m=>getRowData().find(r=>r.metric==='Total wRVUs')?.[m.toLowerCase()]||0):[]}
+                        targetWRVUs={getRowData().find(row=>row.metric==='Total Target')?months.map(m=>getRowData().find(r=>r.metric==='Total Target')?.[m.toLowerCase()]||0):[]}
+                        months={months}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -2212,3 +2257,24 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     </>
   );
 }
+
+// Add helper function for PDF generation
+const addSection = async (pdf: jsPDF, element: HTMLElement, x: number, y: number, scale: number) => {
+  try {
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      logging: false,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff'
+    });
+    const imgData = canvas.toDataURL('image/png');
+    const imgWidth = canvas.width * scale;
+    const imgHeight = canvas.height * scale;
+    pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+    return y + imgHeight;
+  } catch (error) {
+    console.error('Error adding section to PDF:', error);
+    return y;
+  }
+};

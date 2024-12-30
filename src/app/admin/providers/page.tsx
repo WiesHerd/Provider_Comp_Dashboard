@@ -229,112 +229,104 @@ export default function ProvidersPage() {
   const [showNonClinicalOnly, setShowNonClinicalOnly] = useState(false);
   const [columns, setColumns] = useState<Column[]>([
     { 
+      id: 'employeeId',
+      label: 'Employee ID',
+      key: 'employeeId',
+    },
+    { 
       id: 'name',
       label: 'Name',
-      key: (provider: Provider) => (
-        <div className="flex items-center">
-          <div>
-            <div className="font-medium text-gray-900">{`${provider.firstName} ${provider.lastName}`}</div>
-            <div className="text-gray-500">{provider.employeeId}</div>
-          </div>
-        </div>
-      ),
+      key: (provider: Provider) => `${provider.firstName} ${provider.lastName}`,
+    },
+    {
+      id: 'email',
+      label: 'Email',
+      key: 'email',
     },
     {
       id: 'specialty',
-      label: 'Specialty',
+      label: 'SPECIALTY',
       key: 'specialty',
     },
     {
       id: 'department',
-      label: 'Department',
+      label: 'DEPARTMENT',
       key: 'department',
     },
     {
       id: 'status',
-      label: 'Status',
+      label: 'STATUS',
       key: (provider: Provider) => (
-        <div className="flex items-center">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-              handleStatusChange(provider);
-          }}
-          className={`inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-medium ${
-            provider.status === 'Active'
-                ? 'bg-green-100 text-green-800'
-                : 'bg-red-100 text-red-800'
-          }`}
-        >
-          {provider.status === 'Active' ? (
-              <CheckCircleIcon className="mr-1 h-4 w-4 text-green-400" />
-          ) : (
-              <XCircleIcon className="mr-1 h-4 w-4 text-red-400" />
-          )}
-            {provider.status}
-        </button>
-      </div>
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+          provider.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+        }`}>
+          {provider.status}
+        </span>
       ),
     },
     {
       id: 'fte',
-      label: 'Total FTE',
+      label: 'TOTAL FTE',
       key: (provider: Provider) => (
-        <div className="text-right">{formatFTE(provider.fte)}</div>
-      )
+        <div className="text-right">{provider.fte.toFixed(2)}</div>
+      ),
     },
     {
       id: 'clinicalFte',
-      label: 'Clinical FTE',
+      label: 'CLINICAL FTE',
       key: (provider: Provider) => (
-        <div className="text-right">{formatFTE(provider.clinicalFte || 0)}</div>
-      )
+        <div className="text-right">{(provider.clinicalFte || 0).toFixed(2)}</div>
+      ),
     },
     {
       id: 'nonClinicalFte',
-      label: 'Non-Clinical FTE',
+      label: 'NON-CLINICAL FTE',
       key: (provider: Provider) => (
-        <div className="text-right">{formatFTE(provider.nonClinicalFte || 0)}</div>
-      )
+        <div className="text-right">{(provider.nonClinicalFte || 0).toFixed(2)}</div>
+      ),
     },
     {
       id: 'baseSalary',
-      label: 'Base Salary',
+      label: 'BASE SALARY',
       key: (provider: Provider) => (
-        <div className="text-right">{formatSalary(provider.baseSalary)}</div>
-      )
+        <div className="text-right">
+          ${provider.baseSalary.toLocaleString()}
+        </div>
+      ),
     },
     {
       id: 'clinicalSalary',
-      label: 'Clinical Salary',
+      label: 'CLINICAL SALARY',
       key: (provider: Provider) => (
-        <div className="text-right">{formatSalary(provider.clinicalSalary || 0)}</div>
-      )
+        <div className="text-right">
+          ${(provider.clinicalSalary || 0).toLocaleString()}
+        </div>
+      ),
     },
     {
       id: 'nonClinicalSalary',
-      label: 'Non-Clinical Salary',
+      label: 'NON-CLINICAL SALARY',
       key: (provider: Provider) => (
-        <div className="text-right">{formatSalary(provider.nonClinicalSalary || 0)}</div>
-      )
+        <div className="text-right">
+          ${(provider.nonClinicalSalary || 0).toLocaleString()}
+        </div>
+      ),
     },
     {
       id: 'compensationModel',
-      label: 'Comp Model',
-      key: (provider: Provider) => (
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedProvider(provider);
-          setNewCompModel(provider.compensationModel);
-          setIsCompModelModalOpen(true);
-        }}
-          className="inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200"
-      >
-          {provider.compensationModel}
-      </button>
-      ),
+      label: 'COMP MODEL',
+      key: 'compensationModel',
     },
+    {
+      id: 'hireDate',
+      label: 'HIRE DATE',
+      key: (provider: Provider) => new Date(provider.hireDate).toLocaleDateString(),
+    },
+    {
+      id: 'terminationDate',
+      label: 'TERM DATE',
+      key: (provider: Provider) => provider.terminationDate ? new Date(provider.terminationDate).toLocaleDateString() : '-',
+    }
   ]);
 
   const compModelOptions = ['Base Pay', 'Custom', 'Standard', 'Tiered CF'];
@@ -348,41 +340,59 @@ export default function ProvidersPage() {
 
   // Filtered providers logic
   const filteredProviders = useMemo(() => {
+    if (!providers || providers.length === 0) return [];
+    
     return providers.filter(provider => {
       if (searchQuery && !`${provider.firstName} ${provider.lastName} ${provider.employeeId}`.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false;
       }
+
       if (selectedSpecialty && provider.specialty !== selectedSpecialty) {
         return false;
       }
+
       if (selectedCompModel && provider.compensationModel !== selectedCompModel) {
         return false;
       }
+
       if (provider.fte < fteRange[0] || provider.fte > fteRange[1]) {
         return false;
       }
+
       if (provider.baseSalary < baseSalaryRange[0] || provider.baseSalary > baseSalaryRange[1]) {
         return false;
       }
+
       if (showMissingBenchmarks && provider.benchmarks) {
         return false;
       }
+
       if (showMissingWRVUs && provider.wrvus) {
         return false;
       }
-      if (showNonClinicalOnly && (!provider.nonClinicalFte || provider.nonClinicalFte <= 0)) {
+
+      if (showNonClinicalOnly && provider.clinicalFte > 0) {
         return false;
       }
+
       return true;
     });
-  }, [providers, searchQuery, selectedSpecialty, selectedCompModel, fteRange, baseSalaryRange, showMissingBenchmarks, showMissingWRVUs, showNonClinicalOnly]);
+  }, [
+    providers,
+    searchQuery,
+    selectedSpecialty,
+    selectedCompModel,
+    fteRange,
+    baseSalaryRange,
+    showMissingBenchmarks,
+    showMissingWRVUs,
+    showNonClinicalOnly
+  ]);
 
   // Pagination
   const paginatedProviders = useMemo(() => {
-    return filteredProviders.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    return filteredProviders.slice(startIndex, startIndex + rowsPerPage);
   }, [filteredProviders, currentPage, rowsPerPage]);
 
   const totalPages = Math.ceil(filteredProviders.length / rowsPerPage);
@@ -418,25 +428,37 @@ export default function ProvidersPage() {
     }
   };
 
-  useEffect(() => {
-    setMounted(true);
-    fetchProviders();
-  }, []);
-
   const fetchProviders = async () => {
+    setLoading(true);
     try {
       const response = await fetch('/api/providers');
       if (!response.ok) {
         throw new Error('Failed to fetch providers');
       }
       const data = await response.json();
-      setProviders(data.providers);
-      setLoading(false);
+      setProviders(data); // API returns array directly
     } catch (err) {
+      console.error('Error fetching providers:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (mounted) {
+      fetchProviders();
+    }
+  }, [mounted]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Add console log to debug
+  useEffect(() => {
+    console.log('Current providers:', providers);
+  }, [providers]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -854,7 +876,7 @@ export default function ProvidersPage() {
                           className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10"
                         >
                           <option value="">All specialties</option>
-                          {Array.from(new Set(providers.map(p => p.specialty))).sort().map(specialty => (
+                          {providers && providers.length > 0 && Array.from(new Set(providers.map(p => p.specialty))).sort().map(specialty => (
                             <option key={specialty} value={specialty}>{specialty}</option>
                           ))}
                         </select>
@@ -879,8 +901,54 @@ export default function ProvidersPage() {
                 </div>
               </div>
 
+              {/* Action Buttons */}
+              {selectedProviders.length > 0 && (
+                <div className="bg-white rounded-lg shadow p-4">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        const provider = providers.find(p => p.id === selectedProviders[0]);
+                        if (provider) {
+                          router.push(`/provider/${provider.employeeId}`);
+                        }
+                      }}
+                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      <ChartBarIcon className="h-4 w-4 mr-2" />
+                      Dashboard
+                    </button>
+                    <button
+                      onClick={() => {
+                        const provider = providers.find(p => p.id === selectedProviders[0]);
+                        if (provider) {
+                          setEditingProvider(provider);
+                          setIsEditModalOpen(true);
+                        }
+                      }}
+                      className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                    >
+                      <PencilSquareIcon className="h-4 w-4 mr-2" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        const provider = providers.find(p => p.id === selectedProviders[0]);
+                        if (provider) {
+                          setSelectedProviderForTermination(provider);
+                          setIsTerminationModalOpen(true);
+                        }
+                      }}
+                      className="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 text-sm font-medium rounded-full hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    >
+                      <TrashIcon className="h-4 w-4 mr-2" />
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Table */}
-              <div className="mt-4 border border-gray-200 rounded-lg">
+              <div className="bg-white rounded-lg shadow overflow-hidden">
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -941,7 +1009,13 @@ export default function ProvidersPage() {
                           <tr
                             key={provider.id}
                             className="hover:bg-gray-50 cursor-pointer"
-                            onClick={() => router.push(`/provider/${provider.employeeId}`)}
+                            onClick={(e) => {
+                              // Don't navigate if clicking on the checkbox
+                              if ((e.target as HTMLElement).closest('input[type="checkbox"]')) {
+                                return;
+                              }
+                              router.push(`/provider/${provider.employeeId}`);
+                            }}
                           >
                             <td className="w-12 px-3 py-4 whitespace-nowrap text-sm text-gray-500 bg-white">
                               <input
@@ -949,7 +1023,7 @@ export default function ProvidersPage() {
                                 className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                                 checked={selectedProviders.includes(provider.id)}
                                 onChange={(e) => {
-                                  e.stopPropagation();
+                                  e.stopPropagation(); // Prevent row click
                                   if (e.target.checked) {
                                     setSelectedProviders([...selectedProviders, provider.id]);
                                   } else {

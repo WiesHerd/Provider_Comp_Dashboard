@@ -9,9 +9,13 @@ interface ProviderUploadData {
   specialty: string;
   department: string;
   hire_date: string;
-  fte: number;
-  base_salary: number;
+  fte: string;
+  base_salary: string;
   compensation_model: string;
+  clinical_fte: string;
+  non_clinical_fte: string;
+  clinical_salary: string;
+  non_clinical_salary: string;
 }
 
 export async function POST(request: Request) {
@@ -31,16 +35,12 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log('File received:', file.name, 'Size:', file.size, 'Type:', file.type);
-
     // Read file content
     const bytes = await file.arrayBuffer();
-    console.log('File buffer size:', bytes.byteLength);
     
     let workbook;
     try {
       workbook = XLSX.read(bytes, { type: 'array' });
-      console.log('Workbook sheets:', workbook.SheetNames);
     } catch (e) {
       console.error('Error reading file:', e);
       return new Response(
@@ -65,17 +65,27 @@ export async function POST(request: Request) {
     // Validate and transform the data
     const previewData = data.map((item: ProviderUploadData) => {
       const fte = Number(item.fte);
-      const salary = Number(item.base_salary);
+      const baseSalary = Number(item.base_salary);
+      const clinicalFte = Number(item.clinical_fte || '0');
+      const nonClinicalFte = Number(item.non_clinical_fte || '0');
+      const clinicalSalary = Number(item.clinical_salary || '0');
+      const nonClinicalSalary = Number(item.non_clinical_salary || '0');
 
       return {
         employeeId: item.employee_id,
         firstName: item.first_name,
         lastName: item.last_name,
+        email: item.email,
         specialty: item.specialty,
         department: item.department,
+        hireDate: item.hire_date,
         fte: isNaN(fte) ? 0 : fte,
-        baseSalary: isNaN(salary) ? 0 : salary,
-        compensationModel: item.compensation_model || 'Standard'
+        baseSalary: isNaN(baseSalary) ? 0 : baseSalary,
+        compensationModel: item.compensation_model || 'Standard',
+        clinicalFte: isNaN(clinicalFte) ? 0 : clinicalFte,
+        nonClinicalFte: isNaN(nonClinicalFte) ? 0 : nonClinicalFte,
+        clinicalSalary: isNaN(clinicalSalary) ? 0 : clinicalSalary,
+        nonClinicalSalary: isNaN(nonClinicalSalary) ? 0 : nonClinicalSalary
       };
     });
 

@@ -1,10 +1,10 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "sqlite"
   url      = "file:./dev.db"
-}
-
-generator client {
-  provider = "prisma-client-js"
 }
 
 model Provider {
@@ -17,35 +17,39 @@ model Provider {
   department          String
   status              String               @default("Active")
   terminationDate     DateTime?
-  hireDate           DateTime
-  fte                Float
-  baseSalary         Float
-  compensationModel  String
+  hireDate            DateTime
+  fte                 Float
+  baseSalary          Float
+  compensationModel   String
+  clinicalFte         Float                @default(0)
+  nonClinicalFte      Float                @default(0)
+  clinicalSalary      Float                @default(0)
+  nonClinicalSalary   Float                @default(0)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  additionalPayments  AdditionalPayment[]
   compensationChanges CompensationChange[]
-  wrvuAdjustments    WRVUAdjustment[]
-  targetAdjustments  TargetAdjustment[]
-  additionalPayments AdditionalPayment[]
-  wrvuData           WRVUData[]
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
+  targetAdjustments   TargetAdjustment[]
+  wrvuAdjustments     WRVUAdjustment[]
+  wrvuData            WRVUData[]
 
   @@map("providers")
 }
 
 model CompensationChange {
-  id                      String    @id @default(cuid())
-  effectiveDate           DateTime
-  previousSalary          Float
-  newSalary              Float
-  previousFTE            Float
-  newFTE                 Float
+  id                       String   @id @default(cuid())
+  effectiveDate            DateTime
+  previousSalary           Float
+  newSalary                Float
+  previousFTE              Float
+  newFTE                   Float
   previousConversionFactor Float
-  newConversionFactor    Float
-  reason                 String?
-  providerId             String
-  provider               Provider  @relation(fields: [providerId], references: [id])
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  newConversionFactor      Float
+  reason                   String?
+  providerId               String
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  provider                 Provider @relation(fields: [providerId], references: [id])
 
   @@index([providerId, effectiveDate])
 }
@@ -68,9 +72,9 @@ model WRVUAdjustment {
   nov         Float    @default(0)
   dec         Float    @default(0)
   providerId  String
-  provider    Provider @relation(fields: [providerId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  provider    Provider @relation(fields: [providerId], references: [id])
 
   @@index([providerId, year])
 }
@@ -93,70 +97,67 @@ model TargetAdjustment {
   nov         Float    @default(0)
   dec         Float    @default(0)
   providerId  String
-  provider    Provider @relation(fields: [providerId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  provider    Provider @relation(fields: [providerId], references: [id])
 
   @@index([providerId, year])
 }
 
 model AdditionalPayment {
-  id          String   @id @default(cuid())
-  name        String
-  amount      Float
-  month       String
-  year        Int
-  providerId  String
-  provider    Provider @relation(fields: [providerId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  name       String
+  amount     Float
+  month      String
+  year       Int
+  providerId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  provider   Provider @relation(fields: [providerId], references: [id])
 
   @@index([providerId, year, month])
 }
 
 model MarketData {
-  id          String   @id @default(cuid())
-  specialty   String   @unique
-  // Total Compensation Percentiles
-  p25_total   Float
-  p50_total   Float
-  p75_total   Float
-  p90_total   Float
-  // WRVU Percentiles
-  p25_wrvu    Float
-  p50_wrvu    Float
-  p75_wrvu    Float
-  p90_wrvu    Float
-  // Conversion Factor Percentiles
-  p25_cf      Float
-  p50_cf      Float
-  p75_cf      Float
-  p90_cf      Float
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  specialty String   @unique
+  p25_total Float
+  p50_total Float
+  p75_total Float
+  p90_total Float
+  p25_wrvu  Float
+  p50_wrvu  Float
+  p75_wrvu  Float
+  p90_wrvu  Float
+  p25_cf    Float
+  p50_cf    Float
+  p75_cf    Float
+  p90_cf    Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("market_data")
 }
 
 model WRVUData {
-  id          String   @id @default(cuid())
-  year        Int
-  jan         Float    @default(0)
-  feb         Float    @default(0)
-  mar         Float    @default(0)
-  apr         Float    @default(0)
-  may         Float    @default(0)
-  jun         Float    @default(0)
-  jul         Float    @default(0)
-  aug         Float    @default(0)
-  sep         Float    @default(0)
-  oct         Float    @default(0)
-  nov         Float    @default(0)
-  dec         Float    @default(0)
-  providerId  String
-  provider    Provider @relation(fields: [providerId], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  year       Int
+  jan        Float    @default(0)
+  feb        Float    @default(0)
+  mar        Float    @default(0)
+  apr        Float    @default(0)
+  may        Float    @default(0)
+  jun        Float    @default(0)
+  jul        Float    @default(0)
+  aug        Float    @default(0)
+  sep        Float    @default(0)
+  oct        Float    @default(0)
+  nov        Float    @default(0)
+  dec        Float    @default(0)
+  providerId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  provider   Provider @relation(fields: [providerId], references: [id])
 
   @@unique([providerId, year])
   @@map("wrvu_data")

@@ -8,8 +8,44 @@ export async function GET() {
       orderBy: {
         lastName: 'asc',
       },
+      select: {
+        id: true,
+        employeeId: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        specialty: true,
+        department: true,
+        status: true,
+        terminationDate: true,
+        hireDate: true,
+        fte: true,
+        baseSalary: true,
+        compensationModel: true,
+        clinicalFte: true,
+        nonClinicalFte: true,
+        clinicalSalary: true,
+        nonClinicalSalary: true,
+        createdAt: true,
+        updatedAt: true,
+        // Include counts of related data for badges/indicators
+        _count: {
+          select: {
+            wrvuData: true,
+          }
+        }
+      }
     });
-    return NextResponse.json({ providers });
+
+    // Transform the data to include the hasWRVUs flag
+    const transformedProviders = providers.map(provider => ({
+      ...provider,
+      hasWRVUs: provider._count.wrvuData > 0,
+      // Remove the _count field from the final response
+      _count: undefined
+    }));
+
+    return NextResponse.json(transformedProviders);
   } catch (error) {
     console.error('Error fetching providers:', error);
     return NextResponse.json(

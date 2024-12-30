@@ -10,9 +10,13 @@ interface ProviderUploadData {
   specialty: string;
   department: string;
   hire_date: string;
-  fte: number;
-  base_salary: number;
+  fte: string;
+  base_salary: string;
   compensation_model: string;
+  clinical_fte: string;
+  non_clinical_fte: string;
+  clinical_salary: string;
+  non_clinical_salary: string;
 }
 
 export async function POST(request: Request) {
@@ -43,16 +47,12 @@ export async function POST(request: Request) {
       console.log('Cleared all existing provider data');
     }
 
-    console.log('File received:', file.name, 'Size:', file.size, 'Type:', file.type);
-
     // Read file content
     const bytes = await file.arrayBuffer();
-    console.log('File buffer size:', bytes.byteLength);
     
     let workbook;
     try {
       workbook = XLSX.read(bytes, { type: 'array' });
-      console.log('Workbook sheets:', workbook.SheetNames);
     } catch (e) {
       console.error('Error reading file:', e);
       return NextResponse.json(
@@ -65,45 +65,36 @@ export async function POST(request: Request) {
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
     
     // Convert to JSON with header mapping
-    const data = XLSX.utils.sheet_to_json(worksheet, {
+    const rawData = XLSX.utils.sheet_to_json(worksheet, {
       raw: false,
       dateNF: 'yyyy-mm-dd',
       defval: ''
     }) as ProviderUploadData[];
 
-    console.log('Parsed data sample:', {
-      firstRecord: data?.[0],
-      totalRecords: data?.length
+    console.log('Raw data sample:', {
+      firstRecord: rawData?.[0],
+      totalRecords: rawData?.length
     });
 
     // Validate the data array
-    if (!Array.isArray(data)) {
-      console.error('Data is not an array:', typeof data);
-      return NextResponse.json(
-        { error: 'Invalid data format. Expected an array of providers.' },
-        { status: 400 }
-      );
-    }
-
-    if (data.length === 0) {
-      console.error('No data found in file');
+    if (!Array.isArray(rawData) || rawData.length === 0) {
       return NextResponse.json(
         { error: 'No provider data found in file.' },
         { status: 400 }
       );
     }
 
-    // Validate each provider record
+    // Validate and transform each provider record
     const errors: string[] = [];
-    const providers = data.map((item: ProviderUploadData, index: number) => {
+    const providers = rawData.map((item: ProviderUploadData, index: number) => {
       try {
         if (!item.employee_id || !item.first_name || !item.last_name) {
-          throw new Error('Missing required fields');
+          throw new Error('Missing required fields (employee_id, first_name, last_name)');
         }
 
         const hireDate = new Date(item.hire_date);
         if (isNaN(hireDate.getTime())) {
-          throw new Error('Invalid hire date');
+          throw new Error('Invalid hire date format');
         }
 
         const fte = Number(item.fte);
@@ -111,10 +102,15 @@ export async function POST(request: Request) {
           throw new Error('Invalid FTE (must be between 0 and 1)');
         }
 
-        const salary = Number(item.base_salary);
-        if (isNaN(salary) || salary <= 0) {
+        const baseSalary = Number(item.base_salary);
+        if (isNaN(baseSalary) || baseSalary <= 0) {
           throw new Error('Invalid base salary');
         }
+
+        const clinicalFte = Number(item.clinical_fte || '0');
+        const nonClinicalFte = Number(item.non_clinical_fte || '0');
+        const clinicalSalary = Number(item.clinical_salary || '0');
+        const nonClinicalSalary = Number(item.non_clinical_salary || '0');
 
         return {
           employeeId: item.employee_id,
@@ -125,15 +121,19 @@ export async function POST(request: Request) {
           department: item.department,
           hireDate: hireDate,
           fte: fte,
-          baseSalary: salary,
+          baseSalary: baseSalary,
           compensationModel: item.compensation_model || 'Standard',
+          clinicalFte: clinicalFte,
+          nonClinicalFte: nonClinicalFte,
+          clinicalSalary: clinicalSalary,
+          nonClinicalSalary: nonClinicalSalary,
           status: 'Active',
           terminationDate: null,
           createdAt: new Date(),
           updatedAt: new Date()
         };
       } catch (error) {
-        errors.push(`Row ${index + 1}: ${error instanceof Error ? error.message : 'Invalid data'}`);
+        errors.push(`Row ${index + 2}: ${error instanceof Error ? error.message : 'Invalid data'}`);
         return null;
       }
     }).filter((p): p is NonNullable<typeof p> => p !== null);
@@ -149,9 +149,6 @@ export async function POST(request: Request) {
     }
 
     try {
-      // Create the providers in the database
-      console.log('Attempting to create/update providers with count:', providers.length);
-
       // Process providers one by one to handle duplicates
       const results = await Promise.all(
         providers.map(async (provider) => {
@@ -168,6 +165,10 @@ export async function POST(request: Request) {
                 fte: provider.fte,
                 baseSalary: provider.baseSalary,
                 compensationModel: provider.compensationModel,
+                clinicalFte: provider.clinicalFte,
+                nonClinicalFte: provider.nonClinicalFte,
+                clinicalSalary: provider.clinicalSalary,
+                nonClinicalSalary: provider.nonClinicalSalary,
                 status: provider.status,
                 terminationDate: provider.terminationDate,
                 updatedAt: new Date()
@@ -193,16 +194,10 @@ export async function POST(request: Request) {
       });
     } catch (dbError) {
       console.error('Database error:', dbError instanceof Error ? dbError.message : 'Unknown error');
-      
-      // Check for specific error types
-      const errorMessage = dbError instanceof Error 
-        ? dbError.message
-        : 'Failed to save providers to database. Please try again.';
-      
       return NextResponse.json(
         { 
           error: 'Database Error',
-          message: errorMessage
+          message: dbError instanceof Error ? dbError.message : 'Failed to save providers to database'
         },
         { status: 500 }
       );
