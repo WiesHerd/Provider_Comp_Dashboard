@@ -615,11 +615,13 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
 
   // Add filtered providers based on search
   const filteredProviders = useMemo(() => {
+    if (!providers) return [];
+    
     return providers.filter(p => 
       `${p.firstName} ${p.lastName} ${p.employeeId} ${p.specialty}`
         .toLowerCase()
         .includes(searchTerm.toLowerCase())
-    ).slice(0, 10); // Limit to 10 results for better performance
+    );
   }, [providers, searchTerm]);
 
   useEffect(() => {
