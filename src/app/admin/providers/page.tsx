@@ -12,7 +12,9 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   FunnelIcon,
-  XMarkIcon
+  XMarkIcon,
+  PlusIcon,
+  BuildingOffice2Icon
 } from '@heroicons/react/24/outline';
 import AddProviderModal from '@/components/Providers/AddProviderModal';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
@@ -24,6 +26,7 @@ import Link from 'next/link';
 import { utils, writeFile } from 'xlsx';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
+import { Switch } from '@headlessui/react';
 
 interface Provider {
   id: string;
@@ -228,7 +231,9 @@ export default function ProvidersPage() {
   const [newCompModel, setNewCompModel] = useState('');
   const [providersWithoutBenchmarks, setProvidersWithoutBenchmarks] = useState<Provider[]>([]);
   const [providersWithoutWRVUs, setProvidersWithoutWRVUs] = useState<Provider[]>([]);
+  const [providersWithNonClinicalFTE, setProvidersWithNonClinicalFTE] = useState<Provider[]>([]);
   const [showNonClinicalOnly, setShowNonClinicalOnly] = useState(false);
+  const [showInactiveOnly, setShowInactiveOnly] = useState(false);
   const [columns, setColumns] = useState<Column[]>([
     { 
       id: 'select',
@@ -244,15 +249,12 @@ export default function ProvidersPage() {
       id: 'name',
       label: 'NAME',
       key: (provider: Provider) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            router.push(`/provider/${provider.employeeId}`);
-          }}
-          className="text-blue-600 hover:text-blue-800 hover:underline text-left"
+        <Link
+          href={`/provider/${provider.employeeId}`}
+          className="text-blue-600 hover:text-blue-800 hover:underline"
         >
           {provider.firstName} {provider.lastName}
-        </button>
+        </Link>
       ),
     },
     {
@@ -275,20 +277,44 @@ export default function ProvidersPage() {
       label: 'STATUS',
       key: (provider: Provider) => (
         <button
-          onClick={(e) => {
+          onClick={async (e) => {
             e.stopPropagation();
-            handleStatusChange(provider);
+            const newStatus = provider.status === 'Active' ? 'Inactive' : 'Active';
+            if (newStatus === 'Inactive') {
+              setSelectedProviderForTermination(provider);
+              setIsTerminationModalOpen(true);
+              return;
+            }
+            try {
+              const response = await fetch(`/api/providers/${provider.employeeId}/status`, {
+                method: 'PATCH',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: newStatus }),
+              });
+              if (response.ok) {
+                setProviders(providers.map(p => 
+                  p.id === provider.id ? { ...p, status: newStatus } : p
+                ));
+              } else {
+                console.error('Failed to update status:', await response.text());
+              }
+            } catch (error) {
+              console.error('Failed to update status:', error);
+            }
           }}
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-colors ${
-            provider.status === 'Active' 
-              ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-              : 'bg-red-100 text-red-800 hover:bg-red-200'
-          }`}
+          className={classNames(
+            'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium',
+            provider.status === 'Active'
+              ? 'bg-green-100 text-green-700 hover:bg-green-200'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          )}
         >
           {provider.status === 'Active' ? (
-            <CheckCircleIcon className="w-4 h-4 mr-1" />
+            <CheckCircleIcon className="mr-1 h-4 w-4 text-green-400" />
           ) : (
-            <XCircleIcon className="w-4 h-4 mr-1" />
+            <XCircleIcon className="mr-1 h-4 w-4 text-gray-400" />
           )}
           {provider.status}
         </button>
@@ -368,6 +394,12 @@ export default function ProvidersPage() {
     })
   );
 
+  // Create specialties array from providers data
+  const specialties = useMemo(() => {
+    if (!providers) return [];
+    return Array.from(new Set(providers.map(p => p.specialty))).sort();
+  }, [providers]);
+
   // Update the useEffect to track providers without benchmarks and wRVUs
   useEffect(() => {
     if (providers && marketData && wRVUData) {
@@ -381,11 +413,18 @@ export default function ProvidersPage() {
       setProvidersWithoutBenchmarks(withoutBenchmarks);
 
       // Get all employee IDs from wRVU data
-      const wRVUEmployeeIds = new Set(wRVUData.map(w => w.employeeId));
+      const wRVUEmployeeIds = new Set(wRVUData.map(w => w.employee_id));
 
-      // Filter providers whose employee ID doesn't exist in wRVU data
-      const withoutWRVUs = providers.filter(p => !wRVUEmployeeIds.has(p.employeeId));
+      // Filter providers who don't have any wRVU data
+      const withoutWRVUs = providers.filter(provider => {
+        // Check if this provider's employeeId exists in wRVU data
+        return !wRVUEmployeeIds.has(provider.employeeId);
+      });
       setProvidersWithoutWRVUs(withoutWRVUs);
+
+      // Filter providers with non-clinical FTE
+      const withNonClinicalFTE = providers.filter(provider => provider.nonClinicalFte > 0);
+      setProvidersWithNonClinicalFTE(withNonClinicalFTE);
     }
   }, [providers, marketData, wRVUData]);
 
@@ -428,6 +467,10 @@ export default function ProvidersPage() {
         return false;
       }
 
+      if (showInactiveOnly && provider.status !== 'Inactive') {
+        return false;
+      }
+
       return true;
     });
   }, [
@@ -440,6 +483,7 @@ export default function ProvidersPage() {
     showMissingBenchmarks,
     showMissingWRVUs,
     showNonClinicalOnly,
+    showInactiveOnly,
     marketData,
     wRVUData
   ]);
@@ -467,8 +511,9 @@ export default function ProvidersPage() {
     if (showMissingBenchmarks) count++;
     if (showMissingWRVUs) count++;
     if (showNonClinicalOnly) count++;
+    if (showInactiveOnly) count++;
     setActiveFilterCount(count);
-  }, [searchQuery, selectedSpecialty, selectedCompModel, fteRange, baseSalaryRange, showMissingBenchmarks, showMissingWRVUs, showNonClinicalOnly]);
+  }, [searchQuery, selectedSpecialty, selectedCompModel, fteRange, baseSalaryRange, showMissingBenchmarks, showMissingWRVUs, showNonClinicalOnly, showInactiveOnly]);
 
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
@@ -557,23 +602,27 @@ export default function ProvidersPage() {
     setShowMissingBenchmarks(false);
     setShowMissingWRVUs(false);
     setShowNonClinicalOnly(false);
+    setShowInactiveOnly(false);
   };
 
   const handleExportToExcel = () => {
     // Create worksheet data from filtered providers
     const worksheetData = filteredProviders.map(provider => ({
+      'Employee ID': provider.employeeId,
       'Name': `${provider.firstName} ${provider.lastName}`,
-      'ID': provider.employeeId,
+      'Email': provider.email,
       'Specialty': provider.specialty,
       'Department': provider.department,
       'Status': provider.status,
-      'FTE': provider.fte,
+      'Total FTE': provider.fte,
       'Clinical FTE': provider.clinicalFte,
       'Non-Clinical FTE': provider.nonClinicalFte,
+      'Hire Date': provider.hireDate ? new Date(provider.hireDate).toLocaleDateString() : '',
+      'Termination Date': provider.terminationDate ? new Date(provider.terminationDate).toLocaleDateString() : '',
       'Base Salary': provider.baseSalary,
+      'Compensation Model': provider.compensationModel,
       'Clinical Salary': provider.clinicalSalary,
-      'Non-Clinical Salary': provider.nonClinicalSalary,
-      'Comp Model': provider.compensationModel
+      'Non-Clinical Salary': provider.nonClinicalSalary
     }));
 
     // Create workbook and worksheet
@@ -827,8 +876,9 @@ export default function ProvidersPage() {
                     </button>
                     <button
                       onClick={() => setIsAddModalOpen(true)}
-                      className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors shadow-sm"
+                      className="inline-flex items-center gap-x-2 rounded-full bg-[#6366F1] px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#5558EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6366F1]"
                     >
+                      <PlusIcon className="h-5 w-5" aria-hidden="true" />
                       Add Provider
                     </button>
                   </div>
@@ -868,62 +918,107 @@ export default function ProvidersPage() {
                 <div className={`overflow-hidden transition-all duration-200 ease-in-out ${
                   isFiltersVisible ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
                 }`}>
-                  <div className="p-6 space-y-8 border-t">
-                    {/* Third Row - Toggles */}
-                    <div className="flex items-center justify-between p-2 border border-gray-200 rounded-lg bg-gray-50">
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center">
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={showMissingBenchmarks}
-                              onChange={(e) => setShowMissingBenchmarks(e.target.checked)}
-                              className="sr-only peer"
-                            />
-                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                            <span className="ml-2 text-xs text-gray-700">
-                              Missing Benchmarks ({providersWithoutBenchmarks.length})
-                            </span>
-                          </label>
-                        </div>
+                  <div className="p-6 space-y-4 border-t">
+                    {/* Toggle Switches Row */}
+                    <div className="grid grid-cols-4 gap-4">
+                      <Switch.Group as="div" className="flex items-center">
+                        <Switch
+                          checked={showMissingBenchmarks}
+                          onChange={setShowMissingBenchmarks}
+                          className={classNames(
+                            showMissingBenchmarks ? 'bg-blue-600' : 'bg-gray-200',
+                            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2'
+                          )}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={classNames(
+                              showMissingBenchmarks ? 'translate-x-5' : 'translate-x-0',
+                              'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out'
+                            )}
+                          />
+                        </Switch>
+                        <Switch.Label as="span" className="ml-3 text-sm">
+                          <span className="font-medium text-gray-900">Missing Benchmarks</span>{' '}
+                          <span className="text-gray-500">({providersWithoutBenchmarks.length})</span>
+                        </Switch.Label>
+                      </Switch.Group>
 
-                        <div className="flex items-center">
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={showMissingWRVUs}
-                              onChange={(e) => setShowMissingWRVUs(e.target.checked)}
-                              className="sr-only peer"
-                            />
-                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                            <span className="ml-2 text-xs text-gray-700">
-                              Missing wRVUs ({providersWithoutWRVUs.length})
-                            </span>
-                          </label>
-                        </div>
+                      <Switch.Group as="div" className="flex items-center">
+                        <Switch
+                          checked={showMissingWRVUs}
+                          onChange={setShowMissingWRVUs}
+                          className={classNames(
+                            showMissingWRVUs ? 'bg-blue-600' : 'bg-gray-200',
+                            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2'
+                          )}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={classNames(
+                              showMissingWRVUs ? 'translate-x-5' : 'translate-x-0',
+                              'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out'
+                            )}
+                          />
+                        </Switch>
+                        <Switch.Label as="span" className="ml-3 text-sm">
+                          <span className="font-medium text-gray-900">Missing wRVUs</span>{' '}
+                          <span className="text-gray-500">({providersWithoutWRVUs.length})</span>
+                        </Switch.Label>
+                      </Switch.Group>
 
-                        <div className="flex items-center">
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={showNonClinicalOnly}
-                              onChange={(e) => setShowNonClinicalOnly(e.target.checked)}
-                              className="sr-only peer"
-                            />
-                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                            <span className="ml-2 text-xs text-gray-700">
-                              Non-Clinical FTE
-                            </span>
-                          </label>
-                        </div>
-                      </div>
+                      <Switch.Group as="div" className="flex items-center">
+                        <Switch
+                          checked={showNonClinicalOnly}
+                          onChange={setShowNonClinicalOnly}
+                          className={classNames(
+                            showNonClinicalOnly ? 'bg-blue-600' : 'bg-gray-200',
+                            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2'
+                          )}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={classNames(
+                              showNonClinicalOnly ? 'translate-x-5' : 'translate-x-0',
+                              'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out'
+                            )}
+                          />
+                        </Switch>
+                        <Switch.Label as="span" className="ml-3 text-sm">
+                          <span className="font-medium text-gray-900">Non-Clinical FTE</span>{' '}
+                          <span className="text-gray-500">({providersWithNonClinicalFTE.length})</span>
+                        </Switch.Label>
+                      </Switch.Group>
+
+                      <Switch.Group as="div" className="flex items-center">
+                        <Switch
+                          checked={showInactiveOnly}
+                          onChange={setShowInactiveOnly}
+                          className={classNames(
+                            showInactiveOnly ? 'bg-blue-600' : 'bg-gray-200',
+                            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2'
+                          )}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={classNames(
+                              showInactiveOnly ? 'translate-x-5' : 'translate-x-0',
+                              'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out'
+                            )}
+                          />
+                        </Switch>
+                        <Switch.Label as="span" className="ml-3 text-sm">
+                          <span className="font-medium text-gray-900">Inactive</span>{' '}
+                          <span className="text-gray-500">({providers.filter(p => p.status === 'Inactive').length})</span>
+                        </Switch.Label>
+                      </Switch.Group>
                     </div>
 
-                    {/* Main Filters Grid */}
-                    <div className="grid grid-cols-4 gap-3">
+                    {/* Filters Grid */}
+                    <div className="grid grid-cols-4 gap-4">
                       {/* FTE Range */}
-                      <div className="space-y-1 p-3 border border-gray-200 rounded-lg bg-gray-50">
-                        <label className="block text-xs font-medium text-gray-700">FTE Range</label>
+                      <div className="p-3 border border-gray-200 rounded-lg bg-white">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">FTE Range</label>
                         <DualRangeSlider
                           min={0}
                           max={1}
@@ -931,15 +1026,15 @@ export default function ProvidersPage() {
                           value={fteRange}
                           onChange={setFTERange}
                         />
-                        <div className="flex justify-between text-xs text-gray-500">
+                        <div className="flex justify-between text-xs text-gray-500 mt-1">
                           <span>{fteRange[0].toFixed(1)}</span>
                           <span>{fteRange[1].toFixed(1)}</span>
                         </div>
                       </div>
 
                       {/* Base Salary Range */}
-                      <div className="space-y-1 p-3 border border-gray-200 rounded-lg bg-gray-50">
-                        <label className="block text-xs font-medium text-gray-700">Base Salary Range</label>
+                      <div className="p-3 border border-gray-200 rounded-lg bg-white">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Base Salary Range</label>
                         <DualRangeSlider
                           min={0}
                           max={1000000}
@@ -947,39 +1042,54 @@ export default function ProvidersPage() {
                           value={baseSalaryRange}
                           onChange={setBaseSalaryRange}
                         />
-                        <div className="flex justify-between text-xs text-gray-500">
-                          <span>{formatCurrency(baseSalaryRange[0])}</span>
-                          <span>{formatCurrency(baseSalaryRange[1])}</span>
+                        <div className="flex justify-between text-xs text-gray-500 mt-1">
+                          <span>${baseSalaryRange[0].toLocaleString()}</span>
+                          <span>${baseSalaryRange[1].toLocaleString()}</span>
                         </div>
                       </div>
 
                       {/* Specialty */}
-                      <div className="space-y-1 p-3 border border-gray-200 rounded-lg bg-gray-50">
-                        <label className="block text-xs font-medium text-gray-700">Specialty</label>
-                        <select
-                          value={selectedSpecialty}
-                          onChange={(e) => setSelectedSpecialty(e.target.value)}
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm h-8"
-                        >
-                          <option value="">All specialties</option>
-                          {providers && providers.length > 0 && Array.from(new Set(providers.map(p => p.specialty))).sort().map(specialty => (
-                            <option key={specialty} value={specialty}>{specialty}</option>
-                          ))}
-                        </select>
+                      <div className="p-3 border border-gray-200 rounded-lg bg-white">
+                        <label htmlFor="specialty" className="block text-sm font-medium text-gray-700 mb-2">
+                          Specialty
+                        </label>
+                        <div className="relative">
+                          <select
+                            id="specialty"
+                            className="block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-sm focus:border-blue-500 focus:ring-blue-500 appearance-none bg-white"
+                            value={selectedSpecialty}
+                            onChange={(e) => setSelectedSpecialty(e.target.value)}
+                          >
+                            <option value="">All specialties</option>
+                            {specialties.map((specialty) => (
+                              <option key={specialty} value={specialty}>
+                                {specialty}
+                              </option>
+                            ))}
+                          </select>
+                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                            <ChevronDownIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                          </div>
+                        </div>
                       </div>
 
                       {/* Search */}
-                      <div className="space-y-1 p-3 border border-gray-200 rounded-lg bg-gray-50">
-                        <label className="block text-xs font-medium text-gray-700">Search</label>
+                      <div className="p-3 border border-gray-200 rounded-lg bg-white">
+                        <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+                          Search
+                        </label>
                         <div className="relative">
                           <input
                             type="text"
+                            id="search"
+                            className="block w-full rounded-md border-gray-300 pl-10 pr-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500"
                             placeholder="Search providers..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm h-8 pl-8"
                           />
-                          <MagnifyingGlassIcon className="absolute left-2 top-2 h-4 w-4 text-gray-400" />
+                          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1117,17 +1227,60 @@ export default function ProvidersPage() {
                               />
                             </td>
                             <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">{provider.employeeId}</td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">{provider.firstName} {provider.lastName}</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm">
+                              <Link
+                                href={`/provider/${provider.employeeId}`}
+                                className="text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                {provider.firstName} {provider.lastName}
+                              </Link>
+                            </td>
                             <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-500">{provider.email}</td>
                             <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">{provider.specialty}</td>
                             <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">{provider.department}</td>
                             <td className="whitespace-nowrap px-3 py-3 text-sm">
-                              <span className={classNames(
-                                provider.status === 'Active' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-700',
-                                'inline-flex rounded-full px-2 text-xs font-medium leading-5'
-                              )}>
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  const newStatus = provider.status === 'Active' ? 'Inactive' : 'Active';
+                                  if (newStatus === 'Inactive') {
+                                    setSelectedProviderForTermination(provider);
+                                    setIsTerminationModalOpen(true);
+                                    return;
+                                  }
+                                  try {
+                                    const response = await fetch(`/api/providers/${provider.employeeId}/status`, {
+                                      method: 'PATCH',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                      },
+                                      body: JSON.stringify({ status: newStatus }),
+                                    });
+                                    if (response.ok) {
+                                      setProviders(providers.map(p => 
+                                        p.id === provider.id ? { ...p, status: newStatus } : p
+                                      ));
+                                    } else {
+                                      console.error('Failed to update status:', await response.text());
+                                    }
+                                  } catch (error) {
+                                    console.error('Failed to update status:', error);
+                                  }
+                                }}
+                                className={classNames(
+                                  'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium',
+                                  provider.status === 'Active'
+                                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                )}
+                              >
+                                {provider.status === 'Active' ? (
+                                  <CheckCircleIcon className="mr-1 h-4 w-4 text-green-400" />
+                                ) : (
+                                  <XCircleIcon className="mr-1 h-4 w-4 text-gray-400" />
+                                )}
                                 {provider.status}
-                              </span>
+                              </button>
                             </td>
                             <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">{provider.fte.toFixed(2)}</td>
                             <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">{provider.clinicalFte.toFixed(2)}</td>
@@ -1146,43 +1299,68 @@ export default function ProvidersPage() {
                 </DndContext>
               </div>
 
-              {/* Fixed Pagination */}
-              <div className="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
-                <div className="flex items-center">
-                  <p className="text-sm text-gray-700">
-                    Showing {((currentPage - 1) * rowsPerPage) + 1} to {Math.min(currentPage * rowsPerPage, filteredProviders.length)} of{' '}
-                    <span className="font-medium">{filteredProviders.length}</span> results
-                  </p>
-                </div>
-                <div className="flex items-center space-x-2">
+              {/* Pagination */}
+              <div className="border-t border-gray-200 bg-white px-6 py-4 flex items-center justify-between rounded-b-lg">
+                <div className="flex-1 flex justify-between sm:hidden">
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-2 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                   >
-                    <ChevronLeftIcon className="w-5 h-5" />
+                    Previous
                   </button>
-                  {getPageNumbers().map((pageNumber, index) => (
-                    <button
-                      key={index}
-                      onClick={() => typeof pageNumber === 'number' ? handlePageChange(pageNumber) : null}
-                      disabled={pageNumber === '...'}
-                      className={`relative inline-flex items-center px-4 py-2 text-sm font-medium ${
-                        pageNumber === currentPage
-                          ? 'z-10 bg-indigo-600 text-white'
-                          : 'text-gray-700 bg-white hover:bg-gray-50'
-                      } border border-gray-300 ${pageNumber === '...' ? 'cursor-default' : ''}`}
-                    >
-                      {pageNumber}
-                    </button>
-                  ))}
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="relative inline-flex items-center px-2 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
                   >
-                    <ChevronRightIcon className="w-5 h-5" />
+                    Next
                   </button>
+                </div>
+                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-gray-700">
+                      Showing <span className="font-medium">{(currentPage - 1) * rowsPerPage + 1}</span> to{' '}
+                      <span className="font-medium">
+                        {Math.min(currentPage * rowsPerPage, filteredProviders.length)}
+                      </span>{' '}
+                      of <span className="font-medium">{filteredProviders.length}</span> results
+                    </p>
+                  </div>
+                  <div>
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="relative inline-flex items-center px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <span className="sr-only">Previous</span>
+                        <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
+                      </button>
+                      {Array.from({ length: Math.min(4, totalPages) }, (_, i) => i + 1).map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={classNames(
+                            page === currentPage
+                              ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
+                            'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
+                          )}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        <span className="sr-only">Next</span>
+                        <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
+                      </button>
+                    </nav>
+                  </div>
                 </div>
               </div>
 
@@ -1209,7 +1387,7 @@ export default function ProvidersPage() {
               <Transition appear show={isTerminationModalOpen} as={Fragment}>
                 <Dialog
                   as="div"
-                  className="relative z-50"
+                  className="relative z-10"
                   onClose={() => setIsTerminationModalOpen(false)}
                 >
                   <Transition.Child
@@ -1238,38 +1416,68 @@ export default function ProvidersPage() {
                         <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
                           <Dialog.Title
                             as="h3"
-                            className="text-lg font-medium leading-6 text-gray-900 mb-4"
+                            className="text-lg font-medium leading-6 text-gray-900"
                           >
-                            Provider Termination
+                            Set Termination Date
                           </Dialog.Title>
                           <div className="mt-2">
-                            <p className="text-sm text-gray-500 mb-4">
-                              Please enter the termination date for {selectedProviderForTermination?.firstName} {selectedProviderForTermination?.lastName}
+                            <p className="text-sm text-gray-500">
+                              Please select a termination date for {selectedProviderForTermination?.firstName} {selectedProviderForTermination?.lastName}
                             </p>
-                            <input
-                              type="date"
-                              value={terminationDate}
-                              onChange={(e) => setTerminationDate(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              required
-                            />
+                            <div className="mt-4">
+                              <input
+                                type="date"
+                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                value={terminationDate}
+                                onChange={(e) => setTerminationDate(e.target.value)}
+                              />
+                            </div>
                           </div>
 
-                          <div className="mt-6 flex justify-end gap-3">
+                          <div className="mt-4 flex justify-end space-x-2">
                             <button
                               type="button"
-                              className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                              onClick={() => setIsTerminationModalOpen(false)}
+                              className="inline-flex justify-center rounded-md border border-transparent bg-blue-100 px-4 py-2 text-sm font-medium text-blue-900 hover:bg-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                              onClick={async () => {
+                                if (!selectedProviderForTermination) return;
+                                try {
+                                  const response = await fetch(`/api/providers/${selectedProviderForTermination.employeeId}/status`, {
+                                    method: 'PATCH',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                    },
+                                    body: JSON.stringify({
+                                      status: 'Inactive',
+                                      terminationDate: terminationDate,
+                                    }),
+                                  });
+                                  if (response.ok) {
+                                    setProviders(providers.map(p => 
+                                      p.id === selectedProviderForTermination.id 
+                                        ? { ...p, status: 'Inactive', terminationDate } 
+                                        : p
+                                    ));
+                                    setIsTerminationModalOpen(false);
+                                    setTerminationDate('');
+                                  } else {
+                                    console.error('Failed to update status:', await response.text());
+                                  }
+                                } catch (error) {
+                                  console.error('Failed to update status:', error);
+                                }
+                              }}
                             >
-                              Cancel
+                              Confirm
                             </button>
                             <button
                               type="button"
-                              className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                              onClick={handleTermination}
-                              disabled={!terminationDate}
+                              className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                              onClick={() => {
+                                setIsTerminationModalOpen(false);
+                                setTerminationDate('');
+                              }}
                             >
-                              Terminate
+                              Cancel
                             </button>
                           </div>
                         </Dialog.Panel>
