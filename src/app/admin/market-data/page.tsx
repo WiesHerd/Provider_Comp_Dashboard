@@ -249,29 +249,32 @@ export default function MarketDataPage() {
               setEditingData(undefined);
               setIsEditModalOpen(true);
             }}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center gap-x-2 rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
           >
+            <svg className="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" />
+            </svg>
             Add Market Data
           </button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-5">
-        <div className="flex justify-between items-center">
-          <div className="flex gap-4 w-full max-w-sm">
-            <div className="max-w-2xl mb-6">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search specialties..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <MagnifyingGlassIcon className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
-              </div>
+      {/* Search and Filter Section */}
+      <div className="bg-white px-5 py-3 border-b border-gray-200">
+        <div className="flex items-center gap-4">
+          <div className="relative w-96">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
             </div>
+            <input
+              type="text"
+              name="search"
+              id="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="block w-full rounded-md border-0 py-1.5 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+              placeholder="Search specialties..."
+            />
           </div>
         </div>
       </div>

@@ -47,6 +47,7 @@ interface Provider {
   updatedAt: string;
   benchmarks?: any;
   wrvus?: any;
+  select?: boolean;
 }
 
 interface Column {
@@ -216,6 +217,7 @@ export default function ProvidersPage() {
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [marketData, setMarketData] = useState<any[]>([]);
+  const [wRVUData, setWRVUData] = useState<any[]>([]);
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
   const [activeFilterCount, setActiveFilterCount] = useState(0);
   const [isTerminationModalOpen, setIsTerminationModalOpen] = useState(false);
@@ -229,18 +231,33 @@ export default function ProvidersPage() {
   const [showNonClinicalOnly, setShowNonClinicalOnly] = useState(false);
   const [columns, setColumns] = useState<Column[]>([
     { 
+      id: 'select',
+      label: '',
+      key: (provider: Provider) => provider.id
+    },
+    { 
       id: 'employeeId',
-      label: 'Employee ID',
-      key: 'employeeId',
+      label: 'EMPLOYEE ID',
+      key: 'employeeId'
     },
     { 
       id: 'name',
-      label: 'Name',
-      key: (provider: Provider) => `${provider.firstName} ${provider.lastName}`,
+      label: 'NAME',
+      key: (provider: Provider) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/provider/${provider.employeeId}`);
+          }}
+          className="text-blue-600 hover:text-blue-800 hover:underline text-left"
+        >
+          {provider.firstName} {provider.lastName}
+        </button>
+      ),
     },
     {
       id: 'email',
-      label: 'Email',
+      label: 'EMAIL',
       key: 'email',
     },
     {
@@ -257,11 +274,24 @@ export default function ProvidersPage() {
       id: 'status',
       label: 'STATUS',
       key: (provider: Provider) => (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          provider.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-        }`}>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleStatusChange(provider);
+          }}
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer transition-colors ${
+            provider.status === 'Active' 
+              ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+              : 'bg-red-100 text-red-800 hover:bg-red-200'
+          }`}
+        >
+          {provider.status === 'Active' ? (
+            <CheckCircleIcon className="w-4 h-4 mr-1" />
+          ) : (
+            <XCircleIcon className="w-4 h-4 mr-1" />
+          )}
           {provider.status}
-        </span>
+        </button>
       ),
     },
     {
@@ -338,7 +368,28 @@ export default function ProvidersPage() {
     })
   );
 
-  // Filtered providers logic
+  // Update the useEffect to track providers without benchmarks and wRVUs
+  useEffect(() => {
+    if (providers && marketData && wRVUData) {
+      // Get all unique specialties from market data
+      const marketSpecialties = new Set(marketData.map(m => m.specialty));
+
+      // Filter providers whose specialty doesn't exist in market data
+      const withoutBenchmarks = providers.filter(p => {
+        return !marketSpecialties.has(p.specialty);
+      });
+      setProvidersWithoutBenchmarks(withoutBenchmarks);
+
+      // Get all employee IDs from wRVU data
+      const wRVUEmployeeIds = new Set(wRVUData.map(w => w.employeeId));
+
+      // Filter providers whose employee ID doesn't exist in wRVU data
+      const withoutWRVUs = providers.filter(p => !wRVUEmployeeIds.has(p.employeeId));
+      setProvidersWithoutWRVUs(withoutWRVUs);
+    }
+  }, [providers, marketData, wRVUData]);
+
+  // Single filteredProviders declaration
   const filteredProviders = useMemo(() => {
     if (!providers || providers.length === 0) return [];
     
@@ -363,15 +414,17 @@ export default function ProvidersPage() {
         return false;
       }
 
-      if (showMissingBenchmarks && provider.benchmarks) {
-        return false;
+      if (showMissingBenchmarks) {
+        const marketSpecialties = new Set(marketData.map(m => m.specialty));
+        if (marketSpecialties.has(provider.specialty)) return false;
       }
 
-      if (showMissingWRVUs && provider.wrvus) {
-        return false;
+      if (showMissingWRVUs) {
+        const wRVUEmployeeIds = new Set(wRVUData.map(w => w.employeeId));
+        if (wRVUEmployeeIds.has(provider.employeeId)) return false;
       }
 
-      if (showNonClinicalOnly && provider.clinicalFte > 0) {
+      if (showNonClinicalOnly && provider.nonClinicalFte === 0) {
         return false;
       }
 
@@ -386,7 +439,9 @@ export default function ProvidersPage() {
     baseSalaryRange,
     showMissingBenchmarks,
     showMissingWRVUs,
-    showNonClinicalOnly
+    showNonClinicalOnly,
+    marketData,
+    wRVUData
   ]);
 
   // Pagination
@@ -445,9 +500,33 @@ export default function ProvidersPage() {
     }
   };
 
+  const fetchMarketData = async () => {
+    try {
+      const response = await fetch('/api/market-data');
+      if (!response.ok) throw new Error('Failed to fetch market data');
+      const data = await response.json();
+      setMarketData(data);
+    } catch (error) {
+      console.error('Error fetching market data:', error);
+    }
+  };
+
+  const fetchWRVUData = async () => {
+    try {
+      const response = await fetch('/api/wrvu-data');
+      if (!response.ok) throw new Error('Failed to fetch wRVU data');
+      const data = await response.json();
+      setWRVUData(data);
+    } catch (error) {
+      console.error('Error fetching wRVU data:', error);
+    }
+  };
+
   useEffect(() => {
     if (mounted) {
       fetchProviders();
+      fetchMarketData();
+      fetchWRVUData();
     }
   }, [mounted]);
 
@@ -686,11 +765,33 @@ export default function ProvidersPage() {
   };
 
   const handleStatusChange = async (provider: Provider) => {
-    if (provider.status === 'Active') {
-      setSelectedProviderForTermination(provider);
-      setIsTerminationModalOpen(true);
-    } else {
-      await updateProviderStatus(provider.employeeId, 'Active', null);
+    try {
+      if (provider.status === 'Active') {
+        // If currently active, show termination modal
+        setSelectedProviderForTermination(provider);
+        setIsTerminationModalOpen(true);
+      } else {
+        // If currently inactive, reactivate immediately
+        const response = await fetch(`/api/providers/${provider.id}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            status: 'Active', 
+            terminationDate: null 
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update provider status');
+        }
+
+        // Refresh the providers list
+        await fetchProviders();
+      }
+    } catch (error) {
+      console.error('Error updating provider status:', error);
     }
   };
 
@@ -720,13 +821,13 @@ export default function ProvidersPage() {
                   <div className="flex items-center gap-4">
                     <button
                       onClick={handleExportToExcel}
-                      className="px-6 py-2.5 bg-green-600 text-white rounded-full text-sm font-medium hover:bg-green-700 transition-colors shadow-sm"
+                      className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors shadow-sm"
                     >
                       Export to Excel
                     </button>
                     <button
                       onClick={() => setIsAddModalOpen(true)}
-                      className="px-6 py-2.5 bg-indigo-600 text-white rounded-full text-sm font-medium hover:bg-indigo-700 transition-colors shadow-sm"
+                      className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors shadow-sm"
                     >
                       Add Provider
                     </button>
@@ -769,65 +870,67 @@ export default function ProvidersPage() {
                 }`}>
                   <div className="p-6 space-y-8 border-t">
                     {/* Third Row - Toggles */}
-                    <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
-                      <div className="flex items-center">
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={showMissingBenchmarks}
-                            onChange={(e) => setShowMissingBenchmarks(e.target.checked)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                        </label>
-                        <span className="ml-3 text-sm text-gray-700">
-                          Show Missing Benchmarks Only ({providersWithoutBenchmarks.length})
-                        </span>
-                      </div>
+                    <div className="flex items-center justify-between p-2 border border-gray-200 rounded-lg bg-gray-50">
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center">
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={showMissingBenchmarks}
+                              onChange={(e) => setShowMissingBenchmarks(e.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                            <span className="ml-2 text-xs text-gray-700">
+                              Missing Benchmarks ({providersWithoutBenchmarks.length})
+                            </span>
+                          </label>
+                        </div>
 
-                      <div className="flex items-center">
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={showMissingWRVUs}
-                            onChange={(e) => setShowMissingWRVUs(e.target.checked)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                        </label>
-                        <span className="ml-3 text-sm text-gray-700">
-                          Show Missing wRVUs Only ({providersWithoutWRVUs.length})
-                        </span>
-                      </div>
+                        <div className="flex items-center">
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={showMissingWRVUs}
+                              onChange={(e) => setShowMissingWRVUs(e.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                            <span className="ml-2 text-xs text-gray-700">
+                              Missing wRVUs ({providersWithoutWRVUs.length})
+                            </span>
+                          </label>
+                        </div>
 
-                      <div className="flex items-center">
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={showNonClinicalOnly}
-                            onChange={(e) => setShowNonClinicalOnly(e.target.checked)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
-                        </label>
-                        <span className="ml-3 text-sm text-gray-700">
-                          Has Non-Clinical FTE
-                        </span>
+                        <div className="flex items-center">
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={showNonClinicalOnly}
+                              onChange={(e) => setShowNonClinicalOnly(e.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                            <span className="ml-2 text-xs text-gray-700">
+                              Non-Clinical FTE
+                            </span>
+                          </label>
+                        </div>
                       </div>
                     </div>
 
-                    {/* First Row - Range Sliders and Search */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Main Filters Grid */}
+                    <div className="grid grid-cols-4 gap-3">
                       {/* FTE Range */}
-                      <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                        <label className="block text-sm font-medium text-gray-700">FTE Range</label>
-                          <DualRangeSlider
-                            min={0}
-                            max={1}
-                            step={0.1}
-                            value={fteRange}
-                            onChange={setFTERange}
-                          />
+                      <div className="space-y-1 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                        <label className="block text-xs font-medium text-gray-700">FTE Range</label>
+                        <DualRangeSlider
+                          min={0}
+                          max={1}
+                          step={0.1}
+                          value={fteRange}
+                          onChange={setFTERange}
+                        />
                         <div className="flex justify-between text-xs text-gray-500">
                           <span>{fteRange[0].toFixed(1)}</span>
                           <span>{fteRange[1].toFixed(1)}</span>
@@ -835,45 +938,28 @@ export default function ProvidersPage() {
                       </div>
 
                       {/* Base Salary Range */}
-                      <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                        <label className="block text-sm font-medium text-gray-700">Base Salary Range</label>
-                          <DualRangeSlider
-                            min={0}
-                            max={1000000}
-                            step={10000}
-                            value={baseSalaryRange}
-                            onChange={setBaseSalaryRange}
-                          />
-                        <div className="flex justify-between text-sm text-gray-500">
+                      <div className="space-y-1 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                        <label className="block text-xs font-medium text-gray-700">Base Salary Range</label>
+                        <DualRangeSlider
+                          min={0}
+                          max={1000000}
+                          step={10000}
+                          value={baseSalaryRange}
+                          onChange={setBaseSalaryRange}
+                        />
+                        <div className="flex justify-between text-xs text-gray-500">
                           <span>{formatCurrency(baseSalaryRange[0])}</span>
                           <span>{formatCurrency(baseSalaryRange[1])}</span>
                         </div>
                       </div>
 
-                      {/* Search */}
-                      <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                        <label className="block text-sm font-medium text-gray-700">Search</label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            placeholder="Search providers..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10 pl-10"
-                          />
-                          <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Second Row - Specialty and Comp Model */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                        <label className="block text-sm font-medium text-gray-700">Specialty</label>
+                      {/* Specialty */}
+                      <div className="space-y-1 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                        <label className="block text-xs font-medium text-gray-700">Specialty</label>
                         <select
                           value={selectedSpecialty}
                           onChange={(e) => setSelectedSpecialty(e.target.value)}
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10"
+                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm h-8"
                         >
                           <option value="">All specialties</option>
                           {providers && providers.length > 0 && Array.from(new Set(providers.map(p => p.specialty))).sort().map(specialty => (
@@ -882,19 +968,19 @@ export default function ProvidersPage() {
                         </select>
                       </div>
 
-                      <div className="space-y-2 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                        <label className="block text-sm font-medium text-gray-700">Comp Model</label>
-                        <select
-                          value={selectedCompModel}
-                          onChange={(e) => setSelectedCompModel(e.target.value)}
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-10"
-                        >
-                          <option value="">Select a model</option>
-                          <option value="Base Pay">Base Pay</option>
-                          <option value="Custom">Custom</option>
-                          <option value="Standard">Standard</option>
-                          <option value="Tiered CF">Tiered CF</option>
-                        </select>
+                      {/* Search */}
+                      <div className="space-y-1 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                        <label className="block text-xs font-medium text-gray-700">Search</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Search providers..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm h-8 pl-8"
+                          />
+                          <MagnifyingGlassIcon className="absolute left-2 top-2 h-4 w-4 text-gray-400" />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -912,7 +998,7 @@ export default function ProvidersPage() {
                           router.push(`/provider/${provider.employeeId}`);
                         }
                       }}
-                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                     >
                       <ChartBarIcon className="h-4 w-4 mr-2" />
                       Dashboard
@@ -938,7 +1024,7 @@ export default function ProvidersPage() {
                           setIsTerminationModalOpen(true);
                         }
                       }}
-                      className="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 text-sm font-medium rounded-full hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                     >
                       <TrashIcon className="h-4 w-4 mr-2" />
                       Delete
@@ -973,57 +1059,55 @@ export default function ProvidersPage() {
                   }}>
                     <table className="min-w-full divide-y divide-gray-200" style={{ width: '150%' }}>
                       <thead className="bg-gray-50">
-                        <SortableContext
-                          items={columns.map(col => col.id)}
-                          strategy={horizontalListSortingStrategy}
-                        >
-                          <tr>
-                            <th className="w-12 px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                              <input
-                                type="checkbox"
-                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                checked={paginatedProviders.length > 0 && selectedProviders.length === paginatedProviders.length}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setSelectedProviders(paginatedProviders.map(p => p.id));
-                                  } else {
-                                    setSelectedProviders([]);
-                                  }
-                                }}
-                              />
-                            </th>
-                            {columns.slice(1).map((column) => (
-                              <SortableHeader
-                                key={column.id}
-                                column={column}
-                                selectedProviders={selectedProviders}
-                                setSelectedProviders={setSelectedProviders}
-                                paginatedProviders={paginatedProviders}
-                              />
-                            ))}
-                          </tr>
-                        </SortableContext>
+                        <tr>
+                          <th scope="col" className="relative w-12 px-4 sm:w-16 sm:px-6">
+                            <input
+                              type="checkbox"
+                              className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
+                              checked={selectedProviders.length > 0 && selectedProviders.length === paginatedProviders.length}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedProviders(paginatedProviders.map(p => p.id));
+                                } else {
+                                  setSelectedProviders([]);
+                                }
+                              }}
+                            />
+                          </th>
+                          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Employee ID</th>
+                          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Name</th>
+                          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Email</th>
+                          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Specialty</th>
+                          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Department</th>
+                          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                          <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Total FTE</th>
+                          <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Clinical FTE</th>
+                          <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Non-Clinical FTE</th>
+                          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Hire Date</th>
+                          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Termination Date</th>
+                          <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Base Salary</th>
+                          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Compensation Model</th>
+                          <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Clinical Salary</th>
+                          <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Non-Clinical Salary</th>
+                        </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
+                      <tbody className="divide-y divide-gray-200 bg-white">
                         {paginatedProviders.map((provider) => (
-                          <tr
+                          <tr 
                             key={provider.id}
-                            className="hover:bg-gray-50 cursor-pointer"
-                            onClick={(e) => {
-                              // Don't navigate if clicking on the checkbox
-                              if ((e.target as HTMLElement).closest('input[type="checkbox"]')) {
-                                return;
-                              }
-                              router.push(`/provider/${provider.employeeId}`);
-                            }}
+                            className={classNames(
+                              selectedProviders.includes(provider.id) ? 'bg-gray-50' : 'bg-white',
+                              'hover:bg-gray-50'
+                            )}
                           >
-                            <td className="w-12 px-3 py-4 whitespace-nowrap text-sm text-gray-500 bg-white">
+                            <td className="relative w-12 px-4 sm:w-16 sm:px-6">
                               <input
                                 type="checkbox"
-                                className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
+                                value={provider.id}
                                 checked={selectedProviders.includes(provider.id)}
                                 onChange={(e) => {
-                                  e.stopPropagation(); // Prevent row click
+                                  e.stopPropagation();
                                   if (e.target.checked) {
                                     setSelectedProviders([...selectedProviders, provider.id]);
                                   } else {
@@ -1032,16 +1116,28 @@ export default function ProvidersPage() {
                                 }}
                               />
                             </td>
-                            {columns.slice(1).map((column) => (
-                              <td
-                                key={column.id}
-                                className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
-                              >
-                                {typeof column.key === 'function'
-                                  ? column.key(provider)
-                                  : provider[column.key]}
-                              </td>
-                            ))}
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">{provider.employeeId}</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">{provider.firstName} {provider.lastName}</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-500">{provider.email}</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">{provider.specialty}</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">{provider.department}</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm">
+                              <span className={classNames(
+                                provider.status === 'Active' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-700',
+                                'inline-flex rounded-full px-2 text-xs font-medium leading-5'
+                              )}>
+                                {provider.status}
+                              </span>
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">{provider.fte.toFixed(2)}</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">{provider.clinicalFte.toFixed(2)}</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">{provider.nonClinicalFte.toFixed(2)}</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">{new Date(provider.hireDate).toLocaleDateString()}</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">{provider.terminationDate ? new Date(provider.terminationDate).toLocaleDateString() : '-'}</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">${provider.baseSalary.toLocaleString()}</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">{provider.compensationModel}</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">${provider.clinicalSalary.toLocaleString()}</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">${provider.nonClinicalSalary.toLocaleString()}</td>
                           </tr>
                         ))}
                       </tbody>

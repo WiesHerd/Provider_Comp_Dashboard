@@ -2,9 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import EditWRVUModal from '@/components/WRVU/EditWRVUModal';
+
+function classNames(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(' ');
+}
 
 interface WRVUData {
   id: string;
@@ -200,279 +204,234 @@ export default function WRVUDataPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="w-full py-6 px-4">
-        {/* Header with border */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900">wRVU Data Management</h1>
-              <p className="mt-1 text-sm text-gray-500">
-                View and manage provider wRVU data across all months.
-              </p>
+    <div className="h-full flex flex-col space-y-3 bg-white">
+      {/* Header with border */}
+      <div className="bg-white rounded-lg shadow p-5">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">wRVU Data Management</h1>
+            <p className="mt-1 text-sm text-gray-500">
+              View and manage provider wRVU data across all months.
+            </p>
+          </div>
+          <button
+            onClick={handleAddWRVU}
+            className="inline-flex items-center gap-x-2 rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+          >
+            <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
+            Add wRVU Data
+          </button>
+        </div>
+      </div>
+
+      {/* Search and Filter Section */}
+      <div className="bg-white px-5 py-3 border-b border-gray-200">
+        <div className="flex items-center gap-4">
+          <div className="relative w-96">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
             </div>
-            <div>
-              <button
-                onClick={handleAddWRVU}
-                className="inline-flex items-center gap-x-2 rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-              >
-                <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
-                Add wRVU Data
-              </button>
-            </div>
+            <input
+              type="text"
+              name="search"
+              id="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="block w-full rounded-md border-0 py-1.5 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+              placeholder="Search by name, ID, or specialty"
+            />
+          </div>
+          <div className="w-72">
+            <select
+              value={selectedSpecialty}
+              onChange={(e) => setSelectedSpecialty(e.target.value)}
+              className="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6"
+            >
+              <option value="">All Specialties</option>
+              {Array.from(new Set(wrvuData.map(d => d.specialty))).sort().map(specialty => (
+                <option key={specialty} value={specialty}>{specialty}</option>
+              ))}
+            </select>
           </div>
         </div>
+      </div>
 
-        {/* Selection info and actions */}
-        {selectedItems.size > 0 && (
-          <div className="mb-4">
-            <div className="flex items-center gap-x-4">
-              <span className="text-sm text-gray-700">
-                {selectedItems.size} record{selectedItems.size !== 1 ? 's' : ''} selected
-              </span>
-              <button
-                onClick={() => {
-                  const selectedId = Array.from(selectedItems)[0];
-                  const selectedData = wrvuData.find(d => d.id === selectedId);
-                  if (selectedData) {
-                    handleEditWRVU(selectedData);
-                  }
-                }}
-                disabled={selectedItems.size !== 1}
-                className="inline-flex items-center gap-x-2 px-3 py-1.5 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-                Edit
-              </button>
-              <button
-                onClick={handleDelete}
-                className="inline-flex items-center gap-x-2 px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-500 rounded-md"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                Delete
-              </button>
-            </div>
+      {/* Action Buttons */}
+      {selectedItems.size > 0 && (
+        <div className="bg-gray-50 px-5 py-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                const selectedId = Array.from(selectedItems)[0];
+                const selectedData = wrvuData.find(d => d.id === selectedId);
+                if (selectedData) {
+                  handleEditWRVU(selectedData);
+                }
+              }}
+              disabled={selectedItems.size !== 1}
+              className="inline-flex items-center gap-x-1.5 px-2.5 py-1.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <PencilIcon className="h-4 w-4" aria-hidden="true" />
+              Edit
+            </button>
+            <button
+              onClick={handleDelete}
+              className="inline-flex items-center gap-x-1.5 px-2.5 py-1.5 text-sm font-medium text-red-600 bg-white hover:bg-red-50 border border-red-300 rounded-md shadow-sm"
+            >
+              <TrashIcon className="h-4 w-4" aria-hidden="true" />
+              Delete
+            </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <div className="flex justify-between items-center">
-            <div className="flex gap-4 flex-1">
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  placeholder="Search by ID, name, or specialty..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <MagnifyingGlassIcon className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
-              </div>
-              <div>
-                <select
-                  className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  value={selectedSpecialty}
-                  onChange={(e) => setSelectedSpecialty(e.target.value)}
+      {/* Table Section */}
+      <div className="flex flex-col bg-white shadow-lg rounded-lg flex-1 min-h-0 border border-gray-200">
+        <div className="overflow-y-scroll flex-1 rounded-t-lg scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr>
+                <th scope="col" className="relative w-12 px-4 sm:w-16 sm:px-6">
+                  <input
+                    type="checkbox"
+                    className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
+                    checked={selectedItems.size > 0 && selectedItems.size === paginatedData.length}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedItems(new Set(paginatedData.map(item => item.id)));
+                      } else {
+                        setSelectedItems(new Set());
+                      }
+                    }}
+                  />
+                </th>
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Employee ID</th>
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Name</th>
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Specialty</th>
+                <th scope="col" colSpan={12} className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap border-l border-gray-200">Monthly wRVUs</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-gray-50">YTD</th>
+              </tr>
+              <tr>
+                <th></th>
+                <th></th>
+                <th></th>
+                <th></th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Jan</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Feb</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Mar</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Apr</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">May</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Jun</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Jul</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aug</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Sep</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Oct</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Nov</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Dec</th>
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-gray-50"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 bg-white">
+              {paginatedData.map((data) => (
+                <tr 
+                  key={data.id}
+                  className={classNames(
+                    selectedItems.has(data.id) ? 'bg-gray-50' : 'bg-white',
+                    'hover:bg-gray-50'
+                  )}
                 >
-                  <option value="">All Specialties</option>
-                  {Array.from(new Set(wrvuData.map(d => d.specialty))).sort().map(specialty => (
-                    <option key={specialty} value={specialty}>{specialty}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="w-10 px-2 py-2 text-left bg-gray-50">
+                  <td className="relative w-12 px-4 sm:w-16 sm:px-6">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                      checked={filteredData.length > 0 && selectedItems.size === filteredData.length}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedItems(new Set(filteredData.map(p => p.id)));
-                        } else {
-                          setSelectedItems(new Set());
-                        }
-                      }}
+                      className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
+                      value={data.id}
+                      checked={selectedItems.has(data.id)}
+                      onChange={() => handleSelectItem(data.id)}
                     />
-                  </th>
-                  <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Employee ID
-                  </th>
-                  <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Name
-                  </th>
-                  <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Specialty
-                  </th>
-                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Jan</th>
-                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Feb</th>
-                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Mar</th>
-                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Apr</th>
-                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">May</th>
-                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Jun</th>
-                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Jul</th>
-                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aug</th>
-                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Sep</th>
-                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Oct</th>
-                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Nov</th>
-                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Dec</th>
-                  <th scope="col" className="w-20 px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-100">YTD</th>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">{data.employee_id}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">{`${data.first_name} ${data.last_name}`}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">{data.specialty}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.jan)}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.feb)}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.mar)}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.apr)}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.may)}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.jun)}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.jul)}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.aug)}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.sep)}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.oct)}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.nov)}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.dec)}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right font-medium text-gray-900 bg-gray-50">
+                    {formatNumber(calculateYTD(data))}
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {paginatedData.map((data) => (
-                  <tr 
-                    key={data.id}
-                    className={`hover:bg-gray-50 ${
-                      selectedItems.has(data.id) ? 'bg-indigo-50' : ''
-                    }`}
-                  >
-                    <td className="whitespace-nowrap px-2 py-2 text-sm">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                        checked={selectedItems.has(data.id)}
-                        onChange={(e) => {
-                          handleSelectItem(data.id);
-                        }}
-                      />
-                    </td>
-                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-900">{data.employee_id}</td>
-                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-900">{`${data.first_name} ${data.last_name}`}</td>
-                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-900">{data.specialty}</td>
-                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.jan)}</td>
-                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.feb)}</td>
-                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.mar)}</td>
-                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.apr)}</td>
-                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.may)}</td>
-                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.jun)}</td>
-                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.jul)}</td>
-                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.aug)}</td>
-                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.sep)}</td>
-                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.oct)}</td>
-                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.nov)}</td>
-                    <td className="whitespace-nowrap px-2 py-2 text-sm text-gray-500 text-right">{formatNumber(data.dec)}</td>
-                    <td className="whitespace-nowrap px-2 py-2 text-sm font-medium text-gray-900 text-right bg-gray-50">{formatNumber(calculateYTD(data))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
+      </div>
 
-        {/* Pagination */}
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-          <div className="flex-1 flex justify-between sm:hidden">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Next
-            </button>
+      {/* Pagination */}
+      <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+        <div className="flex flex-1 justify-between sm:hidden">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-700">
+              Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+              <span className="font-medium">{Math.min(startIndex + rowsPerPage, filteredData.length)}</span> of{' '}
+              <span className="font-medium">{filteredData.length}</span> results
+            </p>
           </div>
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Showing{' '}
-                <span className="font-medium">
-                  {Math.min((currentPage - 1) * rowsPerPage + 1, filteredData.length)}
-                </span>{' '}
-                to{' '}
-                <span className="font-medium">
-                  {Math.min(currentPage * rowsPerPage, filteredData.length)}
-                </span>{' '}
-                of{' '}
-                <span className="font-medium">{filteredData.length}</span> results
-              </p>
-            </div>
-            <div className="flex items-center space-x-4">
-              <select
-                value={rowsPerPage}
-                onChange={(e) => {
-                  setRowsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="rounded-md border-gray-300 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+          <div>
+            <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
               >
-                <option value={10}>10 per page</option>
-                <option value={25}>25 per page</option>
-                <option value={50}>50 per page</option>
-                <option value={100}>100 per page</option>
-              </select>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                <span className="sr-only">Previous</span>
+                <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                 <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  key={page}
+                  onClick={() => handlePageChange(page)}
+                  className={classNames(
+                    page === currentPage
+                      ? 'relative z-10 inline-flex items-center bg-blue-600 px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                      : 'relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0',
+                  )}
                 >
-                  <span className="sr-only">Previous</span>
-                  <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
+                  {page}
                 </button>
-                {[...Array(totalPages)].map((_, index) => {
-                  const page = index + 1;
-                  if (
-                    page === 1 ||
-                    page === totalPages ||
-                    (page >= currentPage - 2 && page <= currentPage + 2)
-                  ) {
-                    return (
-                      <button
-                        key={page}
-                        onClick={() => handlePageChange(page)}
-                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                          currentPage === page
-                            ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
-                            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    );
-                  }
-                  if (page === currentPage - 3 || page === currentPage + 3) {
-                    return (
-                      <span
-                        key={page}
-                        className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
-                      >
-                        ...
-                      </span>
-                    );
-                  }
-                  return null;
-                })}
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  <span className="sr-only">Next</span>
-                  <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
-                </button>
-              </nav>
-            </div>
+              ))}
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
+              >
+                <span className="sr-only">Next</span>
+                <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
+              </button>
+            </nav>
           </div>
         </div>
       </div>
@@ -480,10 +439,7 @@ export default function WRVUDataPage() {
       {/* Edit/Add Modal */}
       <EditWRVUModal
         isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingData(null);
-        }}
+        onClose={() => setIsModalOpen(false)}
         onSubmit={handleSubmitWRVU}
         data={editingData || undefined}
         mode={modalMode}
