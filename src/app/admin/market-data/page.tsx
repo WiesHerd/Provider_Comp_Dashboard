@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import EditMarketDataModal from '@/components/MarketData/EditMarketDataModal';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 interface MarketData {
   id: string;
@@ -55,9 +56,9 @@ export default function MarketDataPage() {
   const router = useRouter();
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingData, setEditingData] = useState<MarketData | undefined>(undefined);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [selectedData, setSelectedData] = useState<MarketData | undefined>(undefined);
 
   useEffect(() => {
     fetchMarketData();
@@ -107,42 +108,43 @@ export default function MarketDataPage() {
     setSelectedItems(newSelected);
   };
 
-  const handleDelete = async () => {
-    if (selectedItems.size === 0) return;
-    
-    if (confirm(`Are you sure you want to delete ${selectedItems.size} item(s)?`)) {
-      try {
-        const response = await fetch('/api/market-data', {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ids: Array.from(selectedItems)
-          })
-        });
+  const handleDelete = async (data: MarketData) => {
+    if (!confirm(`Are you sure you want to delete market data for ${data.specialty}?`)) {
+      return;
+    }
 
-        if (!response.ok) throw new Error('Failed to delete items');
+    try {
+      const response = await fetch(`/api/market-data/${data.id}`, {
+        method: 'DELETE',
+      });
 
-        // Refresh the data
-        await fetchMarketData();
-        // Clear selection
-        setSelectedItems(new Set());
-      } catch (error) {
-        console.error('Error deleting items:', error);
-        alert('Failed to delete items');
+      if (!response.ok) {
+        throw new Error('Failed to delete market data');
       }
+
+      // Refresh the data
+      fetchMarketData();
+      alert('Market data deleted successfully');
+    } catch (error) {
+      console.error('Error deleting market data:', error);
+      alert('Failed to delete market data. Please try again.');
     }
   };
 
-  const handleEdit = () => {
-    if (selectedItems.size !== 1) return;
-    const selectedId = Array.from(selectedItems)[0];
-    const selectedData = marketData.find(item => item.id === selectedId);
-    if (selectedData) {
-      setEditingData(selectedData);
-      setIsEditModalOpen(true);
-    }
+  const handleEdit = (item: MarketData) => {
+    console.log('=== Market Data Page Debug ===');
+    console.log('Full item being edited:', JSON.stringify(item, null, 2));
+    console.log('90th percentile values from table:', {
+      total: item.p90_total,
+      wrvu: item.p90_wrvu,
+      cf: item.p90_cf
+    });
+    console.log('Item type:', typeof item);
+    console.log('Item keys:', Object.keys(item));
+    console.log('=== End Debug ===');
+    
+    setSelectedData(item);
+    setIsEditModalOpen(true);
   };
 
   const handleSave = async (data: MarketData) => {
@@ -246,14 +248,12 @@ export default function MarketDataPage() {
           </div>
           <button
             onClick={() => {
-              setEditingData(undefined);
+              setSelectedData(undefined);
               setIsEditModalOpen(true);
             }}
-            className="inline-flex items-center gap-x-2 rounded-full bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            className="inline-flex items-center gap-x-2 rounded-full bg-[#6366F1] px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#5558EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6366F1]"
           >
-            <svg className="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" />
-            </svg>
+            <PlusIcon className="h-5 w-5" aria-hidden="true" />
             Add Market Data
           </button>
         </div>
@@ -278,6 +278,41 @@ export default function MarketDataPage() {
           </div>
         </div>
       </div>
+
+      {/* Action Buttons - Show when items are selected */}
+      {selectedItems.size > 0 && (
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                const selectedId = Array.from(selectedItems)[0];
+                const selectedItem = marketData.find(item => item.id === selectedId);
+                if (selectedItem) {
+                  setSelectedData(selectedItem);
+                  setIsEditModalOpen(true);
+                }
+              }}
+              className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
+              <PencilSquareIcon className="h-4 w-4 mr-2" />
+              Edit
+            </button>
+            <button
+              onClick={() => {
+                const selectedId = Array.from(selectedItems)[0];
+                const selectedData = marketData.find(item => item.id === selectedId);
+                if (selectedData) {
+                  handleDelete(selectedData);
+                }
+              }}
+              className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
+              <TrashIcon className="h-4 w-4 mr-2" />
+              Delete
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Table Container */}
       <div className="flex flex-col bg-white shadow-lg rounded-lg flex-1 min-h-0 border border-gray-200">
@@ -443,7 +478,7 @@ export default function MarketDataPage() {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onSave={handleSave}
-        data={editingData}
+        data={selectedData}
       />
     </div>
   );

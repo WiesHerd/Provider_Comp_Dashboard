@@ -212,8 +212,8 @@ export default function ProvidersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [selectedCompModel, setSelectedCompModel] = useState('');
-  const [fteRange, setFTERange] = useState<[number, number]>([0.2, 0.8]);
-  const [baseSalaryRange, setBaseSalaryRange] = useState<[number, number]>([0, 1000000]);
+  const [fteRange, setFTERange] = useState<[number, number]>([0, 1]);
+  const [baseSalaryRange, setBaseSalaryRange] = useState<[number, number]>([0, 2000000]);
   const [showMissingBenchmarks, setShowMissingBenchmarks] = useState(false);
   const [showMissingWRVUs, setShowMissingWRVUs] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -470,20 +470,19 @@ export default function ProvidersPage() {
       });
       setProvidersWithoutBenchmarks(withoutBenchmarks);
 
-      // Get current year
-      const currentYear = new Date().getFullYear();
+      // Get all employee IDs that have wRVU data
+      const employeeIdsWithWRVUs = new Set(wRVUData.map(w => w.employee_id));
+      console.log('Employee IDs with wRVUs:', Array.from(employeeIdsWithWRVUs));
 
-      // Filter providers who don't have any wRVU data for the current year
+      // Filter providers who don't have any wRVU data
       const withoutWRVUs = providers.filter(provider => {
-        const providerWRVUs = wRVUData.filter(w => 
-          w.providerId === provider.id && 
-          w.year === currentYear
-        );
-        
-        // Check if provider has any wRVU entries with non-zero values
-        const hasWRVUs = providerWRVUs.some(w => w.value > 0);
-        return !hasWRVUs;
+        const hasNoWRVUs = !employeeIdsWithWRVUs.has(provider.employeeId);
+        if (hasNoWRVUs) {
+          console.log(`Provider ${provider.employeeId} has no wRVUs`);
+        }
+        return hasNoWRVUs;
       });
+      console.log('Total providers without wRVUs:', withoutWRVUs.length);
       setProvidersWithoutWRVUs(withoutWRVUs);
 
       // Filter providers with non-clinical FTE
@@ -534,10 +533,8 @@ export default function ProvidersPage() {
 
       // Missing wRVUs filter
       if (showMissingWRVUs) {
-        const wRVUEmployeeIds = new Set(wRVUData?.map(w => w.employeeId) || []);
-        if (wRVUEmployeeIds.has(provider.employeeId)) {
-          return false;
-        }
+        const hasWRVUData = wRVUData?.some(w => w.employee_id === provider.employeeId);
+        return !hasWRVUData;
       }
 
       // Non-clinical FTE filter
@@ -659,8 +656,8 @@ export default function ProvidersPage() {
     setSearchQuery('');
     setSelectedSpecialty('');
     setSelectedCompModel('');
-    setFTERange([0.2, 0.8]);
-    setBaseSalaryRange([0, 1000000]);
+    setFTERange([0, 1]);
+    setBaseSalaryRange([0, 2000000]);
     setShowMissingBenchmarks(false);
     setShowMissingWRVUs(false);
     setShowNonClinicalOnly(false);
@@ -1102,7 +1099,7 @@ export default function ProvidersPage() {
                         <label className="block text-sm font-medium text-gray-700 mb-2">Base Salary Range</label>
                         <DualRangeSlider
                           min={0}
-                          max={1000000}
+                          max={2000000}
                           step={10000}
                           value={baseSalaryRange}
                           onChange={setBaseSalaryRange}
@@ -1551,7 +1548,7 @@ export default function ProvidersPage() {
                           <div className="mt-4 flex justify-end space-x-2">
                             <button
                               type="button"
-                              className="inline-flex justify-center rounded-md border border-transparent bg-blue-100 px-4 py-2 text-sm font-medium text-blue-900 hover:bg-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                              className="inline-flex justify-center rounded-md border border-transparent bg-blue-100 px-4 py-2 text-sm font-medium text-blue-900 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                               onClick={async () => {
                                 if (!selectedProviderForTermination) return;
                                 try {

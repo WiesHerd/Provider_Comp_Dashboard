@@ -54,12 +54,38 @@ export default function EditMarketDataModal({ isOpen, onClose, onSave, data }: E
     p25_cf: 0,
     p50_cf: 0,
     p75_cf: 0,
-    p90_cf: 0,
+    p90_cf: 0
   });
 
   useEffect(() => {
     if (data) {
-      setFormData(data);
+      console.log('=== Edit Modal Debug ===');
+      console.log('Raw market data received:', JSON.stringify(data, null, 2));
+      
+      const formattedData: MarketData = {
+        specialty: data.specialty,
+        p25_total: Number(data.p25_total),
+        p50_total: Number(data.p50_total),
+        p75_total: Number(data.p75_total),
+        p90_total: Number(data.p90_total),
+        p25_wrvu: Number(data.p25_wrvu),
+        p50_wrvu: Number(data.p50_wrvu),
+        p75_wrvu: Number(data.p75_wrvu),
+        p90_wrvu: Number(data.p90_wrvu),
+        p25_cf: Number(data.p25_cf),
+        p50_cf: Number(data.p50_cf),
+        p75_cf: Number(data.p75_cf),
+        p90_cf: Number(data.p90_cf)
+      };
+
+      console.log('Formatted form data:', JSON.stringify(formattedData, null, 2));
+      console.log('90th percentile values:', {
+        total: formattedData.p90_total,
+        wrvu: formattedData.p90_wrvu,
+        cf: formattedData.p90_cf
+      });
+      
+      setFormData(formattedData);
     } else {
       setFormData({
         specialty: '',
@@ -74,82 +100,48 @@ export default function EditMarketDataModal({ isOpen, onClose, onSave, data }: E
         p25_cf: 0,
         p50_cf: 0,
         p75_cf: 0,
-        p90_cf: 0,
+        p90_cf: 0
       });
     }
   }, [data]);
 
+  const handleInputChange = (field: keyof MarketData, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: field === 'specialty' ? value : parseFloat(value) || 0,
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Ensure all numeric fields are numbers, not strings
       const processedData = {
-        ...formData,
-        id: data?.id, // Make sure we include the ID for updates
-        p25_total: Number(formData.p25_total),
-        p50_total: Number(formData.p50_total),
-        p75_total: Number(formData.p75_total),
-        p90_total: Number(formData.p90_total || 0),
-        p25_wrvu: Number(formData.p25_wrvu),
-        p50_wrvu: Number(formData.p50_wrvu),
-        p75_wrvu: Number(formData.p75_wrvu),
-        p90_wrvu: Number(formData.p90_wrvu || 0),
-        p25_cf: Number(formData.p25_cf),
-        p50_cf: Number(formData.p50_cf),
-        p75_cf: Number(formData.p75_cf),
-        p90_cf: Number(formData.p90_cf || 0),
+        id: data?.id,
+        ...formData
       };
 
-      if (data?.id) {
-        // If we have an ID, it's an update
-        const response = await fetch(`/api/market-data/${data.id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(processedData),
-        });
+      const endpoint = data?.id ? `/api/market-data/${data.id}` : '/api/market-data';
+      const method = data?.id ? 'PATCH' : 'POST';
 
-        if (!response.ok) {
-          throw new Error('Failed to update market data');
-        }
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(processedData),
+      });
 
-        const updatedData = await response.json();
-        onSave(updatedData);
-      } else {
-        // If no ID, it's a new entry
-        const response = await fetch('/api/market-data', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(processedData),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to create market data');
-        }
-
-        const newData = await response.json();
-        onSave(newData);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to ${data?.id ? 'update' : 'create'} market data`);
       }
+
+      const responseData = await response.json();
+      onSave(responseData);
     } catch (error) {
       console.error('Error saving market data:', error);
       alert('Failed to save market data');
     }
-  };
-
-  const handleInputChange = (field: keyof MarketData, value: string) => {
-    const numericValue = field === 'specialty' ? value : Number(value);
-    // Ensure we don't set NaN values for numbers and handle empty strings
-    const finalValue = field === 'specialty' 
-      ? value 
-      : (typeof numericValue === 'number' && !isNaN(numericValue) ? numericValue : 0);
-    
-    setFormData(prev => ({
-      ...prev,
-      [field]: finalValue,
-    }));
   };
 
   return (
@@ -223,24 +215,26 @@ export default function EditMarketDataModal({ isOpen, onClose, onSave, data }: E
                       <div className="bg-gray-50 rounded-lg p-4 mb-6">
                         <h4 className="text-sm font-medium text-gray-900 mb-3">Total Cash Compensation</h4>
                         <div className="grid grid-cols-4 gap-4">
-                          {['25th', '50th', '75th', '90th'].map((percentile, index) => (
-                            <div key={`total-${percentile}`} className="w-full">
-                              <div className="text-xs font-medium text-gray-700 mb-1 text-center">
-                                {percentile}
+                          {['25th', '50th', '75th', '90th'].map((percentile, index) => {
+                            const field = `p${index === 3 ? 90 : (index + 1) * 25}_total` as keyof MarketData;
+                            return (
+                              <div key={`total-${percentile}`} className="w-full">
+                                <div className="text-xs font-medium text-gray-700 mb-1 text-center">
+                                  {percentile}
+                                </div>
+                                <div className="relative">
+                                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">$</span>
+                                  <input
+                                    type="number"
+                                    value={formData[field] || ''}
+                                    onChange={(e) => handleInputChange(field, e.target.value)}
+                                    className="block w-full pl-7 pr-3 py-1.5 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-right"
+                                    required
+                                  />
+                                </div>
                               </div>
-                              <div className="relative">
-                                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">$</span>
-                                <input
-                                  type="number"
-                                  id={`p${index * 25 + 25}_total`}
-                                  value={formData[`p${index * 25 + 25}_total` as keyof MarketData] || 0}
-                                  onChange={(e) => handleInputChange(`p${index * 25 + 25}_total` as keyof MarketData, e.target.value)}
-                                  className="block w-full pl-7 pr-3 py-1.5 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-right"
-                                  required
-                                />
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
 
@@ -248,21 +242,23 @@ export default function EditMarketDataModal({ isOpen, onClose, onSave, data }: E
                       <div className="bg-gray-50 rounded-lg p-4 mb-6">
                         <h4 className="text-sm font-medium text-gray-900 mb-3">wRVUs</h4>
                         <div className="grid grid-cols-4 gap-4">
-                          {['25th', '50th', '75th', '90th'].map((percentile, index) => (
-                            <div key={`wrvu-${percentile}`} className="w-full">
-                              <div className="text-xs font-medium text-gray-700 mb-1 text-center">
-                                {percentile}
+                          {['25th', '50th', '75th', '90th'].map((percentile, index) => {
+                            const field = `p${index === 3 ? 90 : (index + 1) * 25}_wrvu` as keyof MarketData;
+                            return (
+                              <div key={`wrvu-${percentile}`} className="w-full">
+                                <div className="text-xs font-medium text-gray-700 mb-1 text-center">
+                                  {percentile}
+                                </div>
+                                <input
+                                  type="number"
+                                  value={formData[field] || ''}
+                                  onChange={(e) => handleInputChange(field, e.target.value)}
+                                  className="block w-full px-3 py-1.5 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-right"
+                                  required
+                                />
                               </div>
-                              <input
-                                type="number"
-                                id={`p${index * 25 + 25}_wrvu`}
-                                value={formData[`p${index * 25 + 25}_wrvu` as keyof MarketData] || 0}
-                                onChange={(e) => handleInputChange(`p${index * 25 + 25}_wrvu` as keyof MarketData, e.target.value)}
-                                className="block w-full px-3 py-1.5 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-right"
-                                required
-                              />
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
 
@@ -270,24 +266,26 @@ export default function EditMarketDataModal({ isOpen, onClose, onSave, data }: E
                       <div className="bg-gray-50 rounded-lg p-4 mb-6">
                         <h4 className="text-sm font-medium text-gray-900 mb-3">Conversion Factor</h4>
                         <div className="grid grid-cols-4 gap-4">
-                          {['25th', '50th', '75th', '90th'].map((percentile, index) => (
-                            <div key={`cf-${percentile}`} className="w-full">
-                              <div className="text-xs font-medium text-gray-700 mb-1 text-center">
-                                {percentile}
+                          {['25th', '50th', '75th', '90th'].map((percentile, index) => {
+                            const field = `p${index === 3 ? 90 : (index + 1) * 25}_cf` as keyof MarketData;
+                            return (
+                              <div key={`cf-${percentile}`} className="w-full">
+                                <div className="text-xs font-medium text-gray-700 mb-1 text-center">
+                                  {percentile}
+                                </div>
+                                <div className="relative">
+                                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">$</span>
+                                  <input
+                                    type="number"
+                                    value={formData[field] || ''}
+                                    onChange={(e) => handleInputChange(field, e.target.value)}
+                                    className="block w-full pl-7 pr-3 py-1.5 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-right"
+                                    required
+                                  />
+                                </div>
                               </div>
-                              <div className="relative">
-                                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">$</span>
-                                <input
-                                  type="number"
-                                  id={`p${index * 25 + 25}_cf`}
-                                  value={formData[`p${index * 25 + 25}_cf` as keyof MarketData] || 0}
-                                  onChange={(e) => handleInputChange(`p${index * 25 + 25}_cf` as keyof MarketData, e.target.value)}
-                                  className="block w-full pl-7 pr-3 py-1.5 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-right"
-                                  required
-                                />
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
 
