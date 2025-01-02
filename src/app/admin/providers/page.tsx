@@ -79,8 +79,11 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, step, value
   return (
     <div className="relative h-10">
       <div className="slider absolute top-1/2 -translate-y-1/2 w-full">
+        {/* Gray background track */}
+        <div className="track absolute top-1/2 -translate-y-1/2 h-[2px] bg-gray-200 w-full"></div>
+        {/* Blue selected range track */}
         <div 
-          className="track" 
+          className="track absolute top-1/2 -translate-y-1/2 h-[2px] bg-blue-600"
           style={{
             left: `${((value[0] - min) / (max - min)) * 100}%`,
             width: `${((value[1] - value[0]) / (max - min)) * 100}%`
@@ -95,9 +98,10 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, step, value
         value={value[0]}
         onChange={(e) => {
           const newValue = Math.min(parseFloat(e.target.value), value[1] - step);
+          console.log('Slider changed:', [newValue, value[1]]);
           onChange([newValue, value[1]]);
         }}
-        className="absolute w-full"
+        className="absolute top-1/2 -translate-y-1/2 w-full appearance-none bg-transparent [&::-webkit-slider-runnable-track]:h-0 [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:translate-y-[-50%]"
       />
       <input
         type="range"
@@ -107,9 +111,10 @@ const DualRangeSlider: React.FC<DualRangeSliderProps> = ({ min, max, step, value
         value={value[1]}
         onChange={(e) => {
           const newValue = Math.max(parseFloat(e.target.value), value[0] + step);
+          console.log('Slider changed:', [value[0], newValue]);
           onChange([value[0], newValue]);
         }}
-        className="absolute w-full"
+        className="absolute top-1/2 -translate-y-1/2 w-full appearance-none bg-transparent [&::-webkit-slider-runnable-track]:h-0 [&::-webkit-slider-runnable-track]:bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:translate-y-[-50%]"
       />
     </div>
   );
@@ -207,7 +212,7 @@ export default function ProvidersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState('');
   const [selectedCompModel, setSelectedCompModel] = useState('');
-  const [fteRange, setFTERange] = useState<[number, number]>([0, 1]);
+  const [fteRange, setFTERange] = useState<[number, number]>([0.2, 0.8]);
   const [baseSalaryRange, setBaseSalaryRange] = useState<[number, number]>([0, 1000000]);
   const [showMissingBenchmarks, setShowMissingBenchmarks] = useState(false);
   const [showMissingWRVUs, setShowMissingWRVUs] = useState(false);
@@ -286,21 +291,44 @@ export default function ProvidersPage() {
               setIsTerminationModalOpen(true);
               return;
             }
+
             try {
-              const response = await fetch(`/api/providers/${provider.employeeId}/status`, {
+              const response = await fetch(`/api/admin/providers/${provider.id}/status`, {
                 method: 'PATCH',
                 headers: {
                   'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ status: newStatus }),
+                body: JSON.stringify({ 
+                  status: 'Active',
+                  terminationDate: null 
+                }),
               });
-              if (response.ok) {
-                setProviders(providers.map(p => 
-                  p.id === provider.id ? { ...p, status: newStatus } : p
-                ));
+
+              if (!response.ok) {
+                const contentType = response.headers.get('content-type');
+                let errorMessage = 'Failed to update provider status.';
+                
+                if (contentType?.includes('application/json')) {
+                  const errorData = await response.json();
+                  errorMessage = errorData.error || errorMessage;
+                } else {
+                  const textError = await response.text();
+                  console.error('Server response:', textError);
+                }
+                
+                alert(errorMessage);
+                return;
               }
+
+              const updatedProvider = await response.json();
+              setProviders(prevProviders => 
+                prevProviders.map(p => 
+                  p.id === provider.id ? updatedProvider : p
+                )
+              );
             } catch (error) {
               console.error('Failed to update status:', error);
+              alert('An error occurred while updating the provider status.');
             }
           }}
           className={classNames(
@@ -398,6 +426,38 @@ export default function ProvidersPage() {
     return Array.from(new Set(providers.map(p => p.specialty))).sort();
   }, [providers]);
 
+  // Fetch market data
+  useEffect(() => {
+    const fetchMarketData = async () => {
+      try {
+        const response = await fetch('/api/market-data');
+        if (!response.ok) throw new Error('Failed to fetch market data');
+        const data = await response.json();
+        setMarketData(data);
+      } catch (error) {
+        console.error('Error fetching market data:', error);
+      }
+    };
+
+    fetchMarketData();
+  }, []);
+
+  // Fetch wRVU data
+  useEffect(() => {
+    const fetchWRVUData = async () => {
+      try {
+        const response = await fetch('/api/wrvu-data');
+        if (!response.ok) throw new Error('Failed to fetch wRVU data');
+        const data = await response.json();
+        setWRVUData(data);
+      } catch (error) {
+        console.error('Error fetching wRVU data:', error);
+      }
+    };
+
+    fetchWRVUData();
+  }, []);
+
   // Update the useEffect to track providers without benchmarks and wRVUs
   useEffect(() => {
     if (providers && marketData && wRVUData) {
@@ -410,13 +470,19 @@ export default function ProvidersPage() {
       });
       setProvidersWithoutBenchmarks(withoutBenchmarks);
 
-      // Get all employee IDs from wRVU data
-      const wRVUEmployeeIds = new Set(wRVUData.map(w => w.employee_id));
+      // Get current year
+      const currentYear = new Date().getFullYear();
 
-      // Filter providers who don't have any wRVU data
+      // Filter providers who don't have any wRVU data for the current year
       const withoutWRVUs = providers.filter(provider => {
-        // Check if this provider's employeeId exists in wRVU data
-        return !wRVUEmployeeIds.has(provider.employeeId);
+        const providerWRVUs = wRVUData.filter(w => 
+          w.providerId === provider.id && 
+          w.year === currentYear
+        );
+        
+        // Check if provider has any wRVU entries with non-zero values
+        const hasWRVUs = providerWRVUs.some(w => w.value > 0);
+        return !hasWRVUs;
       });
       setProvidersWithoutWRVUs(withoutWRVUs);
 
@@ -426,45 +492,60 @@ export default function ProvidersPage() {
     }
   }, [providers, marketData, wRVUData]);
 
-  // Single filteredProviders declaration
+  // Update the filteredProviders to use the correct filtering logic
   const filteredProviders = useMemo(() => {
     if (!providers || providers.length === 0) return [];
     
     return providers.filter(provider => {
+      // Search filter
       if (searchQuery && !`${provider.firstName} ${provider.lastName} ${provider.employeeId}`.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false;
       }
 
+      // Specialty filter
       if (selectedSpecialty && provider.specialty !== selectedSpecialty) {
         return false;
       }
 
+      // Comp model filter
       if (selectedCompModel && provider.compensationModel !== selectedCompModel) {
         return false;
       }
 
+      // FTE range filter
       if (provider.fte < fteRange[0] || provider.fte > fteRange[1]) {
+        console.log('Provider filtered out by FTE:', provider.firstName, provider.lastName, provider.fte, fteRange);
         return false;
       }
 
+      // Base salary range filter
       if (provider.baseSalary < baseSalaryRange[0] || provider.baseSalary > baseSalaryRange[1]) {
+        console.log('Provider filtered out by Salary:', provider.firstName, provider.lastName, provider.baseSalary, baseSalaryRange);
         return false;
       }
 
+      // Missing benchmarks filter
       if (showMissingBenchmarks) {
-        const marketSpecialties = new Set(marketData.map(m => m.specialty));
-        if (marketSpecialties.has(provider.specialty)) return false;
+        const marketSpecialties = new Set(marketData?.map(m => m.specialty) || []);
+        if (marketSpecialties.has(provider.specialty)) {
+          return false;
+        }
       }
 
+      // Missing wRVUs filter
       if (showMissingWRVUs) {
-        const wRVUEmployeeIds = new Set(wRVUData.map(w => w.employeeId));
-        if (wRVUEmployeeIds.has(provider.employeeId)) return false;
+        const wRVUEmployeeIds = new Set(wRVUData?.map(w => w.employeeId) || []);
+        if (wRVUEmployeeIds.has(provider.employeeId)) {
+          return false;
+        }
       }
 
+      // Non-clinical FTE filter
       if (showNonClinicalOnly && provider.nonClinicalFte === 0) {
         return false;
       }
 
+      // Inactive filter
       if (showInactiveOnly && provider.status !== 'Inactive') {
         return false;
       }
@@ -578,7 +659,7 @@ export default function ProvidersPage() {
     setSearchQuery('');
     setSelectedSpecialty('');
     setSelectedCompModel('');
-    setFTERange([0, 1]);
+    setFTERange([0.2, 0.8]);
     setBaseSalaryRange([0, 1000000]);
     setShowMissingBenchmarks(false);
     setShowMissingWRVUs(false);
@@ -802,13 +883,13 @@ export default function ProvidersPage() {
         setIsTerminationModalOpen(true);
       } else {
         // If currently inactive, reactivate immediately
-        const response = await fetch(`/api/providers/${provider.id}/status`, {
+        const response = await fetch(`/api/admin/providers/${provider.id}/status`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ 
-            status: 'Active', 
+            status: 'Active',
             terminationDate: null 
           }),
         });
@@ -1005,7 +1086,10 @@ export default function ProvidersPage() {
                           max={1}
                           step={0.1}
                           value={fteRange}
-                          onChange={setFTERange}
+                          onChange={(newRange) => {
+                            console.log('FTE Range changed:', newRange);
+                            setFTERange(newRange);
+                          }}
                         />
                         <div className="flex justify-between text-xs text-gray-500 mt-1">
                           <span>{fteRange[0].toFixed(1)}</span>
@@ -1037,7 +1121,7 @@ export default function ProvidersPage() {
                         <div className="relative">
                           <select
                             id="specialty"
-                            className="block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-sm focus:border-blue-500 focus:ring-blue-500 appearance-none bg-white"
+                            className="block w-full rounded-md border border-gray-200 py-2 pl-3 pr-10 text-sm focus:border-blue-500 focus:ring-blue-500 appearance-none bg-white hover:border-gray-300"
                             value={selectedSpecialty}
                             onChange={(e) => setSelectedSpecialty(e.target.value)}
                           >
@@ -1063,7 +1147,7 @@ export default function ProvidersPage() {
                           <input
                             type="text"
                             id="search"
-                            className="block w-full rounded-md border-gray-300 pl-10 pr-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500"
+                            className="block w-full rounded-md border border-gray-200 py-2 pl-10 pr-3 text-sm focus:border-blue-500 focus:ring-blue-500 hover:border-gray-300"
                             placeholder="Search providers..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -1132,13 +1216,15 @@ export default function ProvidersPage() {
                   onDragEnd={handleDragEnd}
                 >
                   {/* Top Scrollbar */}
-                  <div className="overflow-x-auto mb-2" style={{ width: '100%' }} onScroll={(e) => {
+                  <div className="overflow-x-auto border-b border-gray-200" style={{ width: '100%' }} onScroll={(e) => {
                     const bottomScroll = document.getElementById('bottom-scroll');
                     if (bottomScroll) {
                       bottomScroll.scrollLeft = e.currentTarget.scrollLeft;
                     }
                   }}>
-                    <div style={{ width: '150%', height: '1px' }} />
+                    <div style={{ width: '250%', minHeight: '20px' }}>
+                      <div className="h-4" /> {/* Spacer for scrollbar */}
+                    </div>
                   </div>
 
                   {/* Bottom Scrollable Table */}
@@ -1148,9 +1234,9 @@ export default function ProvidersPage() {
                       topScroll.scrollLeft = e.currentTarget.scrollLeft;
                     }
                   }}>
-                    <table className="min-w-full divide-y divide-gray-200" style={{ width: '150%' }}>
+                    <table className="min-w-full divide-y divide-gray-50" style={{ width: '250%' }}>
                       <thead className="bg-gray-50">
-                        <tr>
+                        <tr className="divide-x divide-gray-50">
                           <th scope="col" className="relative w-12 px-4 sm:w-16 sm:px-6">
                             <input
                               type="checkbox"
@@ -1182,13 +1268,13 @@ export default function ProvidersPage() {
                           <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Non-Clinical Salary</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200 bg-white">
+                      <tbody className="divide-y divide-gray-50 bg-white">
                         {paginatedProviders.map((provider) => (
                           <tr 
                             key={provider.id}
                             className={classNames(
                               selectedProviders.includes(provider.id) ? 'bg-gray-50' : 'bg-white',
-                              'hover:bg-gray-50'
+                              'hover:bg-gray-50 divide-x divide-gray-50'
                             )}
                           >
                             <td className="relative w-12 px-4 sm:w-16 sm:px-6">
@@ -1237,23 +1323,44 @@ export default function ProvidersPage() {
                                     setIsTerminationModalOpen(true);
                                     return;
                                   }
+
                                   try {
-                                    const response = await fetch(`/api/providers/${provider.employeeId}/status`, {
+                                    const response = await fetch(`/api/admin/providers/${provider.id}/status`, {
                                       method: 'PATCH',
                                       headers: {
                                         'Content-Type': 'application/json',
                                       },
-                                      body: JSON.stringify({ status: newStatus }),
+                                      body: JSON.stringify({ 
+                                        status: 'Active',
+                                        terminationDate: null 
+                                      }),
                                     });
-                                    if (response.ok) {
-                                      setProviders(providers.map(p => 
-                                        p.id === provider.id ? { ...p, status: newStatus } : p
-                                      ));
-                                    } else {
-                                      console.error('Failed to update status:', await response.text());
+
+                                    if (!response.ok) {
+                                      const contentType = response.headers.get('content-type');
+                                      let errorMessage = 'Failed to update provider status.';
+                                      
+                                      if (contentType?.includes('application/json')) {
+                                        const errorData = await response.json();
+                                        errorMessage = errorData.error || errorMessage;
+                                      } else {
+                                        const textError = await response.text();
+                                        console.error('Server response:', textError);
+                                      }
+                                      
+                                      alert(errorMessage);
+                                      return;
                                     }
+
+                                    const updatedProvider = await response.json();
+                                    setProviders(prevProviders => 
+                                      prevProviders.map(p => 
+                                        p.id === provider.id ? updatedProvider : p
+                                      )
+                                    );
                                   } catch (error) {
                                     console.error('Failed to update status:', error);
+                                    alert('An error occurred while updating the provider status.');
                                   }
                                 }}
                                 className={classNames(
@@ -1448,29 +1555,37 @@ export default function ProvidersPage() {
                               onClick={async () => {
                                 if (!selectedProviderForTermination) return;
                                 try {
-                                  const response = await fetch(`/api/providers/${selectedProviderForTermination.employeeId}/status`, {
+                                  const response = await fetch(`/api/admin/providers/${selectedProviderForTermination.id}/status`, {
                                     method: 'PATCH',
                                     headers: {
                                       'Content-Type': 'application/json',
                                     },
                                     body: JSON.stringify({
                                       status: 'Inactive',
-                                      terminationDate: terminationDate,
+                                      terminationDate: new Date(terminationDate).toISOString(),
                                     }),
                                   });
+
                                   if (response.ok) {
-                                    setProviders(providers.map(p => 
-                                      p.id === selectedProviderForTermination.id 
-                                        ? { ...p, status: 'Inactive', terminationDate } 
-                                        : p
-                                    ));
+                                    const updatedProvider = await response.json();
+                                    setProviders(prevProviders => 
+                                      prevProviders.map(p => 
+                                        p.id === selectedProviderForTermination.id 
+                                          ? { ...p, status: 'Inactive', terminationDate: new Date(terminationDate).toISOString() }
+                                          : p
+                                      )
+                                    );
                                     setIsTerminationModalOpen(false);
+                                    setSelectedProviderForTermination(null);
                                     setTerminationDate('');
                                   } else {
-                                    console.error('Failed to update status:', await response.text());
+                                    const errorData = await response.json();
+                                    console.error('Failed to update status:', errorData);
+                                    alert('Failed to update provider status. Please try again.');
                                   }
                                 } catch (error) {
                                   console.error('Failed to update status:', error);
+                                  alert('An error occurred while updating the provider status.');
                                 }
                               }}
                             >
@@ -1577,130 +1692,152 @@ export default function ProvidersPage() {
 
               {/* Add these styles to your global CSS file (e.g., globals.css) */}
               <style jsx global>{`
-                #tableContainer {
-                  overflow-x: scroll;
-                  scrollbar-width: none;
-                  -ms-overflow-style: none;
-                }
-
-                #tableContainer::-webkit-scrollbar {
-                  display: none;
-                }
-
-                /* Style the fixed horizontal scrollbar */
-                .sticky.bottom-0 .overflow-x-scroll {
+                /* Style both top and bottom scrollbars consistently */
+                .overflow-x-auto {
                   scrollbar-width: thin;
                   scrollbar-color: #888 #f1f1f1;
+                  max-width: 100%;
                 }
 
-                .sticky.bottom-0 .overflow-x-scroll::-webkit-scrollbar {
+                .overflow-x-auto::-webkit-scrollbar {
                   height: 12px;
                   display: block;
                 }
 
-                .sticky.bottom-0 .overflow-x-scroll::-webkit-scrollbar-track {
+                .overflow-x-auto::-webkit-scrollbar-track {
                   background: #f1f1f1;
                   border-radius: 6px;
                 }
 
-                .sticky.bottom-0 .overflow-x-scroll::-webkit-scrollbar-thumb {
+                .overflow-x-auto::-webkit-scrollbar-thumb {
                   background: #888;
                   border-radius: 6px;
+                  border: 3px solid #f1f1f1;
                 }
 
-                .sticky.bottom-0 .overflow-x-scroll::-webkit-scrollbar-thumb:hover {
+                .overflow-x-auto::-webkit-scrollbar-thumb:hover {
                   background: #666;
                 }
 
-                /* Set minimum widths for columns to ensure proper scrolling */
+                /* Table layout */
+                table {
+                  border-collapse: separate;
+                  border-spacing: 0;
+                  width: 100%;
+                  table-layout: auto;
+                }
+
                 th, td {
+                  padding: 0.75rem 1rem;
+                  vertical-align: top;
+                }
+
+                /* Header text wrapping */
+                th {
+                  white-space: normal;
+                  word-wrap: break-word;
+                  min-width: 100px;
+                  max-width: fit-content;
+                  height: auto;
+                  vertical-align: top;
+                  line-height: 1.2;
+                  position: sticky;
+                  top: 0;
+                  z-index: 1;
+                  background: #f9fafb;
+                }
+
+                /* Cell content */
+                td {
+                  white-space: normal;
+                  word-wrap: break-word;
+                  min-width: 100px;
+                  max-width: fit-content;
+                  background: inherit;
+                }
+
+                /* Special column handling */
+                th:first-child, td:first-child { /* Checkbox */
+                  width: 50px;
+                  min-width: 50px;
+                  max-width: 50px;
+                }
+
+                th[scope="col"] {
+                  padding: 0.75rem 1rem;
+                  text-align: left;
+                  font-size: 0.75rem;
+                  font-weight: 500;
+                  text-transform: uppercase;
+                  letter-spacing: 0.05em;
+                  color: #6B7280;
+                  background-color: #F9FAFB;
+                }
+
+                /* Specific column minimums */
+                th:nth-child(2), td:nth-child(2) { /* Employee ID */
+                  min-width: 100px;
+                }
+
+                th:nth-child(3), td:nth-child(3) { /* Name */
+                  min-width: 150px;
+                }
+
+                th:nth-child(4), td:nth-child(4) { /* Email */
+                  min-width: 200px;
+                }
+
+                /* Salary columns */
+                th:nth-child(12), td:nth-child(12), /* Base Salary */
+                th:nth-child(14), td:nth-child(14), /* Clinical Salary */
+                th:nth-child(15), td:nth-child(15) { /* Non-Clinical Salary */
                   min-width: 120px;
-                  white-space: nowrap;
+                  text-align: right;
                 }
 
-                th:first-child, td:first-child {
-                  width: 48px;
-                  min-width: 48px;
-                  padding-left: 16px;
-                  padding-right: 16px;
+                /* FTE columns */
+                th:nth-child(8), td:nth-child(8), /* Total FTE */
+                th:nth-child(9), td:nth-child(9), /* Clinical FTE */
+                th:nth-child(10), td:nth-child(10) { /* Non-Clinical FTE */
+                  min-width: 100px;
+                  text-align: right;
                 }
 
-                /* Dual Range Slider Styles */
-                .relative input[type="range"] {
-                  pointer-events: none;
-                  position: absolute;
-                  -webkit-appearance: none;
-                  appearance: none;
-                  width: 100%;
-                  height: 100%;
-                  border: none;
-                  outline: none;
-                  background: none;
-                  z-index: 3;
-                }
-                
-                .relative input[type="range"]::-webkit-slider-thumb {
-                  pointer-events: all;
-                  position: relative;
-                  appearance: none;
-                  -webkit-appearance: none;
-                  width: 16px;
-                  height: 16px;
-                  border: 2px solid #6366F1;
-                  border-radius: 50%;
-                  background-color: white;
-                  cursor: pointer;
-                  margin-top: -6px;
-                  z-index: 4;
-                }
-                
-                .relative div[class*="slider"] {
-                  position: absolute;
-                  left: 0;
-                  right: 0;
-                  top: 50%;
-                  transform: translateY(-50%);
-                  height: 4px;
-                  border-radius: 2px;
-                  background: #E5E7EB;
-                }
-                
-                .relative div[class*="slider"] .track {
-                  position: absolute;
-                  height: 100%;
-                  border-radius: 2px;
-                  background: #6366F1;
-                }
-                
-                .relative input[type="range"]::-webkit-slider-runnable-track {
-                  -webkit-appearance: none;
-                  width: 100%;
-                  height: 4px;
-                  background: transparent;
-                  border: none;
-                  border-radius: 2px;
-                }
-                
-                .relative input[type="range"]::-moz-range-track {
-                  width: 100%;
-                  height: 4px;
-                  background: transparent;
-                  border: none;
-                  border-radius: 2px;
-                }
-                
-                .relative input[type="range"]::-ms-track {
-                  width: 100%;
-                  height: 4px;
-                  background: transparent;
-                  border: none;
-                  border-radius: 2px;
-                  color: transparent;
+                /* Date columns */
+                th:nth-child(11), td:nth-child(11), /* Hire Date */
+                th:nth-child(13), td:nth-child(13) { /* Termination Date */
+                  min-width: 100px;
                 }
 
-                /* Hide default focus styles */
-                .relative input[type="range"]:focus {
-                  outline: none;
+                tr:hover td {
+                  background: #f9fafb;
+                }
+
+                /* Scrollbar styles */
+                .overflow-x-auto {
+                  scrollbar-width: thin;
+                  scrollbar-color: #888 #f1f1f1;
+                  max-width: 100%;
+                }
+
+                .overflow-x-auto::-webkit-scrollbar {
+                  height: 12px;
+                  display: block;
+                }
+
+                .overflow-x-auto::-webkit-scrollbar-track {
+                  background: #f1f1f1;
+                  border-radius: 6px;
+                }
+
+                .overflow-x-auto::-webkit-scrollbar-thumb {
+                  background: #888;
+                  border-radius: 6px;
+                  border: 3px solid #f1f1f1;
+                }
+
+                .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+                  background: #666;
                 }
               `}</style>
             </>
