@@ -51,6 +51,7 @@ interface Provider {
   benchmarks?: any;
   wrvus?: any;
   select?: boolean;
+  yearsOfExperience: number;
 }
 
 interface Column {
@@ -255,22 +256,22 @@ export default function ProvidersPage() {
         >
           {provider.firstName} {provider.lastName}
         </Link>
-      ),
+      )
     },
     {
       id: 'email',
       label: 'EMAIL',
-      key: 'email',
+      key: 'email'
     },
     {
       id: 'specialty',
       label: 'SPECIALTY',
-      key: 'specialty',
+      key: 'specialty'
     },
     {
       id: 'department',
       label: 'DEPARTMENT',
-      key: 'department',
+      key: 'department'
     },
     {
       id: 'status',
@@ -297,8 +298,6 @@ export default function ProvidersPage() {
                 setProviders(providers.map(p => 
                   p.id === provider.id ? { ...p, status: newStatus } : p
                 ));
-              } else {
-                console.error('Failed to update status:', await response.text());
               }
             } catch (error) {
               console.error('Failed to update status:', error);
@@ -318,70 +317,69 @@ export default function ProvidersPage() {
           )}
           {provider.status}
         </button>
-      ),
+      )
     },
     {
-      id: 'fte',
+      id: 'totalFte',
       label: 'TOTAL FTE',
       key: (provider: Provider) => (
-        <div className="text-right">{provider.fte.toFixed(2)}</div>
-      ),
+        <div className="text-right">{formatFTE(provider.fte)}</div>
+      )
     },
     {
       id: 'clinicalFte',
       label: 'CLINICAL FTE',
       key: (provider: Provider) => (
-        <div className="text-right">{(provider.clinicalFte || 0).toFixed(2)}</div>
-      ),
+        <div className="text-right">{formatFTE(provider.clinicalFte)}</div>
+      )
     },
     {
       id: 'nonClinicalFte',
       label: 'NON-CLINICAL FTE',
       key: (provider: Provider) => (
-        <div className="text-right">{(provider.nonClinicalFte || 0).toFixed(2)}</div>
-      ),
+        <div className="text-right">{formatFTE(provider.nonClinicalFte)}</div>
+      )
     },
     {
       id: 'baseSalary',
       label: 'BASE SALARY',
       key: (provider: Provider) => (
-        <div className="text-right">
-          ${provider.baseSalary.toLocaleString()}
-        </div>
-      ),
+        <div className="text-right">{formatSalary(provider.baseSalary)}</div>
+      )
     },
     {
       id: 'clinicalSalary',
       label: 'CLINICAL SALARY',
       key: (provider: Provider) => (
-        <div className="text-right">
-          ${(provider.clinicalSalary || 0).toLocaleString()}
-        </div>
-      ),
+        <div className="text-right">{formatSalary(provider.clinicalSalary)}</div>
+      )
     },
     {
       id: 'nonClinicalSalary',
       label: 'NON-CLINICAL SALARY',
       key: (provider: Provider) => (
-        <div className="text-right">
-          ${(provider.nonClinicalSalary || 0).toLocaleString()}
-        </div>
-      ),
+        <div className="text-right">{formatSalary(provider.nonClinicalSalary)}</div>
+      )
     },
     {
       id: 'compensationModel',
       label: 'COMP MODEL',
-      key: 'compensationModel',
+      key: 'compensationModel'
     },
     {
       id: 'hireDate',
       label: 'HIRE DATE',
-      key: (provider: Provider) => new Date(provider.hireDate).toLocaleDateString(),
+      key: (provider: Provider) => new Date(provider.hireDate).toLocaleDateString()
+    },
+    {
+      id: 'yearsOfExperience',
+      label: 'YOE',
+      key: (provider: Provider) => provider.yearsOfExperience?.toFixed(2) || '0.00'
     },
     {
       id: 'terminationDate',
       label: 'TERM DATE',
-      key: (provider: Provider) => provider.terminationDate ? new Date(provider.terminationDate).toLocaleDateString() : '-',
+      key: (provider: Provider) => provider.terminationDate ? new Date(provider.terminationDate).toLocaleDateString() : '-'
     }
   ]);
 
@@ -528,52 +526,35 @@ export default function ProvidersPage() {
     }
   };
 
-  const fetchProviders = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/providers');
-      if (!response.ok) {
-        throw new Error('Failed to fetch providers');
-      }
-      const data = await response.json();
-      setProviders(data); // API returns array directly
-    } catch (err) {
-      console.error('Error fetching providers:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchMarketData = async () => {
-    try {
-      const response = await fetch('/api/market-data');
-      if (!response.ok) throw new Error('Failed to fetch market data');
-      const data = await response.json();
-      setMarketData(data);
-    } catch (error) {
-      console.error('Error fetching market data:', error);
-    }
-  };
-
-  const fetchWRVUData = async () => {
-    try {
-      const response = await fetch('/api/wrvu-data');
-      if (!response.ok) throw new Error('Failed to fetch wRVU data');
-      const data = await response.json();
-      setWRVUData(data);
-    } catch (error) {
-      console.error('Error fetching wRVU data:', error);
-    }
-  };
-
+  // Fetch providers
   useEffect(() => {
-    if (mounted) {
-      fetchProviders();
-      fetchMarketData();
-      fetchWRVUData();
-    }
-  }, [mounted]);
+    const fetchProviders = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/admin/providers');
+        if (!response.ok) throw new Error('Failed to fetch providers');
+        const providerData = await response.json();
+        
+        // Debug logging
+        console.log('First 3 providers with base salaries:', 
+          providerData.slice(0, 3).map(p => ({
+            employeeId: p.employeeId,
+            name: `${p.firstName} ${p.lastName}`,
+            baseSalary: p.baseSalary,
+            formattedBaseSalary: formatSalary(p.baseSalary)
+          }))
+        );
+        
+        setProviders(providerData);
+        setLoading(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch providers');
+        setLoading(false);
+      }
+    };
+
+    fetchProviders();
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -1226,7 +1207,9 @@ export default function ProvidersPage() {
                                 }}
                               />
                             </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">{provider.employeeId}</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">
+                              {provider.employeeId}
+                            </td>
                             <td className="whitespace-nowrap px-3 py-3 text-sm">
                               <Link
                                 href={`/provider/${provider.employeeId}`}
@@ -1235,9 +1218,15 @@ export default function ProvidersPage() {
                                 {provider.firstName} {provider.lastName}
                               </Link>
                             </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-500">{provider.email}</td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">{provider.specialty}</td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">{provider.department}</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-500">
+                              {provider.email}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">
+                              {provider.specialty}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">
+                              {provider.department}
+                            </td>
                             <td className="whitespace-nowrap px-3 py-3 text-sm">
                               <button
                                 onClick={async (e) => {
@@ -1282,15 +1271,33 @@ export default function ProvidersPage() {
                                 {provider.status}
                               </button>
                             </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">{provider.fte.toFixed(2)}</td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">{provider.clinicalFte.toFixed(2)}</td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">{provider.nonClinicalFte.toFixed(2)}</td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">{new Date(provider.hireDate).toLocaleDateString()}</td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">{provider.terminationDate ? new Date(provider.terminationDate).toLocaleDateString() : '-'}</td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">${provider.baseSalary.toLocaleString()}</td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">{provider.compensationModel}</td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">${provider.clinicalSalary.toLocaleString()}</td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">${provider.nonClinicalSalary.toLocaleString()}</td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">
+                              {provider.fte?.toFixed(2) || '0.00'}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">
+                              {provider.clinicalFte?.toFixed(2) || '0.00'}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">
+                              {provider.nonClinicalFte?.toFixed(2) || '0.00'}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">
+                              {provider.hireDate ? new Date(provider.hireDate).toLocaleDateString() : 'N/A'}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">
+                              {provider.terminationDate ? new Date(provider.terminationDate).toLocaleDateString() : '-'}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">
+                              ${(provider.baseSalary || 0).toLocaleString()}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">
+                              {provider.compensationModel}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">
+                              ${(provider.clinicalSalary || 0).toLocaleString()}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">
+                              ${(provider.nonClinicalSalary || 0).toLocaleString()}
+                            </td>
                           </tr>
                         ))}
                       </tbody>

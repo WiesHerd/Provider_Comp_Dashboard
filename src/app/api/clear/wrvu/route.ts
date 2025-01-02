@@ -1,14 +1,20 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 
 export async function POST() {
   try {
-    // Delete all wRVU data
-    const result = await prisma.wRVUData.deleteMany();
+    // Delete all wRVU data first (due to foreign key constraints)
+    const wrvuResult = await prisma.wRVUData.deleteMany();
+    
+    // Delete all providers
+    const providerResult = await prisma.provider.deleteMany();
     
     return new NextResponse(JSON.stringify({ 
-      message: 'wRVU data cleared successfully',
-      count: result.count
+      message: 'All data cleared successfully',
+      count: {
+        wrvuData: wrvuResult.count,
+        providers: providerResult.count
+      }
     }), {
       status: 200,
       headers: {
@@ -16,9 +22,9 @@ export async function POST() {
       },
     });
   } catch (error) {
-    console.error('Error clearing wRVU data:', error);
+    console.error('Error clearing data:', error);
     return new NextResponse(JSON.stringify({
-      error: 'Failed to clear wRVU data'
+      error: 'Failed to clear data'
     }), {
       status: 500,
       headers: {

@@ -1,24 +1,12 @@
 import { NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 
-interface WRVURecord {
-  employee_id: string;
-  first_name: string;
-  last_name: string;
-  specialty: string;
-  month: string;
-  wrvu: number;
-  year: number;
-}
-
 export async function POST(request: Request) {
   try {
-    console.log('Starting wRVU data preview process');
     const formData = await request.formData();
     const file = formData.get('file');
 
     if (!file || !(file instanceof File)) {
-      console.error('No file found in request');
       return NextResponse.json(
         { error: 'No file uploaded' },
         { status: 400 }
@@ -41,54 +29,51 @@ export async function POST(request: Request) {
     // Get the first worksheet
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
     
+    // Define header mapping
+    const headerMapping = {
+      'employee_id': 'employee_id',
+      'first_name': 'first_name',
+      'last_name': 'last_name',
+      'specialty': 'specialty',
+      'Jan': 'Jan',
+      'Feb': 'Feb',
+      'Mar': 'Mar',
+      'Apr': 'Apr',
+      'May': 'May',
+      'Jun': 'Jun',
+      'Jul': 'Jul',
+      'Aug': 'Aug',
+      'Sep': 'Sep',
+      'Oct': 'Oct',
+      'Nov': 'Nov',
+      'Dec': 'Dec'
+    };
+    
     // Convert to JSON with header mapping
     const rawData = XLSX.utils.sheet_to_json(worksheet, {
       raw: true,
-      defval: 0
+      defval: 0,  // Default value for empty cells
+      blankrows: false,  // Skip blank rows
+      header: Object.keys(headerMapping)  // Use our defined headers
     });
 
-    // Transform the data into monthly records
-    const monthlyData: WRVURecord[] = [];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const currentYear = new Date().getFullYear();
-    
-    rawData.forEach((row: any) => {
-      // Validate employee data
-      if (!row.employee_id) {
-        throw new Error('Missing employee ID in row');
-      }
-
-      months.forEach((month) => {
-        const wrvuValue = parseFloat(row[month]);
-        if (!isNaN(wrvuValue)) {
-          monthlyData.push({
-            employee_id: row.employee_id,
-            first_name: row.first_name || '',
-            last_name: row.last_name || '',
-            specialty: row.specialty || '',
-            month: month,
-            year: currentYear,
-            wrvu: wrvuValue
-          });
-        }
+    // Skip the header row and map the data
+    const mappedData = (rawData as any[]).slice(1).map(row => {
+      const mappedRow: any = {};
+      Object.entries(headerMapping).forEach(([from, to]) => {
+        mappedRow[to] = row[from];
       });
+      return mappedRow;
     });
 
-    // Validate the data
-    if (monthlyData.length === 0) {
-      return NextResponse.json(
-        { error: 'No valid wRVU data found in file.' },
-        { status: 400 }
-      );
-    }
+    // Return the first 5 rows for preview
+    const previewData = mappedData.slice(0, 5);
 
-    // Return preview data (first few records for each unique employee)
-    const previewData = monthlyData.slice(0, 50); // Limit preview to first 50 records
+    console.log('Preview data:', previewData); // Debug log
 
     return NextResponse.json({
-      message: `Found ${monthlyData.length} wRVU records for ${new Set(monthlyData.map(d => d.employee_id)).size} providers`,
-      count: monthlyData.length,
-      data: previewData
+      data: previewData,
+      totalRows: mappedData.length
     });
   } catch (error) {
     console.error('Error previewing wRVU data:', error);

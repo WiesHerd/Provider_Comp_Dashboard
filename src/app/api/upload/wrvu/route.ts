@@ -1,25 +1,31 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import * as XLSX from 'xlsx';
 
-interface WRVUUploadData {
+interface WRVURow {
   employee_id: string;
   first_name: string;
   last_name: string;
   specialty: string;
-  jan: number;
-  feb: number;
-  mar: number;
-  apr: number;
-  may: number;
-  jun: number;
-  jul: number;
-  aug: number;
-  sep: number;
-  oct: number;
-  nov: number;
-  dec: number;
+  Jan: string | number;
+  Feb: string | number;
+  Mar: string | number;
+  Apr: string | number;
+  May: string | number;
+  Jun: string | number;
+  Jul: string | number;
+  Aug: string | number;
+  Sep: string | number;
+  Oct: string | number;
+  Nov: string | number;
+  Dec: string | number;
+  [key: string]: any;
 }
+
+const MONTHS = {
+  Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6,
+  Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12
+};
 
 export async function POST(request: Request) {
   try {
@@ -37,8 +43,8 @@ export async function POST(request: Request) {
     }
 
     // If mode is 'clear', delete all existing wRVU data for the current year
+    const currentYear = new Date().getFullYear();
     if (mode === 'clear') {
-      const currentYear = new Date().getFullYear();
       await prisma.wRVUData.deleteMany({
         where: { year: currentYear }
       });
@@ -63,98 +69,106 @@ export async function POST(request: Request) {
     
     // Convert to JSON with header mapping
     const rawData = XLSX.utils.sheet_to_json(worksheet, {
-      raw: false,
-      defval: '0'
-    });
+      raw: true,
+      defval: 0,  // Default value for empty cells
+      blankrows: false  // Skip blank rows
+    }) as WRVURow[];
 
-    // Transform and validate the data
-    const wrvuData = rawData.map((row: any) => ({
-      employeeId: row.employee_id,
-      jan: Number(row.Jan) || 0,
-      feb: Number(row.Feb) || 0,
-      mar: Number(row.Mar) || 0,
-      apr: Number(row.Apr) || 0,
-      may: Number(row.May) || 0,
-      jun: Number(row.Jun) || 0,
-      jul: Number(row.Jul) || 0,
-      aug: Number(row.Aug) || 0,
-      sep: Number(row.Sep) || 0,
-      oct: Number(row.Oct) || 0,
-      nov: Number(row.Nov) || 0,
-      dec: Number(row.Dec) || 0
-    }));
+    console.log('Processing data rows:', rawData.length);
 
-    const currentYear = new Date().getFullYear();
+    let totalRecords = 0;
+    const errors: string[] = [];
+    const successes: string[] = [];
 
-    // Process wRVU data records
-    const results = await Promise.all(
-      wrvuData.map(async (data) => {
-        try {
-          // First find the provider
-          const provider = await prisma.provider.findUnique({
-            where: { employeeId: data.employeeId }
-          });
-
-          if (!provider) {
-            throw new Error(`Provider not found with ID: ${data.employeeId}`);
-          }
-
-          // Then upsert the wRVU data
-          return await prisma.wRVUData.upsert({
-            where: {
-              providerId_year: {
-                providerId: provider.id,
-                year: currentYear
-              }
-            },
-            update: {
-              jan: data.jan,
-              feb: data.feb,
-              mar: data.mar,
-              apr: data.apr,
-              may: data.may,
-              jun: data.jun,
-              jul: data.jul,
-              aug: data.aug,
-              sep: data.sep,
-              oct: data.oct,
-              nov: data.nov,
-              dec: data.dec,
-              updatedAt: new Date()
-            },
-            create: {
-              providerId: provider.id,
-              year: currentYear,
-              jan: data.jan,
-              feb: data.feb,
-              mar: data.mar,
-              apr: data.apr,
-              may: data.may,
-              jun: data.jun,
-              jul: data.jul,
-              aug: data.aug,
-              sep: data.sep,
-              oct: data.oct,
-              nov: data.nov,
-              dec: data.dec
-            }
-          });
-        } catch (error) {
-          console.error(`Error processing wRVU data for employee ${data.employeeId}:`, error);
-          return null;
+    // Process each row
+    for (const row of rawData) {
+      try {
+        const employeeId = row.employee_id?.toString();
+        
+        if (!employeeId) {
+          console.warn('Skipping row without employee_id');
+          continue;
         }
-      })
-    );
 
-    const successfulUploads = results.filter(result => result !== null);
-    console.log('Upload successful:', {
-      total: wrvuData.length,
-      successful: successfulUploads.length
-    });
+        // Find or create the provider
+        const provider = await prisma.provider.upsert({
+          where: { employeeId },
+          update: {
+            firstName: row.first_name?.toString() || '',
+            lastName: row.last_name?.toString() || '',
+            specialty: row.specialty?.toString() || '',
+            // Set default values for required fields if not already set
+            email: `${employeeId.toLowerCase()}@example.com`,
+            department: row.specialty?.toString() || 'Unknown',
+            hireDate: new Date(),
+            fte: 1.0,
+            baseSalary: 0,
+            compensationModel: 'Standard'
+          },
+          create: {
+            employeeId,
+            firstName: row.first_name?.toString() || '',
+            lastName: row.last_name?.toString() || '',
+            specialty: row.specialty?.toString() || '',
+            email: `${employeeId.toLowerCase()}@example.com`,
+            department: row.specialty?.toString() || 'Unknown',
+            hireDate: new Date(),
+            fte: 1.0,
+            baseSalary: 0,
+            compensationModel: 'Standard'
+          }
+        });
+
+        // Create or update wRVU data for each month
+        for (const [monthName, monthNum] of Object.entries(MONTHS)) {
+          const rawValue = row[monthName];
+          const value = typeof rawValue === 'number' 
+            ? rawValue 
+            : typeof rawValue === 'string' 
+              ? parseFloat(rawValue) || 0 
+              : 0;
+          
+          if (value > 0) {  // Only create/update records with actual values
+            await prisma.wRVUData.upsert({
+              where: {
+                providerId_year_month: {
+                  providerId: provider.id,
+                  year: currentYear,
+                  month: monthNum
+                }
+              },
+              update: {
+                value,
+                hours: 160 // Default to standard month hours
+              },
+              create: {
+                providerId: provider.id,
+                year: currentYear,
+                month: monthNum,
+                value,
+                hours: 160 // Default to standard month hours
+              }
+            });
+            totalRecords++;
+          }
+        }
+        
+        successes.push(`Successfully processed data for ${row.first_name} ${row.last_name} (${employeeId})`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const employeeId = row.employee_id?.toString() || 'Unknown';
+        errors.push(`Error processing row for ${employeeId}: ${errorMessage}`);
+        console.error(`Error processing row:`, { error, row });
+      }
+    }
+
+    console.log(`Completed processing. Provider rows: ${rawData.length}, Errors: ${errors.length}`);
 
     return NextResponse.json({
-      message: `Successfully processed ${successfulUploads.length} wRVU records`,
-      count: successfulUploads.length
+      message: `Successfully uploaded ${rawData.length} records`,
+      count: rawData.length,
+      successes,
+      errors: errors.length > 0 ? errors : undefined
     });
   } catch (error) {
     console.error('Error uploading wRVU data:', error);

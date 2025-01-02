@@ -60,6 +60,21 @@ interface Provider {
   fte: number;
   baseSalary: number;
   compensationModel: string;
+  clinicalFte: number;
+  nonClinicalFte: number;
+  clinicalSalary: number;
+  nonClinicalSalary: number;
+  currentMetrics?: {
+    actualWRVUs: number;
+    targetWRVUs: number;
+    baseSalary: number;
+    totalCompensation: number;
+    wrvuPercentile: number;
+    compPercentile: number;
+    incentivesEarned: number;
+    holdbackAmount: number;
+    planProgress: number;
+  };
 }
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -113,7 +128,7 @@ function getMonthlySalaries(
     });
 
     if (monthlyChanges.length === 0) {
-      monthlySalaries[monthKey] = (currentAnnualSalary * currentFTE) / 12;
+      monthlySalaries[monthKey] = currentAnnualSalary / 12;
       monthlyDetails[monthKey] = { 
         changed: false, 
         prorated: false,
@@ -135,23 +150,23 @@ function getMonthlySalaries(
     const newFTE = change.newFTE ?? oldFTE;
 
     if (dayOfChange === 1) {
-      // Entire month at new salary and FTE
-      monthlySalaries[monthKey] = (newAnnual * newFTE) / 12;
-    monthlyDetails[monthKey] = {
-      changed: true,
-      prorated: false,
-      oldAnnual,
-      newAnnual,
-      oldFTE,
-      newFTE
-    };
+      // Entire month at new salary
+      monthlySalaries[monthKey] = newAnnual / 12;
+      monthlyDetails[monthKey] = {
+        changed: true,
+        prorated: false,
+        oldAnnual,
+        newAnnual,
+        oldFTE,
+        newFTE
+      };
     } else {
       // Prorate the month based on days
       const oldDays = dayOfChange - 1;
       const newDays = daysInMonth - oldDays;
       
-      const oldMonthlyAmount = ((oldAnnual * oldFTE) / 12) * (oldDays / daysInMonth);
-      const newMonthlyAmount = ((newAnnual * newFTE) / 12) * (newDays / daysInMonth);
+      const oldMonthlyAmount = (oldAnnual / 12) * (oldDays / daysInMonth);
+      const newMonthlyAmount = (newAnnual / 12) * (newDays / daysInMonth);
       const total = oldMonthlyAmount + newMonthlyAmount;
 
       monthlySalaries[monthKey] = total;
@@ -179,7 +194,7 @@ function getMonthlySalaries(
 }
 
 function calculateMonthlyTarget(annualSalary: number, conversionFactor: number, fte: number = 1.0) {
-  const annualTarget = (annualSalary * fte) / conversionFactor;
+  const annualTarget = annualSalary / conversionFactor;
   const monthlyTarget = annualTarget / 12;
   return Object.fromEntries(months.map(m => [m.toLowerCase(), monthlyTarget]));
 }
@@ -710,8 +725,46 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     const matchingMarket = marketData.find(data => data.specialty === provider.specialty);
     if (!matchingMarket) return { percentile: 0 };
 
-    // Simple percentile calculation based on market data
-    return { percentile: Math.min(100, (totalComp / matchingMarket.p50_cf) * 50) };
+    // Adjust total comp for FTE if less than 1.0
+    const fteAdjustedTotalComp = provider.fte < 1.0 ? totalComp / provider.fte : totalComp;
+
+    const benchmarks = [
+      { percentile: 25, value: matchingMarket.p25_total || 0 },
+      { percentile: 50, value: matchingMarket.p50_total || 0 },
+      { percentile: 75, value: matchingMarket.p75_total || 0 },
+      { percentile: 90, value: matchingMarket.p90_total || 0 }
+    ];
+
+    // If below 25th percentile
+    if (fteAdjustedTotalComp < benchmarks[0].value) {
+      const percentile = benchmarks[0].value > 0 ? (fteAdjustedTotalComp / benchmarks[0].value) * 25 : 0;
+      return { percentile };
+    }
+
+    // If above 90th percentile
+    if (fteAdjustedTotalComp > benchmarks[3].value) {
+      const percentile = benchmarks[3].value > 0 
+        ? 90 + ((fteAdjustedTotalComp - benchmarks[3].value) / benchmarks[3].value) * 10 
+        : 90;
+      return { percentile: Math.min(100, percentile) };
+    }
+
+    // Find which benchmarks we're between
+    for (let i = 0; i < benchmarks.length - 1; i++) {
+      const lower = benchmarks[i];
+      const upper = benchmarks[i + 1];
+      if (fteAdjustedTotalComp >= lower.value && fteAdjustedTotalComp <= upper.value) {
+        const range = upper.value - lower.value;
+        const position = fteAdjustedTotalComp - lower.value;
+        const percentileRange = upper.percentile - lower.percentile;
+        const percentile = range > 0 
+          ? lower.percentile + (position / range) * percentileRange 
+          : lower.percentile;
+        return { percentile };
+      }
+    }
+
+    return { percentile: 0 };
   };
 
   // Update the getConversionFactor function to handle missing market data
@@ -1688,6 +1741,99 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     // Implement export functionality
     console.log('Export to Excel');
   };
+
+  const monthToNumber: { [key: string]: number } = {
+    'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+    'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+  };
+
+  const saveMetricsAndAnalytics = async (provider: Provider, rowData: any[], compensationData: any[]) => {
+    try {
+      const currentDate = new Date();
+      const currentYear = currentDate.getFullYear();
+      const currentMonthStr = months[currentDate.getMonth()].toLowerCase();
+      const currentMonth = monthToNumber[currentMonthStr];
+
+      // Calculate YTD values
+      const totalWRVUs = rowData.find(row => row.metric === 'Total wRVUs');
+      const totalTarget = rowData.find(row => row.metric === 'Total Target');
+      const totalComp = compensationData.find(row => row.component === 'Total Comp.');
+      const incentives = compensationData.find(row => row.component === 'Incentives');
+      const holdback = compensationData.find(row => row.component.includes('Holdback'));
+
+      // Prepare metrics data with complete information
+      const metricsData = {
+        providerId: provider.id,
+        year: currentYear,
+        month: currentMonth,
+        actualWRVUs: totalWRVUs?.[currentMonthStr] || 0,
+        rawMonthlyWRVUs: baseMonthlyData[currentMonthStr] || 0,
+        ytdWRVUs: totalWRVUs?.ytd || 0,
+        targetWRVUs: totalTarget?.[currentMonthStr] || 0,
+        baseSalary: provider.baseSalary,
+        totalCompensation: totalComp?.[currentMonthStr] || 0,
+        incentivesEarned: incentives?.[currentMonthStr] || 0,
+        holdbackAmount: Math.abs(holdback?.[currentMonthStr] || 0),
+        wrvuPercentile: calculateWRVUPercentile(ytdWRVUs, months.length, provider.fte, marketData).percentile,
+        compPercentile: calculateTotalCompPercentile(totalComp?.ytd || 0, marketData).percentile,
+        planProgress: calculatePlanYearProgress(rowData).percentage
+      };
+
+      // Prepare analytics data with complete information
+      const analyticsData = {
+        providerId: provider.id,
+        year: currentYear,
+        month: currentMonth,
+        ytdProgress: calculateYTDTargetProgress(rowData).percentage,
+        ytdTargetProgress: (ytdWRVUs / (provider.fte * 12)) * 100,
+        incentivePercentage: ((incentives?.ytd || 0) / provider.baseSalary) * 100,
+        clinicalUtilization: (provider.clinicalFte / provider.fte) * 100
+      };
+
+      console.log('Syncing metrics data:', metricsData);
+      console.log('Syncing analytics data:', analyticsData);
+
+      // Store metrics
+      const metricsResponse = await fetch('/api/provider-metrics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(metricsData)
+      });
+
+      if (!metricsResponse.ok) {
+        throw new Error('Failed to sync metrics data');
+      }
+
+      // Store analytics
+      const analyticsResponse = await fetch('/api/provider-analytics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(analyticsData)
+      });
+
+      if (!analyticsResponse.ok) {
+        throw new Error('Failed to sync analytics data');
+      }
+
+      console.log('Successfully synced metrics and analytics');
+    } catch (error) {
+      console.error('Error saving metrics and analytics:', error);
+      toast({
+        title: "Error",
+        description: "Failed to sync provider data",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Add sync points to key data changes
+  useEffect(() => {
+    if (!isLoading && baseMonthlyData && Object.keys(baseMonthlyData).length > 0) {
+      const rowData = getRowData();
+      const compensationData = getCompensationData();
+      saveMetricsAndAnalytics(provider, rowData, compensationData);
+    }
+  }, [baseMonthlyData, adjustments, targetAdjustments, additionalPayments, compensationHistory]);
 
   return (
     <>

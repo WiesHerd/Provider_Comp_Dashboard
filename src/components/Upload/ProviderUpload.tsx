@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import UploadSection from './UploadSection';
 
 interface ProviderUploadProps {
@@ -18,6 +19,7 @@ export default function ProviderUpload({ onPreview, previewData }: ProviderUploa
   const [isUploading, setIsUploading] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
 
   const handleClearData = async () => {
     try {
@@ -32,11 +34,14 @@ export default function ProviderUpload({ onPreview, previewData }: ProviderUploa
       }
 
       toast.success(`Successfully cleared ${result.count} provider records`);
+      router.push('/admin/providers');
+      router.refresh();
     } catch (err) {
       console.error('Error clearing provider data:', err);
       toast.error('Failed to clear provider data');
     } finally {
       setIsClearing(false);
+      setIsConfirmDialogOpen(false);
     }
   };
 
@@ -131,10 +136,11 @@ export default function ProviderUpload({ onPreview, previewData }: ProviderUploa
         throw new Error(result.message || result.error || 'Upload failed');
       }
 
-      alert(`Successfully uploaded ${result.count} provider records`);
+      toast.success(`Successfully uploaded ${result.count} provider records`);
       router.push('/admin/providers');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
+      toast.error(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setIsUploading(false);
     }
@@ -148,12 +154,12 @@ export default function ProviderUpload({ onPreview, previewData }: ProviderUploa
 
   return (
     <div className="space-y-4">
-      <div>
+      <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <h2 className="text-lg font-medium text-gray-900">Provider Data</h2>
           <div className="flex gap-2">
             <button
-              onClick={handleClearData}
+              onClick={() => setIsConfirmDialogOpen(true)}
               disabled={isClearing}
               className="inline-flex items-center min-w-fit px-2 py-1 text-sm text-red-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -179,7 +185,7 @@ export default function ProviderUpload({ onPreview, previewData }: ProviderUploa
           </div>
         </div>
         <p className="text-sm text-gray-500">
-          Upload provider information including employee ID, name, and specialty.
+          Upload provider data including employee IDs, names, specialties, and other relevant information.
         </p>
       </div>
 
@@ -221,7 +227,72 @@ export default function ProviderUpload({ onPreview, previewData }: ProviderUploa
             {error}
           </div>
         )}
+
+        {previewData && (
+          <div className="mt-4">
+            <h3 className="text-lg font-medium mb-2">Data Preview</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {previewData.columns.map((column: any) => (
+                      <th 
+                        key={column.key}
+                        scope="col" 
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        {column.header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {previewData.data.slice(0, 5).map((row: any, index: number) => (
+                    <tr key={index}>
+                      {previewData.columns.map((column: any) => (
+                        <td key={column.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {column.formatter ? column.formatter(row[column.key]) : row[column.key]}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {previewData.data.length > 5 && (
+              <p className="text-sm text-gray-500 mt-2">
+                Showing first 5 of {previewData.data.length} records
+              </p>
+            )}
+            <div className="mt-4 flex justify-end space-x-2">
+              <button
+                onClick={handleCancel}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpload}
+                disabled={isUploading}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+              >
+                {isUploading ? 'Uploading...' : 'Upload'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      <ConfirmDialog
+        isOpen={isConfirmDialogOpen}
+        onClose={() => setIsConfirmDialogOpen(false)}
+        onConfirm={handleClearData}
+        title="Clear Provider Data"
+        message="Are you sure you want to clear all provider data?"
+        warningMessage="This action cannot be undone. All provider data, including wRVU data and adjustments, will be permanently deleted."
+        confirmButtonText="Clear Data"
+        cancelButtonText="Cancel"
+      />
     </div>
   );
 } 

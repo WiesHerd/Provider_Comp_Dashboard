@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { MagnifyingGlassIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import EditWRVUModal from '@/components/WRVU/EditWRVUModal';
+import { toast } from 'react-hot-toast';
 
 function classNames(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ');
@@ -76,15 +77,64 @@ export default function WRVUDataPage() {
 
   const fetchWRVUData = async () => {
     try {
+      console.log('Fetching wRVU data...');
       const response = await fetch('/api/wrvu-data');
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch wRVU data');
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`Failed to fetch wRVU data: ${response.status} ${errorText}`);
       }
+      
       const data = await response.json();
+      console.log('Received wRVU data:', data);
+      
+      if (!Array.isArray(data)) {
+        console.error('Received non-array data:', data);
+        throw new Error('Invalid data format received');
+      }
+      
       setWRVUData(data);
       setFilteredData(data);
+      console.log('State updated with', data.length, 'records');
     } catch (err) {
+      console.error('Error in fetchWRVUData:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleClearData = async () => {
+    if (!confirm('Are you sure you want to clear ALL wRVU data and providers? This cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/clear/wrvu', {
+        method: 'POST'
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to clear data');
+      }
+
+      // Reset all state
+      setWRVUData([]);
+      setFilteredData([]);
+      setSelectedItems(new Set());
+      setCurrentPage(1);
+      
+      toast.success('Successfully cleared all data');
+      
+      // Force a page refresh to ensure everything is reset
+      router.refresh();
+    } catch (err) {
+      console.error('Error clearing data:', err);
+      toast.error('Failed to clear data');
     } finally {
       setIsLoading(false);
     }
@@ -186,8 +236,9 @@ export default function WRVUDataPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
-        <div className="flex justify-center items-center h-64">
+        <div className="flex flex-col justify-center items-center h-64 space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="text-sm text-gray-600">Loading wRVU data...</p>
         </div>
       </div>
     );
@@ -197,7 +248,18 @@ export default function WRVUDataPage() {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Data</h3>
           <p className="text-red-600">{error}</p>
+          <button
+            onClick={() => {
+              setError(null);
+              setIsLoading(true);
+              fetchWRVUData();
+            }}
+            className="mt-4 px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
@@ -215,7 +277,7 @@ export default function WRVUDataPage() {
             </p>
           </div>
           <button
-            onClick={handleAddWRVU}
+            onClick={() => router.push('/admin/wrvu-data/upload')}
             className="inline-flex items-center gap-x-2 rounded-full bg-[#6366F1] px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#5558EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6366F1]"
           >
             <PlusIcon className="h-5 w-5" aria-hidden="true" />
@@ -290,7 +352,7 @@ export default function WRVUDataPage() {
         <div className="overflow-y-scroll flex-1 rounded-t-lg scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
           <table className="min-w-full divide-y divide-gray-200">
             <thead>
-              <tr>
+              <tr key="main-header-row">
                 <th scope="col" className="relative w-12 px-4 sm:w-16 sm:px-6">
                   <input
                     type="checkbox"
@@ -311,24 +373,24 @@ export default function WRVUDataPage() {
                 <th scope="col" colSpan={12} className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap border-l border-gray-200">Monthly wRVUs</th>
                 <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-gray-50">YTD</th>
               </tr>
-              <tr>
-                <th></th>
-                <th></th>
-                <th></th>
-                <th></th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Jan</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Feb</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Mar</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Apr</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">May</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Jun</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Jul</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aug</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Sep</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Oct</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Nov</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Dec</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-gray-50"></th>
+              <tr key="month-header-row">
+                <th key="checkbox-header-month" scope="col"></th>
+                <th key="employee-id-header-month" scope="col"></th>
+                <th key="name-header-month" scope="col"></th>
+                <th key="specialty-header-month" scope="col"></th>
+                <th key="jan-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Jan</th>
+                <th key="feb-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Feb</th>
+                <th key="mar-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Mar</th>
+                <th key="apr-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Apr</th>
+                <th key="may-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">May</th>
+                <th key="jun-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Jun</th>
+                <th key="jul-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Jul</th>
+                <th key="aug-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aug</th>
+                <th key="sep-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Sep</th>
+                <th key="oct-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Oct</th>
+                <th key="nov-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Nov</th>
+                <th key="dec-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Dec</th>
+                <th key="ytd-header-month" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-gray-50"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">

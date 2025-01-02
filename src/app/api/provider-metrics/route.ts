@@ -1,97 +1,68 @@
-import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
+
+const monthToNumber: { [key: string]: number } = {
+  'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+  'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+};
 
 export async function POST(request: Request) {
   try {
-    const metrics = await request.json();
-    console.log('Received metrics:', metrics);
+    const data = await request.json();
     
-    // Validate required fields
-    const requiredFields = [
-      'providerId',
-      'year',
-      'month',
-      'actualWRVUs',
-      'ytdWRVUs',
-      'annualizedWRVUs',
-      'monthlyTarget',
-      'ytdTarget',
-      'wrvuVariance',
-      'currentFTE',
-      'completedMonths',
-      'monthlyCompensation',
-      'ytdCompensation',
-      'annualizedCompensation',
-      'conversionFactor',
-      'cfPercentile',
-      'wrvuPercentile',
-      'compensationPercentile',
-      'normalizedWRVUs',
-      'compensationModel'
-    ];
+    // Convert string month to number if needed
+    const month = typeof data.month === 'string' ? monthToNumber[data.month.toLowerCase()] : data.month;
+    
+    if (!month) {
+      throw new Error('Invalid month provided');
+    }
 
-    for (const field of requiredFields) {
-      if (!(field in metrics)) {
-        console.error(`Missing required field: ${field}`);
-        return new NextResponse(
-          JSON.stringify({ error: `Missing required field: ${field}` }),
-          { 
-            status: 400,
-            headers: { 'Content-Type': 'application/json' }
-          }
-        );
+    // Ensure all numeric fields are properly typed
+    const metrics = await prisma.providerMetrics.upsert({
+      where: {
+        providerId_year_month: {
+          providerId: data.providerId,
+          year: data.year,
+          month: month
+        }
+      },
+      update: {
+        actualWRVUs: Number(data.actualWRVUs) || 0,
+        rawMonthlyWRVUs: Number(data.rawMonthlyWRVUs) || 0,
+        ytdWRVUs: Number(data.ytdWRVUs) || 0,
+        targetWRVUs: Number(data.targetWRVUs) || 0,
+        baseSalary: Number(data.baseSalary) || 0,
+        totalCompensation: Number(data.totalCompensation) || 0,
+        wrvuPercentile: Number(data.wrvuPercentile) || 0,
+        compPercentile: Number(data.compPercentile) || 0,
+        incentivesEarned: Number(data.incentivesEarned) || 0,
+        holdbackAmount: Number(data.holdbackAmount) || 0,
+        planProgress: Number(data.planProgress) || 0
+      },
+      create: {
+        providerId: data.providerId,
+        year: data.year,
+        month: month,
+        actualWRVUs: Number(data.actualWRVUs) || 0,
+        rawMonthlyWRVUs: Number(data.rawMonthlyWRVUs) || 0,
+        ytdWRVUs: Number(data.ytdWRVUs) || 0,
+        targetWRVUs: Number(data.targetWRVUs) || 0,
+        baseSalary: Number(data.baseSalary) || 0,
+        totalCompensation: Number(data.totalCompensation) || 0,
+        wrvuPercentile: Number(data.wrvuPercentile) || 0,
+        compPercentile: Number(data.compPercentile) || 0,
+        incentivesEarned: Number(data.incentivesEarned) || 0,
+        holdbackAmount: Number(data.holdbackAmount) || 0,
+        planProgress: Number(data.planProgress) || 0
       }
-    }
+    });
 
-    // Set calculation date if not provided
-    metrics.calculatedDate = metrics.calculatedDate || new Date();
-
-    console.log('Saving metrics to database...');
-    try {
-      const saved = await prisma.providerMetrics.upsert({
-        where: {
-          providerId_year_month: {
-            providerId: metrics.providerId,
-            year: metrics.year,
-            month: metrics.month
-          }
-        },
-        update: metrics,
-        create: metrics
-      });
-
-      console.log('Metrics saved successfully:', saved);
-      return new NextResponse(
-        JSON.stringify(saved),
-        { 
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    } catch (dbError) {
-      console.error('Database error:', dbError);
-      return new NextResponse(
-        JSON.stringify({ 
-          error: 'Database error',
-          details: dbError instanceof Error ? dbError.message : 'Unknown database error'
-        }),
-        { 
-          status: 500,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
+    return NextResponse.json({ success: true, data: metrics });
   } catch (error) {
-    console.error('Error saving provider metrics:', error);
-    return new NextResponse(
-      JSON.stringify({ 
-        error: 'Failed to save metrics',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }),
-      { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
+    console.error('Error storing provider metrics:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to store provider metrics' },
+      { status: 500 }
     );
   }
 }
@@ -99,40 +70,47 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const providerId = searchParams.get('providerId');
-    const year = searchParams.get('year');
-    const month = searchParams.get('month');
-
-    if (!providerId) {
-      return NextResponse.json(
-        { error: 'Provider ID is required' },
-        { status: 400 }
-      );
-    }
-
-    const where: any = { providerId };
-    
-    if (year) {
-      where.year = parseInt(year);
-    }
-    
-    if (month) {
-      where.month = parseInt(month);
-    }
+    const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : new Date().getFullYear();
+    const month = searchParams.get('month') ? parseInt(searchParams.get('month')!) : new Date().getMonth() + 1;
 
     const metrics = await prisma.providerMetrics.findMany({
-      where,
-      orderBy: [
-        { year: 'desc' },
-        { month: 'desc' }
-      ]
+      where: {
+        year,
+        month
+      },
+      include: {
+        provider: {
+          select: {
+            firstName: true,
+            lastName: true,
+            specialty: true,
+            clinicalFte: true,
+            baseSalary: true
+          }
+        }
+      }
     });
 
-    return NextResponse.json(metrics);
+    const formattedMetrics = metrics.map(metric => ({
+      id: metric.id,
+      providerId: metric.providerId,
+      providerName: `${metric.provider.firstName} ${metric.provider.lastName}`,
+      specialty: metric.provider.specialty,
+      actualWRVUs: metric.actualWRVUs,
+      targetWRVUs: metric.targetWRVUs,
+      wrvuPercentile: metric.wrvuPercentile,
+      baseSalary: metric.baseSalary,
+      incentivePay: metric.incentivesEarned,
+      totalCompensation: metric.totalCompensation,
+      compPercentile: metric.compPercentile,
+      clinicalFte: metric.provider.clinicalFte
+    }));
+
+    return NextResponse.json(formattedMetrics);
   } catch (error) {
     console.error('Error fetching provider metrics:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch metrics' },
+      { error: 'Failed to fetch provider metrics' },
       { status: 500 }
     );
   }

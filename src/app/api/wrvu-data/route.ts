@@ -1,56 +1,58 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
     const currentYear = new Date().getFullYear();
     console.log('Fetching wRVU data for year:', currentYear);
     
-    const wrvuData = await prisma.wRVUData.findMany({
-      where: {
-        year: currentYear
-      },
+    const providers = await prisma.provider.findMany({
       include: {
-        provider: {
-          select: {
-            employeeId: true,
-            firstName: true,
-            lastName: true,
-            specialty: true
+        wrvuData: {
+          where: {
+            year: currentYear
           }
         }
       }
     });
     
-    console.log('Raw wRVU data from database:', wrvuData);
-
-    // Transform the data to match the expected format
-    const formattedData = wrvuData.map(data => ({
-      id: data.id,
-      employee_id: data.provider.employeeId,
-      first_name: data.provider.firstName,
-      last_name: data.provider.lastName,
-      specialty: data.provider.specialty,
-      year: data.year,
-      jan: data.jan,
-      feb: data.feb,
-      mar: data.mar,
-      apr: data.apr,
-      may: data.may,
-      jun: data.jun,
-      jul: data.jul,
-      aug: data.aug,
-      sep: data.sep,
-      oct: data.oct,
-      nov: data.nov,
-      dec: data.dec
-    }));
+    console.log('Raw providers data:', JSON.stringify(providers, null, 2));
+    
+    // Transform the data to match the expected format, one entry per provider
+    const formattedData = providers.map(provider => {
+      console.log(`Processing provider ${provider.id}:`, provider);
+      // Create a map of month -> value from the wRVU data
+      const monthlyValues = provider.wrvuData.reduce((acc, data) => {
+        acc[data.month] = data.value;
+        return acc;
+      }, {} as Record<number, number>);
+      
+      return {
+        id: provider.id,
+        employee_id: provider.employeeId,
+        first_name: provider.firstName,
+        last_name: provider.lastName,
+        specialty: provider.specialty,
+        year: currentYear,
+        jan: monthlyValues[1] || 0,
+        feb: monthlyValues[2] || 0,
+        mar: monthlyValues[3] || 0,
+        apr: monthlyValues[4] || 0,
+        may: monthlyValues[5] || 0,
+        jun: monthlyValues[6] || 0,
+        jul: monthlyValues[7] || 0,
+        aug: monthlyValues[8] || 0,
+        sep: monthlyValues[9] || 0,
+        oct: monthlyValues[10] || 0,
+        nov: monthlyValues[11] || 0,
+        dec: monthlyValues[12] || 0
+      };
+    });
     
     console.log('Formatted data being returned:', formattedData);
-
     return NextResponse.json(formattedData);
   } catch (error) {
-    console.error('Detailed error in wRVU data fetch:', error);
+    console.error('Error fetching wRVU data:', error);
     return NextResponse.json(
       { error: 'Failed to fetch wRVU data' },
       { status: 500 }
@@ -61,6 +63,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
+    const currentYear = new Date().getFullYear();
 
     // First, ensure the provider exists
     const provider = await prisma.provider.findUnique({
@@ -76,27 +79,49 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create the wRVU data
-    const wrvuData = await prisma.wRVUData.create({
-      data: {
-        year: data.year,
-        jan: data.jan || 0,
-        feb: data.feb || 0,
-        mar: data.mar || 0,
-        apr: data.apr || 0,
-        may: data.may || 0,
-        jun: data.jun || 0,
-        jul: data.jul || 0,
-        aug: data.aug || 0,
-        sep: data.sep || 0,
-        oct: data.oct || 0,
-        nov: data.nov || 0,
-        dec: data.dec || 0,
-        providerId: provider.id
-      }
-    });
+    // Create wRVU data for each month
+    const monthlyData = {
+      1: data.jan || 0,
+      2: data.feb || 0,
+      3: data.mar || 0,
+      4: data.apr || 0,
+      5: data.may || 0,
+      6: data.jun || 0,
+      7: data.jul || 0,
+      8: data.aug || 0,
+      9: data.sep || 0,
+      10: data.oct || 0,
+      11: data.nov || 0,
+      12: data.dec || 0
+    };
 
-    return NextResponse.json(wrvuData);
+    // Create all monthly records
+    const wrvuData = await Promise.all(
+      Object.entries(monthlyData).map(([month, value]) =>
+        prisma.wRVUData.upsert({
+          where: {
+            providerId_year_month: {
+              providerId: provider.id,
+              year: currentYear,
+              month: parseInt(month)
+            }
+          },
+          create: {
+            year: currentYear,
+            month: parseInt(month),
+            value,
+            hours: 160,
+            providerId: provider.id
+          },
+          update: {
+            value,
+            hours: 160
+          }
+        })
+      )
+    );
+
+    return NextResponse.json({ success: true, count: wrvuData.length });
   } catch (error) {
     console.error('Error creating wRVU data:', error);
     return NextResponse.json(
@@ -109,37 +134,65 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const data = await request.json();
+    const currentYear = new Date().getFullYear();
 
-    if (!data.id) {
-      return NextResponse.json(
-        { error: 'Missing wRVU data ID' },
-        { status: 400 }
-      );
-    }
-
-    // Update the wRVU data
-    const wrvuData = await prisma.wRVUData.update({
+    // Find the provider
+    const provider = await prisma.provider.findUnique({
       where: {
-        id: data.id
-      },
-      data: {
-        year: data.year,
-        jan: data.jan || 0,
-        feb: data.feb || 0,
-        mar: data.mar || 0,
-        apr: data.apr || 0,
-        may: data.may || 0,
-        jun: data.jun || 0,
-        jul: data.jul || 0,
-        aug: data.aug || 0,
-        sep: data.sep || 0,
-        oct: data.oct || 0,
-        nov: data.nov || 0,
-        dec: data.dec || 0
+        employeeId: data.employee_id
       }
     });
 
-    return NextResponse.json(wrvuData);
+    if (!provider) {
+      return NextResponse.json(
+        { error: 'Provider not found' },
+        { status: 404 }
+      );
+    }
+
+    // Update wRVU data for each month
+    const monthlyData = {
+      1: data.jan || 0,
+      2: data.feb || 0,
+      3: data.mar || 0,
+      4: data.apr || 0,
+      5: data.may || 0,
+      6: data.jun || 0,
+      7: data.jul || 0,
+      8: data.aug || 0,
+      9: data.sep || 0,
+      10: data.oct || 0,
+      11: data.nov || 0,
+      12: data.dec || 0
+    };
+
+    // Update all monthly records
+    const wrvuData = await Promise.all(
+      Object.entries(monthlyData).map(([month, value]) =>
+        prisma.wRVUData.upsert({
+          where: {
+            providerId_year_month: {
+              providerId: provider.id,
+              year: currentYear,
+              month: parseInt(month)
+            }
+          },
+          update: {
+            value,
+            hours: 160
+          },
+          create: {
+            year: currentYear,
+            month: parseInt(month),
+            value,
+            hours: 160,
+            providerId: provider.id
+          }
+        })
+      )
+    );
+
+    return NextResponse.json({ success: true, count: wrvuData.length });
   } catch (error) {
     console.error('Error updating wRVU data:', error);
     return NextResponse.json(
@@ -160,9 +213,10 @@ export async function DELETE(request: Request) {
       );
     }
 
+    // Delete wRVU data for the specified providers
     await prisma.wRVUData.deleteMany({
       where: {
-        id: {
+        providerId: {
           in: ids
         }
       }

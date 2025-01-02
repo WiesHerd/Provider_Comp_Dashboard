@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import * as XLSX from 'xlsx';
 
 interface ProviderUploadData {
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     
     let workbook;
     try {
-      workbook = XLSX.read(bytes, { type: 'array' });
+      workbook = XLSX.read(bytes, { type: 'array', cellDates: true });
     } catch (e) {
       console.error('Error reading file:', e);
       return NextResponse.json(
@@ -67,7 +67,6 @@ export async function POST(request: Request) {
     // Convert to JSON with header mapping
     const rawData = XLSX.utils.sheet_to_json(worksheet, {
       raw: false,
-      dateNF: 'yyyy-mm-dd',
       defval: ''
     }) as ProviderUploadData[];
 
@@ -92,9 +91,40 @@ export async function POST(request: Request) {
           throw new Error('Missing required fields (employee_id, first_name, last_name)');
         }
 
-        const hireDate = new Date(item.hire_date);
-        if (isNaN(hireDate.getTime())) {
-          throw new Error('Invalid hire date format');
+        // Parse hire date correctly
+        let hireDate;
+        if (item.hire_date) {
+          // First try parsing as a regular date string
+          hireDate = new Date(item.hire_date);
+          
+          // If that fails, try parsing as Excel serial number
+          if (isNaN(hireDate.getTime()) || hireDate.getFullYear() === 1899) {
+            const serialDate = Number(item.hire_date);
+            if (!isNaN(serialDate)) {
+              // Excel dates are number of days since 1/1/1900
+              // Add days to 1/1/1900 to get the actual date
+              const excelEpoch = new Date(1900, 0, 1);
+              hireDate = new Date(excelEpoch.getTime() + ((serialDate - 1) * 24 * 60 * 60 * 1000));
+            }
+          }
+
+          // Log the date parsing process
+          console.log('Date parsing details:', {
+            employeeId: item.employee_id,
+            originalValue: item.hire_date,
+            valueType: typeof item.hire_date,
+            parsedDate: hireDate,
+            parsedYear: hireDate?.getFullYear()
+          });
+
+          // If we still don't have a valid date, use current date
+          if (isNaN(hireDate?.getTime()) || hireDate.getFullYear() === 1899) {
+            console.warn(`Invalid hire date for ${item.employee_id}: ${item.hire_date}, using current date`);
+            hireDate = new Date();
+          }
+        } else {
+          hireDate = new Date();
+          console.log(`No hire date provided for ${item.employee_id}, using current date`);
         }
 
         const fte = Number(item.fte);
@@ -112,6 +142,10 @@ export async function POST(request: Request) {
         const clinicalSalary = Number(item.clinical_salary || '0');
         const nonClinicalSalary = Number(item.non_clinical_salary || '0');
 
+        // Calculate years of experience
+        const today = new Date();
+        const yearsOfExperience = Number(((today.getTime() - hireDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25)).toFixed(2));
+
         return {
           employeeId: item.employee_id,
           firstName: item.first_name,
@@ -120,6 +154,7 @@ export async function POST(request: Request) {
           specialty: item.specialty,
           department: item.department,
           hireDate: hireDate,
+          yearsOfExperience: yearsOfExperience,
           fte: fte,
           baseSalary: baseSalary,
           compensationModel: item.compensation_model || 'Standard',

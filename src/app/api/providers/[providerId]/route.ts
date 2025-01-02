@@ -1,17 +1,17 @@
 import { prisma } from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 
-// PATCH /api/providers/[providerId] - Update a provider
+// PATCH /api/providers/[employeeId] - Update a provider
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { providerId: string } }
+  { params }: { params: { employeeId: string } }
 ) {
   try {
-    const providerId = params.providerId;
+    const employeeId = params.employeeId;
     const data = await request.json();
 
     const provider = await prisma.provider.update({
-      where: { id: providerId },
+      where: { employeeId },
       data: {
         employeeId: data.employeeId,
         firstName: data.firstName,
@@ -37,15 +37,15 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/providers/[providerId] - Delete a provider
+// DELETE /api/providers/[employeeId] - Delete a provider
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { providerId: string } }
+  { params }: { params: { employeeId: string } }
 ) {
   try {
-    const providerId = params.providerId;
+    const employeeId = params.employeeId;
     await prisma.provider.delete({
-      where: { id: providerId },
+      where: { employeeId },
     });
     return NextResponse.json({ success: true });
   } catch (error) {

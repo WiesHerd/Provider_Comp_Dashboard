@@ -18,6 +18,7 @@ model Provider {
   status              String               @default("Active")
   terminationDate     DateTime?
   hireDate            DateTime
+  yearsOfExperience   Float                @default(0)
   fte                 Float
   baseSalary          Float
   compensationModel   String
@@ -25,6 +26,7 @@ model Provider {
   nonClinicalFte      Float                @default(0)
   clinicalSalary      Float                @default(0)
   nonClinicalSalary   Float                @default(0)
+  targetWRVUs         Float                @default(0)
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   additionalPayments  AdditionalPayment[]
@@ -32,6 +34,8 @@ model Provider {
   targetAdjustments   TargetAdjustment[]
   wrvuAdjustments     WRVUAdjustment[]
   wrvuData            WRVUData[]
+  metrics             ProviderMetrics[]
+  analytics          ProviderAnalytics[]
 
   @@map("providers")
 }
@@ -59,24 +63,14 @@ model WRVUAdjustment {
   name        String
   description String?
   year        Int
-  jan         Float    @default(0)
-  feb         Float    @default(0)
-  mar         Float    @default(0)
-  apr         Float    @default(0)
-  may         Float    @default(0)
-  jun         Float    @default(0)
-  jul         Float    @default(0)
-  aug         Float    @default(0)
-  sep         Float    @default(0)
-  oct         Float    @default(0)
-  nov         Float    @default(0)
-  dec         Float    @default(0)
+  month       Int
+  value       Float
   providerId  String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   provider    Provider @relation(fields: [providerId], references: [id])
 
-  @@index([providerId, year])
+  @@index([providerId, year, month])
 }
 
 model TargetAdjustment {
@@ -84,36 +78,26 @@ model TargetAdjustment {
   name        String
   description String?
   year        Int
-  jan         Float    @default(0)
-  feb         Float    @default(0)
-  mar         Float    @default(0)
-  apr         Float    @default(0)
-  may         Float    @default(0)
-  jun         Float    @default(0)
-  jul         Float    @default(0)
-  aug         Float    @default(0)
-  sep         Float    @default(0)
-  oct         Float    @default(0)
-  nov         Float    @default(0)
-  dec         Float    @default(0)
+  month       Int
+  value       Float
   providerId  String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   provider    Provider @relation(fields: [providerId], references: [id])
 
-  @@index([providerId, year])
+  @@index([providerId, year, month])
 }
 
 model AdditionalPayment {
-  id         String   @id @default(cuid())
-  name       String
-  amount     Float
-  month      String
-  year       Int
-  providerId String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  provider   Provider @relation(fields: [providerId], references: [id])
+  id          String   @id @default(cuid())
+  name        String
+  amount      Float
+  month       Int
+  year        Int
+  providerId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  provider    Provider @relation(fields: [providerId], references: [id])
 
   @@index([providerId, year, month])
 }
@@ -140,25 +124,57 @@ model MarketData {
 }
 
 model WRVUData {
-  id         String   @id @default(cuid())
-  year       Int
-  jan        Float    @default(0)
-  feb        Float    @default(0)
-  mar        Float    @default(0)
-  apr        Float    @default(0)
-  may        Float    @default(0)
-  jun        Float    @default(0)
-  jul        Float    @default(0)
-  aug        Float    @default(0)
-  sep        Float    @default(0)
-  oct        Float    @default(0)
-  nov        Float    @default(0)
-  dec        Float    @default(0)
-  providerId String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  provider   Provider @relation(fields: [providerId], references: [id])
+  id          String   @id @default(cuid())
+  year        Int
+  month       Int
+  value       Float
+  hours       Float    @default(0)
+  providerId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  provider    Provider @relation(fields: [providerId], references: [id])
 
-  @@unique([providerId, year])
-  @@map("wrvu_data")
+  @@unique([providerId, year, month])
+  @@index([providerId, year])
+}
+
+model ProviderMetrics {
+  id                String   @id @default(cuid())
+  providerId        String
+  year              Int
+  month            Int
+  actualWRVUs       Float
+  rawMonthlyWRVUs   Float
+  ytdWRVUs          Float
+  targetWRVUs       Float
+  baseSalary        Float
+  totalCompensation Float
+  incentivesEarned  Float
+  holdbackAmount    Float
+  wrvuPercentile    Float
+  compPercentile    Float
+  planProgress      Float
+  provider          Provider @relation(fields: [providerId], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([providerId, year, month])
+  @@index([providerId, year])
+}
+
+model ProviderAnalytics {
+  id                   String   @id @default(cuid())
+  providerId           String
+  year                 Int
+  month               Int
+  ytdProgress         Float
+  ytdTargetProgress   Float
+  incentivePercentage Float
+  clinicalUtilization Float
+  provider            Provider @relation(fields: [providerId], references: [id])
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([providerId, year, month])
+  @@index([providerId, year])
 }

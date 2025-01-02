@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 import UploadSection from './UploadSection';
 
 interface WRVUUploadProps {
@@ -18,6 +19,7 @@ export default function WRVUUpload({ onPreview, previewData }: WRVUUploadProps) 
   const [isUploading, setIsUploading] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
 
   const handleClearData = async () => {
     try {
@@ -31,19 +33,16 @@ export default function WRVUUpload({ onPreview, previewData }: WRVUUploadProps) 
         throw new Error(result.error || 'Failed to clear data');
       }
 
-      toast.success(`Successfully cleared ${result.count} wRVU data records`);
+      toast.success(`Successfully cleared ${result.count} wRVU records`);
+      router.push('/admin/wrvu-data');
+      router.refresh();
     } catch (err) {
       console.error('Error clearing wRVU data:', err);
       toast.error('Failed to clear wRVU data');
     } finally {
       setIsClearing(false);
+      setIsConfirmDialogOpen(false);
     }
-  };
-
-  const handleCancel = () => {
-    setFile(null);
-    setError(null);
-    onPreview(null, [], uploadMode, null); // Clear the preview
   };
 
   const handleFileSelect = async (selectedFile: File) => {
@@ -65,49 +64,49 @@ export default function WRVUUpload({ onPreview, previewData }: WRVUUploadProps) 
 
       const result = await response.json();
       
-      const formatNumber = (value: number) => {
-        if (typeof value !== 'number' || isNaN(value)) return '0.0';
-        return new Intl.NumberFormat('en-US', {
-          minimumFractionDigits: 1,
-          maximumFractionDigits: 1,
-        }).format(value);
+      const formatNumber = (value: number | string) => {
+        const num = typeof value === 'string' ? parseFloat(value) : value;
+        if (typeof num !== 'number' || isNaN(num)) return 0;
+        return num;
       };
 
-      // Transform the monthly data back into rows with month columns
-      const transformedData = result.data.reduce((acc: any[], record: any) => {
-        let existingRow = acc.find(row => row.employee_id === record.employee_id);
-        if (!existingRow) {
-          existingRow = {
-            employee_id: record.employee_id,
-            first_name: record.first_name,
-            last_name: record.last_name,
-            specialty: record.specialty,
-            Jan: 0, Feb: 0, Mar: 0, Apr: 0, May: 0, Jun: 0,
-            Jul: 0, Aug: 0, Sep: 0, Oct: 0, Nov: 0, Dec: 0
-          };
-          acc.push(existingRow);
-        }
-        existingRow[record.month] = record.wrvu;
-        return acc;
-      }, []);
+      // Transform the data to match the API expectations
+      const transformedData = result.data.map((row: any) => ({
+        employee_id: row.employee_id,
+        first_name: row.first_name,
+        last_name: row.last_name,
+        specialty: row.specialty,
+        jan: formatNumber(row.Jan),
+        feb: formatNumber(row.Feb),
+        mar: formatNumber(row.Mar),
+        apr: formatNumber(row.Apr),
+        may: formatNumber(row.May),
+        jun: formatNumber(row.Jun),
+        jul: formatNumber(row.Jul),
+        aug: formatNumber(row.Aug),
+        sep: formatNumber(row.Sep),
+        oct: formatNumber(row.Oct),
+        nov: formatNumber(row.Nov),
+        dec: formatNumber(row.Dec)
+      }));
 
       const columns = [
-        { key: 'employee_id', header: 'Employee ID' },
-        { key: 'first_name', header: 'First Name' },
-        { key: 'last_name', header: 'Last Name' },
-        { key: 'specialty', header: 'Specialty' },
-        { key: 'Jan', header: 'Jan', formatter: formatNumber },
-        { key: 'Feb', header: 'Feb', formatter: formatNumber },
-        { key: 'Mar', header: 'Mar', formatter: formatNumber },
-        { key: 'Apr', header: 'Apr', formatter: formatNumber },
-        { key: 'May', header: 'May', formatter: formatNumber },
-        { key: 'Jun', header: 'Jun', formatter: formatNumber },
-        { key: 'Jul', header: 'Jul', formatter: formatNumber },
-        { key: 'Aug', header: 'Aug', formatter: formatNumber },
-        { key: 'Sep', header: 'Sep', formatter: formatNumber },
-        { key: 'Oct', header: 'Oct', formatter: formatNumber },
-        { key: 'Nov', header: 'Nov', formatter: formatNumber },
-        { key: 'Dec', header: 'Dec', formatter: formatNumber }
+        { key: 'employee_id', header: 'EMPLOYEE ID' },
+        { key: 'first_name', header: 'FIRST NAME' },
+        { key: 'last_name', header: 'LAST NAME' },
+        { key: 'specialty', header: 'SPECIALTY' },
+        { key: 'jan', header: 'JAN', formatter: formatNumber },
+        { key: 'feb', header: 'FEB', formatter: formatNumber },
+        { key: 'mar', header: 'MAR', formatter: formatNumber },
+        { key: 'apr', header: 'APR', formatter: formatNumber },
+        { key: 'may', header: 'MAY', formatter: formatNumber },
+        { key: 'jun', header: 'JUN', formatter: formatNumber },
+        { key: 'jul', header: 'JUL', formatter: formatNumber },
+        { key: 'aug', header: 'AUG', formatter: formatNumber },
+        { key: 'sep', header: 'SEP', formatter: formatNumber },
+        { key: 'oct', header: 'OCT', formatter: formatNumber },
+        { key: 'nov', header: 'NOV', formatter: formatNumber },
+        { key: 'dec', header: 'DEC', formatter: formatNumber }
       ];
 
       onPreview(transformedData, columns, uploadMode, selectedFile);
@@ -144,23 +143,30 @@ export default function WRVUUpload({ onPreview, previewData }: WRVUUploadProps) 
         throw new Error(result.message || result.error || 'Upload failed');
       }
 
-      alert(`Successfully uploaded ${result.count} wRVU records`);
+      toast.success(`Successfully uploaded ${result.count} wRVU records`);
       router.push('/admin/wrvu-data');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
+      toast.error(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setIsUploading(false);
     }
   };
 
+  const handleCancel = () => {
+    setFile(null);
+    setError(null);
+    onPreview(null, [], uploadMode, null); // Clear the preview
+  };
+
   return (
     <div className="space-y-4">
-      <div>
+      <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <h2 className="text-lg font-medium text-gray-900">wRVU Data</h2>
           <div className="flex gap-2">
             <button
-              onClick={handleClearData}
+              onClick={() => setIsConfirmDialogOpen(true)}
               disabled={isClearing}
               className="inline-flex items-center min-w-fit px-2 py-1 text-sm text-red-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -186,7 +192,7 @@ export default function WRVUUpload({ onPreview, previewData }: WRVUUploadProps) 
           </div>
         </div>
         <p className="text-sm text-gray-500">
-          Upload wRVU data for providers. Loaded monthly from billing data.
+          Upload monthly wRVU data for providers, including work RVU values and service dates.
         </p>
       </div>
 
@@ -222,24 +228,6 @@ export default function WRVUUpload({ onPreview, previewData }: WRVUUploadProps) 
             Clear & Replace
           </span>
         </div>
-
-        {file && (
-          <div className="flex justify-end gap-3">
-            <button
-              onClick={handleCancel}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleUpload}
-              disabled={isUploading}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:bg-gray-400"
-            >
-              {isUploading ? 'Uploading...' : 'Upload'}
-            </button>
-          </div>
-        )}
 
         {error && (
           <div className="text-sm text-red-600">
@@ -283,9 +271,34 @@ export default function WRVUUpload({ onPreview, previewData }: WRVUUploadProps) 
                 Showing first 5 of {previewData.data.length} records
               </p>
             )}
+            <div className="mt-4 flex justify-end space-x-2">
+              <button
+                onClick={handleCancel}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpload}
+                disabled={isUploading}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+              >
+                {isUploading ? 'Uploading...' : 'Upload'}
+              </button>
+            </div>
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={isConfirmDialogOpen}
+        onClose={() => setIsConfirmDialogOpen(false)}
+        onConfirm={handleClearData}
+        title="Clear wRVU Data"
+        message="Are you sure you want to clear all wRVU data? This action cannot be undone."
+        warningMessage="This will permanently delete all wRVU records from the database."
+        confirmButtonText="Clear Data"
+      />
     </div>
   );
 } 

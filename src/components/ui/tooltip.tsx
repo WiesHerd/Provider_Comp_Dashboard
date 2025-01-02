@@ -6,6 +6,7 @@ interface TooltipProps {
   children: React.ReactElement;
 }
 
+
 export const Tooltip: React.FC<TooltipProps> = ({ content, children }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
