@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, ClockIcon } from '@heroicons/react/24/outline';
 import EditMarketDataModal from '@/components/MarketData/EditMarketDataModal';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { PlusIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
+import ErrorDialog from '@/components/common/ErrorDialog';
+import SuccessNotification from '@/components/common/SuccessNotification';
 
 interface MarketData {
   id: string;
@@ -22,6 +24,14 @@ interface MarketData {
   p50_cf: number;
   p75_cf: number;
   p90_cf: number;
+  updatedAt: string;
+  history?: {
+    changeType: string;
+    fieldName: string;
+    oldValue: string;
+    newValue: string;
+    changedAt: string;
+  }[];
 }
 
 // Add a helper function for safe number formatting
@@ -47,6 +57,15 @@ function classNames(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ');
 }
 
+// Add this function near the top with other utility functions
+const isRecentlyEdited = (updatedAt: string, history?: any[]) => {
+  if (!updatedAt || !history || history.length === 0) return false;
+  const now = new Date();
+  const updated = new Date(updatedAt);
+  const diffInMinutes = (now.getTime() - updated.getTime()) / (1000 * 60);
+  return diffInMinutes < 5 && history.length > 0;
+};
+
 export default function MarketDataPage() {
   const [marketData, setMarketData] = useState<MarketData[]>([]);
   const [filteredData, setFilteredData] = useState<MarketData[]>([]);
@@ -59,6 +78,19 @@ export default function MarketDataPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [selectedData, setSelectedData] = useState<MarketData | undefined>(undefined);
+  const [deleteError, setDeleteError] = useState<{ show: boolean; message: string }>({
+    show: false,
+    message: ''
+  });
+  const [successNotification, setSuccessNotification] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+  }>({
+    show: false,
+    title: '',
+    message: ''
+  });
 
   useEffect(() => {
     fetchMarketData();
@@ -108,27 +140,68 @@ export default function MarketDataPage() {
     setSelectedItems(newSelected);
   };
 
-  const handleDelete = async (data: MarketData) => {
-    if (!confirm(`Are you sure you want to delete market data for ${data.specialty}?`)) {
+  const handleDelete = async (data?: MarketData) => {
+    // If data is provided, it's a single delete, otherwise it's a bulk delete
+    const itemsToDelete = data 
+      ? [{ id: data.id, specialty: data.specialty }]
+      : Array.from(selectedItems).map(id => ({
+          id,
+          specialty: marketData.find(item => item.id === id)?.specialty || ''
+        }));
+
+    if (itemsToDelete.length === 0) return;
+
+    const specialtiesList = itemsToDelete.map(item => item.specialty).join(', ');
+    const confirmMessage = itemsToDelete.length === 1
+      ? `Are you sure you want to delete market data for ${specialtiesList}?`
+      : `Are you sure you want to delete market data for ${itemsToDelete.length} specialties (${specialtiesList})?`;
+
+    if (!confirm(confirmMessage)) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/market-data/${data.id}`, {
+      const response = await fetch('/api/market-data', {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ids: itemsToDelete.map(item => item.id)
+        }),
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to delete market data');
+        throw new Error(result.error || 'Failed to delete market data');
       }
 
       // Refresh the data
-      fetchMarketData();
-      alert('Market data deleted successfully');
+      await fetchMarketData();
+      // Reset selection
+      setSelectedItems(new Set());
+
+      // Show success notification
+      const timestamp = new Date().toLocaleString();
+      const specialtiesList = itemsToDelete.map(item => item.specialty).join(', ');
+      setSuccessNotification({
+        show: true,
+        title: 'Market Data Deleted',
+        message: `Successfully deleted market data for ${specialtiesList} on ${timestamp}`
+      });
+
     } catch (error) {
       console.error('Error deleting market data:', error);
-      alert('Failed to delete market data. Please try again.');
+      setDeleteError({
+        show: true,
+        message: error instanceof Error ? error.message : 'Failed to delete market data. Please try again.'
+      });
     }
+  };
+
+  const handleCloseDeleteError = () => {
+    setDeleteError({ show: false, message: '' });
   };
 
   const handleEdit = (item: MarketData) => {
@@ -149,30 +222,32 @@ export default function MarketDataPage() {
 
   const handleSave = async (data: MarketData) => {
     try {
-      let response;
-      if (data.id) {
-        // Update existing entry
-        response = await fetch(`/api/market-data/${data.id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data)
-        });
-      } else {
-        // New entry was already saved in the modal
-        response = new Response(JSON.stringify(data), { status: 200 });
-      }
-
-      if (!response.ok) throw new Error('Failed to update market data');
-
+      // Refresh the data after save
       await fetchMarketData();
+      // Reset all state
       setSelectedItems(new Set());
       setIsEditModalOpen(false);
+      setSelectedData(undefined);
+      setSearchQuery('');
+      setCurrentPage(1);
+
+      // Show success notification with audit details
+      const action = data.id ? 'updated' : 'added';
+      const timestamp = new Date().toLocaleString();
+      setSuccessNotification({
+        show: true,
+        title: `Market Data ${action.charAt(0).toUpperCase() + action.slice(1)}`,
+        message: `${data.specialty} market data was successfully ${action} on ${timestamp}`
+      });
+
     } catch (error) {
       console.error('Error updating market data:', error);
-      alert('Failed to update market data');
+      // Error will be handled by the modal component
     }
+  };
+
+  const handleCloseSuccessNotification = () => {
+    setSuccessNotification({ show: false, title: '', message: '' });
   };
 
   const [columns] = useState<Column[]>([
@@ -236,7 +311,7 @@ export default function MarketDataPage() {
   }
 
   return (
-    <div className="h-full flex flex-col space-y-3 bg-white">
+    <div className="h-full flex flex-col space-y-3 bg-white overflow-hidden">
       {/* Header with border */}
       <div className="bg-white rounded-lg shadow p-5">
         <div className="flex justify-between items-center">
@@ -287,129 +362,164 @@ export default function MarketDataPage() {
               onClick={() => {
                 const selectedId = Array.from(selectedItems)[0];
                 const selectedItem = marketData.find(item => item.id === selectedId);
-                if (selectedItem) {
+                if (selectedItem && selectedItems.size === 1) {
                   setSelectedData(selectedItem);
                   setIsEditModalOpen(true);
                 }
               }}
-              className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              className={classNames(
+                "inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500",
+                selectedItems.size !== 1 && "opacity-50 cursor-not-allowed"
+              )}
+              disabled={selectedItems.size !== 1}
             >
               <PencilSquareIcon className="h-4 w-4 mr-2" />
               Edit
             </button>
             <button
-              onClick={() => {
-                const selectedId = Array.from(selectedItems)[0];
-                const selectedData = marketData.find(item => item.id === selectedId);
-                if (selectedData) {
-                  handleDelete(selectedData);
-                }
-              }}
-              className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              onClick={() => handleDelete()}
+              className="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 text-sm font-medium rounded-full hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             >
               <TrashIcon className="h-4 w-4 mr-2" />
-              Delete
+              Delete Selected ({selectedItems.size})
             </button>
           </div>
         </div>
       )}
 
       {/* Table Container */}
-      <div className="flex flex-col bg-white shadow-lg rounded-lg flex-1 min-h-0 border border-gray-200">
-        <div className="overflow-y-scroll flex-1 rounded-t-lg scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">
-              <tr>
-                <th scope="col" className="w-10 px-2 py-3 text-left bg-gray-50">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                    checked={filteredData.length > 0 && selectedItems.size === filteredData.length}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedItems(new Set(filteredData.map(p => p.id)));
-                      } else {
-                        setSelectedItems(new Set());
-                      }
-                    }}
-                  />
-                </th>
-                <th scope="col" className="w-48 px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider sticky left-0 bg-gray-50 border-r border-gray-300">
-                  Specialty
-                </th>
-                <th colSpan={4} scope="col" className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-50 border-r border-gray-300">
-                  Total Cash Compensation
-                </th>
-                <th colSpan={4} scope="col" className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-50 border-r border-gray-300">
-                  wRVUs
-                </th>
-                <th colSpan={4} scope="col" className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-50">
-                  Conversion Factor
-                </th>
-              </tr>
-              <tr className="bg-gray-50">
-                <th scope="col" className="w-10 px-2 py-2"></th>
-                <th scope="col" className="w-48 px-3 py-2 border-r border-gray-300"></th>
-                <th scope="col" className="w-24 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">25th</th>
-                <th scope="col" className="w-24 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">50th</th>
-                <th scope="col" className="w-24 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">75th</th>
-                <th scope="col" className="w-24 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-300">90th</th>
-                <th scope="col" className="w-20 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">25th</th>
-                <th scope="col" className="w-20 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">50th</th>
-                <th scope="col" className="w-20 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">75th</th>
-                <th scope="col" className="w-20 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-300">90th</th>
-                <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">25th</th>
-                <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">50th</th>
-                <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">75th</th>
-                <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">90th</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {paginatedData.map((data) => (
-                <tr 
-                  key={data.id}
-                  onClick={() => handleSelectItem(data.id)}
-                  className={`hover:bg-gray-50 cursor-pointer transition-colors duration-150 ${
-                    selectedItems.has(data.id) ? 'bg-indigo-50' : ''
-                  }`}
-                >
-                  <td className={classNames(
-                    'whitespace-nowrap px-2 py-3 text-sm sticky left-0 bg-white w-10',
-                    selectedItems.has(data.id) ? 'bg-indigo-50' : ''
-                  )}>
+      <div className="flex flex-col bg-white shadow-lg rounded-lg flex-1 min-h-0 border border-gray-200 overflow-hidden">
+        <div className="overflow-auto flex-1 rounded-t-lg scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <div className="min-w-max">
+            <table className="w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">
+                <tr>
+                  <th scope="col" className="w-10 px-2 py-3 text-left bg-gray-50">
+                  </th>
+                  <th scope="col" className="w-10 px-2 py-3 bg-gray-50 border-r border-gray-300">
+                  </th>
+                  <th scope="col" className="w-48 px-3 py-3 sticky left-0 bg-gray-50 border-r border-gray-300">
+                  </th>
+                  <th colSpan={4} scope="col" className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-50 border-r border-gray-300">
+                    Total Cash Compensation
+                  </th>
+                  <th colSpan={4} scope="col" className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-50 border-r border-gray-300">
+                    wRVUs
+                  </th>
+                  <th colSpan={4} scope="col" className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-50">
+                    Conversion Factor
+                  </th>
+                </tr>
+                <tr className="bg-gray-50">
+                  <th scope="col" className="w-10 px-2 py-2">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                      checked={selectedItems.has(data.id)}
+                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      checked={filteredData.length > 0 && selectedItems.size === filteredData.length}
                       onChange={(e) => {
-                        e.stopPropagation();
-                        handleSelectItem(data.id);
+                        if (e.target.checked) {
+                          setSelectedItems(new Set(filteredData.map(p => p.id)));
+                        } else {
+                          setSelectedItems(new Set());
+                        }
                       }}
                     />
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 text-sm font-medium text-gray-900 sticky left-0 bg-white w-48 border-r border-gray-300">
-                    {data.specialty}
-                  </td>
-                  <td className="whitespace-nowrap w-24 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(data.p25_total)}</td>
-                  <td className="whitespace-nowrap w-24 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(data.p50_total)}</td>
-                  <td className="whitespace-nowrap w-24 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(data.p75_total)}</td>
-                  <td className="whitespace-nowrap w-24 px-3 py-3 text-sm text-gray-600 text-right font-medium border-r border-gray-300">${formatNumber(data.p90_total)}</td>
-                  <td className="whitespace-nowrap w-20 px-3 py-3 text-sm text-gray-600 text-right font-medium">{formatNumber(data.p25_wrvu)}</td>
-                  <td className="whitespace-nowrap w-20 px-3 py-3 text-sm text-gray-600 text-right font-medium">{formatNumber(data.p50_wrvu)}</td>
-                  <td className="whitespace-nowrap w-20 px-3 py-3 text-sm text-gray-600 text-right font-medium">{formatNumber(data.p75_wrvu)}</td>
-                  <td className="whitespace-nowrap w-20 px-3 py-3 text-sm text-gray-600 text-right font-medium border-r border-gray-300">{formatNumber(data.p90_wrvu)}</td>
-                  <td className="whitespace-nowrap w-16 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(data.p25_cf, true)}</td>
-                  <td className="whitespace-nowrap w-16 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(data.p50_cf, true)}</td>
-                  <td className="whitespace-nowrap w-16 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(data.p75_cf, true)}</td>
-                  <td className="whitespace-nowrap w-16 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(data.p90_cf, true)}</td>
+                  </th>
+                  <th scope="col" className="w-10 px-2 py-2 text-center text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-300">
+                    Edit
+                  </th>
+                  <th scope="col" className="w-48 px-3 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider sticky left-0 bg-gray-50 border-r border-gray-300">
+                    Specialty
+                  </th>
+                  <th scope="col" className="w-24 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">25th</th>
+                  <th scope="col" className="w-24 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">50th</th>
+                  <th scope="col" className="w-24 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">75th</th>
+                  <th scope="col" className="w-24 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-300">90th</th>
+                  <th scope="col" className="w-20 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">25th</th>
+                  <th scope="col" className="w-20 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">50th</th>
+                  <th scope="col" className="w-20 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">75th</th>
+                  <th scope="col" className="w-20 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-300">90th</th>
+                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">25th</th>
+                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">50th</th>
+                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">75th</th>
+                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">90th</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {paginatedData.map((item) => (
+                  <tr 
+                    key={item.id}
+                    className={classNames(
+                      'hover:bg-gray-50 transition-colors duration-200',
+                      selectedItems.has(item.id) ? 'bg-blue-50' : ''
+                    )}
+                  >
+                    <td className={classNames(
+                      'whitespace-nowrap px-2 py-3 text-sm sticky left-0 bg-white w-10',
+                      selectedItems.has(item.id) ? 'bg-indigo-50' : ''
+                    )}>
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                        checked={selectedItems.has(item.id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleSelectItem(item.id);
+                        }}
+                      />
+                    </td>
+                    <td className="whitespace-nowrap w-10 px-2 py-3 text-sm text-center border-r border-gray-300">
+                      {isRecentlyEdited(item.updatedAt, item.history) && (
+                        <div className="group relative inline-block">
+                          <ClockIcon className="h-4 w-4 text-blue-500 hover:text-blue-600 cursor-pointer" aria-hidden="true" />
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute z-50 left-full bottom-full mb-2 ml-2 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm min-w-[300px]">
+                            <div className="flex flex-col gap-1">
+                              <span className="font-semibold border-b border-gray-700 pb-1">Change History</span>
+                              {item.history?.slice(0, 3).map((change, idx) => (
+                                <div key={idx} className="text-xs">
+                                  <span className="text-gray-300">{new Date(change.changedAt).toLocaleString()}</span>
+                                  <div className="ml-2">
+                                    <span className="text-blue-300">{change.fieldName}:</span>
+                                    <span className="text-red-300 line-through ml-1">{change.oldValue}</span>
+                                    <span className="text-green-300 ml-1">→ {change.newValue}</span>
+                                  </div>
+                                </div>
+                              ))}
+                              {item.history && item.history.length > 3 && (
+                                <span className="text-xs text-gray-400">+ {item.history.length - 3} more changes</span>
+                              )}
+                            </div>
+                            <div className="absolute top-1/2 right-full -translate-y-1/2 -mr-2">
+                              <div className="border-8 border-transparent border-r-gray-900"></div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-sm font-medium text-gray-900 sticky left-0 bg-white w-48 border-r border-gray-300">
+                      {item.specialty}
+                    </td>
+                    <td className="whitespace-nowrap w-24 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(item.p25_total)}</td>
+                    <td className="whitespace-nowrap w-24 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(item.p50_total)}</td>
+                    <td className="whitespace-nowrap w-24 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(item.p75_total)}</td>
+                    <td className="whitespace-nowrap w-24 px-3 py-3 text-sm text-gray-600 text-right font-medium border-r border-gray-300">${formatNumber(item.p90_total)}</td>
+                    <td className="whitespace-nowrap w-20 px-3 py-3 text-sm text-gray-600 text-right font-medium">{formatNumber(item.p25_wrvu)}</td>
+                    <td className="whitespace-nowrap w-20 px-3 py-3 text-sm text-gray-600 text-right font-medium">{formatNumber(item.p50_wrvu)}</td>
+                    <td className="whitespace-nowrap w-20 px-3 py-3 text-sm text-gray-600 text-right font-medium">{formatNumber(item.p75_wrvu)}</td>
+                    <td className="whitespace-nowrap w-20 px-3 py-3 text-sm text-gray-600 text-right font-medium border-r border-gray-300">{formatNumber(item.p90_wrvu)}</td>
+                    <td className="whitespace-nowrap w-16 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(item.p25_cf, true)}</td>
+                    <td className="whitespace-nowrap w-16 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(item.p50_cf, true)}</td>
+                    <td className="whitespace-nowrap w-16 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(item.p75_cf, true)}</td>
+                    <td className="whitespace-nowrap w-16 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(item.p90_cf, true)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Fixed Pagination */}
-        <div className="border-t border-gray-200 bg-white px-6 py-4 flex items-center justify-between rounded-b-lg">
+        <div className="border-t border-gray-200 bg-white px-6 py-4 flex items-center justify-between rounded-b-lg sticky left-0">
           <div className="flex-1 flex justify-between sm:hidden">
             <button
               onClick={() => handlePageChange(currentPage - 1)}
@@ -479,6 +589,20 @@ export default function MarketDataPage() {
         onClose={() => setIsEditModalOpen(false)}
         onSave={handleSave}
         data={selectedData}
+      />
+
+      <ErrorDialog
+        isOpen={deleteError.show}
+        onClose={handleCloseDeleteError}
+        title="Delete Error"
+        message={deleteError.message}
+      />
+
+      <SuccessNotification
+        show={successNotification.show}
+        onClose={handleCloseSuccessNotification}
+        title={successNotification.title}
+        message={successNotification.message}
       />
     </div>
   );
