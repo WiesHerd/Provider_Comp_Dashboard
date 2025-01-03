@@ -31,11 +31,11 @@ model Provider {
   updatedAt           DateTime             @updatedAt
   additionalPayments  AdditionalPayment[]
   compensationChanges CompensationChange[]
+  analytics           ProviderAnalytics[]
+  metrics             ProviderMetrics[]
   targetAdjustments   TargetAdjustment[]
   wrvuAdjustments     WRVUAdjustment[]
   wrvuData            WRVUData[]
-  metrics             ProviderMetrics[]
-  analytics          ProviderAnalytics[]
 
   @@map("providers")
 }
@@ -89,17 +89,32 @@ model TargetAdjustment {
 }
 
 model AdditionalPayment {
-  id          String   @id @default(cuid())
-  name        String
-  amount      Float
-  month       Int
-  year        Int
-  providerId  String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  provider    Provider @relation(fields: [providerId], references: [id])
+  id         String   @id @default(cuid())
+  name       String
+  amount     Float
+  month      Int
+  year       Int
+  providerId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  provider   Provider @relation(fields: [providerId], references: [id])
 
   @@index([providerId, year, month])
+}
+
+model MarketDataHistory {
+  id            String   @id @default(cuid())
+  marketDataId  String
+  marketData    MarketData @relation(fields: [marketDataId], references: [id], onDelete: Cascade)
+  changeType    String   // "CREATE", "UPDATE", "DELETE"
+  fieldName     String   // Name of the field that changed
+  oldValue      String?  // Previous value (JSON stringified if needed)
+  newValue      String?  // New value (JSON stringified if needed)
+  changedAt     DateTime @default(now())
+  changedBy     String?  // Optional: track who made the change
+
+  @@index([marketDataId])
+  @@index([changedAt])
 }
 
 model MarketData {
@@ -119,20 +134,21 @@ model MarketData {
   p90_cf    Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  history   MarketDataHistory[]
 
   @@map("market_data")
 }
 
 model WRVUData {
-  id          String   @id @default(cuid())
-  year        Int
-  month       Int
-  value       Float
-  hours       Float    @default(0)
-  providerId  String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  provider    Provider @relation(fields: [providerId], references: [id])
+  id         String   @id @default(cuid())
+  year       Int
+  month      Int
+  value      Float
+  hours      Float    @default(0)
+  providerId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  provider   Provider @relation(fields: [providerId], references: [id])
 
   @@unique([providerId, year, month])
   @@index([providerId, year])
@@ -142,7 +158,7 @@ model ProviderMetrics {
   id                String   @id @default(cuid())
   providerId        String
   year              Int
-  month            Int
+  month             Int
   actualWRVUs       Float
   rawMonthlyWRVUs   Float
   ytdWRVUs          Float
@@ -154,26 +170,26 @@ model ProviderMetrics {
   wrvuPercentile    Float
   compPercentile    Float
   planProgress      Float
-  provider          Provider @relation(fields: [providerId], references: [id])
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  provider          Provider @relation(fields: [providerId], references: [id])
 
   @@unique([providerId, year, month])
   @@index([providerId, year])
 }
 
 model ProviderAnalytics {
-  id                   String   @id @default(cuid())
-  providerId           String
-  year                 Int
+  id                  String   @id @default(cuid())
+  providerId          String
+  year                Int
   month               Int
   ytdProgress         Float
   ytdTargetProgress   Float
   incentivePercentage Float
   clinicalUtilization Float
-  provider            Provider @relation(fields: [providerId], references: [id])
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+  provider            Provider @relation(fields: [providerId], references: [id])
 
   @@unique([providerId, year, month])
   @@index([providerId, year])

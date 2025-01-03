@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MagnifyingGlassIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, ClockIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import EditMarketDataModal from '@/components/MarketData/EditMarketDataModal';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { PlusIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
@@ -59,11 +59,7 @@ function classNames(...classes: (string | boolean | undefined)[]) {
 
 // Add this function near the top with other utility functions
 const isRecentlyEdited = (updatedAt: string, history?: any[]) => {
-  if (!updatedAt || !history || history.length === 0) return false;
-  const now = new Date();
-  const updated = new Date(updatedAt);
-  const diffInMinutes = (now.getTime() - updated.getTime()) / (1000 * 60);
-  return diffInMinutes < 5 && history.length > 0;
+  return Boolean(history && Array.isArray(history) && history.length > 0);
 };
 
 export default function MarketDataPage() {
@@ -250,6 +246,38 @@ export default function MarketDataPage() {
     setSuccessNotification({ show: false, title: '', message: '' });
   };
 
+  const clearHistory = async (ids: string[]) => {
+    try {
+      const response = await fetch('/api/market-data/clear-history', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ids }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to clear history');
+      }
+
+      // Refresh the data
+      await fetchMarketData();
+      
+      // Show success notification
+      const timestamp = new Date().toLocaleString();
+      setSuccessNotification({
+        show: true,
+        title: 'History Cleared',
+        message: `Successfully cleared edit history for ${ids.length} item(s) on ${timestamp}`
+      });
+    } catch (error) {
+      setDeleteError({
+        show: true,
+        message: error instanceof Error ? error.message : 'Failed to clear history. Please try again.'
+      });
+    }
+  };
+
   const [columns] = useState<Column[]>([
     { 
       id: 'select', 
@@ -383,6 +411,13 @@ export default function MarketDataPage() {
               <TrashIcon className="h-4 w-4 mr-2" />
               Delete Selected ({selectedItems.size})
             </button>
+            <button
+              onClick={() => clearHistory(Array.from(selectedItems))}
+              className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
+              <ClockIcon className="h-4 w-4 mr-2" />
+              Clear History
+            </button>
           </div>
         </div>
       )}
@@ -469,9 +504,18 @@ export default function MarketDataPage() {
                       />
                     </td>
                     <td className="whitespace-nowrap w-10 px-2 py-3 text-sm text-center border-r border-gray-300">
-                      {isRecentlyEdited(item.updatedAt, item.history) && (
+                      {Array.isArray(item.history) && item.history.length > 0 && (
                         <div className="group relative inline-block">
-                          <ClockIcon className="h-4 w-4 text-blue-500 hover:text-blue-600 cursor-pointer" aria-hidden="true" />
+                          <div className="flex items-center gap-1">
+                            <ClockIcon className="h-4 w-4 text-blue-500 hover:text-blue-600 cursor-pointer" aria-hidden="true" />
+                            <button
+                              onClick={() => clearHistory([item.id])}
+                              className="text-gray-400 hover:text-gray-600"
+                              title="Clear edit history"
+                            >
+                              <XMarkIcon className="h-3 w-3" />
+                            </button>
+                          </div>
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute z-50 left-full bottom-full mb-2 ml-2 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm min-w-[300px]">
                             <div className="flex flex-col gap-1">
                               <span className="font-semibold border-b border-gray-700 pb-1">Change History</span>
