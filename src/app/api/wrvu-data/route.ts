@@ -1,59 +1,67 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const currentYear = new Date().getFullYear();
-    console.log('Fetching wRVU data for year:', currentYear);
+    const { searchParams } = new URL(request.url);
+    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
     
-    const providers = await prisma.provider.findMany({
+    // Get all wRVU data for the year
+    const wrvuRecords = await prisma.wRVUData.findMany({
+      where: { year },
       include: {
-        wrvuData: {
-          where: {
-            year: currentYear
-          }
+        provider: true,
+        history: {
+          orderBy: { changedAt: 'desc' },
+          take: 5
+        }
+      },
+      orderBy: {
+        provider: {
+          lastName: 'asc'
         }
       }
     });
-    
-    // Transform the data to match the expected format, one entry per provider
-    const formattedData = providers.map(provider => {
-      // Create a map of month -> value from the wRVU data
-      const monthlyValues = provider.wrvuData.reduce((acc, data) => {
-        acc[data.month] = data.value;
-        return acc;
-      }, {} as Record<number, number>);
+
+    // Transform the data to match the frontend format
+    const transformedData = wrvuRecords.reduce((acc: any[], record) => {
+      const existingRecord = acc.find(r => r.employee_id === record.provider.employeeId);
       
-      return {
-        id: provider.id,
-        employee_id: provider.employeeId,
-        first_name: provider.firstName,
-        last_name: provider.lastName,
-        specialty: provider.specialty,
-        year: currentYear,
-        jan: monthlyValues[1] || 0,
-        feb: monthlyValues[2] || 0,
-        mar: monthlyValues[3] || 0,
-        apr: monthlyValues[4] || 0,
-        may: monthlyValues[5] || 0,
-        jun: monthlyValues[6] || 0,
-        jul: monthlyValues[7] || 0,
-        aug: monthlyValues[8] || 0,
-        sep: monthlyValues[9] || 0,
-        oct: monthlyValues[10] || 0,
-        nov: monthlyValues[11] || 0,
-        dec: monthlyValues[12] || 0
-      };
-    });
-    
-    return NextResponse.json(formattedData);
+      if (existingRecord) {
+        // Update the existing record with the month's value
+        existingRecord[getMonthKey(record.month)] = record.value;
+      } else {
+        // Create a new record
+        const newRecord = {
+          id: record.provider.id,
+          employee_id: record.provider.employeeId,
+          first_name: record.provider.firstName,
+          last_name: record.provider.lastName,
+          specialty: record.provider.specialty,
+          jan: 0, feb: 0, mar: 0, apr: 0, may: 0, jun: 0,
+          jul: 0, aug: 0, sep: 0, oct: 0, nov: 0, dec: 0,
+          history: record.history
+        };
+        newRecord[getMonthKey(record.month)] = record.value;
+        acc.push(newRecord);
+      }
+      return acc;
+    }, []);
+
+    return NextResponse.json(transformedData);
   } catch (error) {
-    console.error('Error fetching wRVU data:', error);
+    console.error('Failed to fetch wRVU data:', error);
     return NextResponse.json(
       { error: 'Failed to fetch wRVU data' },
       { status: 500 }
     );
   }
+}
+
+// Helper function to get month key
+function getMonthKey(month: number): string {
+  const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  return months[month - 1];
 }
 
 export async function POST(request: Request) {
@@ -130,107 +138,99 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const data = await request.json();
-    const currentYear = new Date().getFullYear();
+    const { id, providerId, year, ...monthlyData } = data;
 
-    // Find the provider
-    const provider = await prisma.provider.findUnique({
+    // Get the provider's current wRVU records for all months
+    const currentRecords = await prisma.wRVUData.findMany({
       where: {
-        employeeId: data.employee_id
+        providerId,
+        year
       }
     });
 
-    if (!provider) {
-      return NextResponse.json(
-        { error: 'Provider not found' },
-        { status: 404 }
-      );
-    }
+    // Create a map of month number to record
+    const recordMap = currentRecords.reduce((acc, record) => {
+      acc[record.month] = record;
+      return acc;
+    }, {} as Record<number, any>);
 
-    // Update wRVU data for each month
-    const monthlyData = {
-      1: data.jan || 0,
-      2: data.feb || 0,
-      3: data.mar || 0,
-      4: data.apr || 0,
-      5: data.may || 0,
-      6: data.jun || 0,
-      7: data.jul || 0,
-      8: data.aug || 0,
-      9: data.sep || 0,
-      10: data.oct || 0,
-      11: data.nov || 0,
-      12: data.dec || 0
-    };
+    // Process each month's data
+    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    const updates = months.map(async (monthKey, index) => {
+      const month = index + 1;
+      const value = monthlyData[monthKey] || 0;
+      const existingRecord = recordMap[month];
 
-    // Update all monthly records and track history
-    const wrvuData = await Promise.all(
-      Object.entries(monthlyData).map(async ([month, value]) => {
-        // First get the existing record if any
-        const existingRecord = await prisma.wRVUData.findUnique({
-          where: {
-            providerId_year_month: {
-              providerId: provider.id,
-              year: currentYear,
-              month: parseInt(month)
-            }
-          }
-        });
-
-        // Perform the upsert
-        const updatedRecord = await prisma.wRVUData.upsert({
-          where: {
-            providerId_year_month: {
-              providerId: provider.id,
-              year: currentYear,
-              month: parseInt(month)
-            }
-          },
-          update: {
-            value,
-            hours: 160
-          },
-          create: {
-            year: currentYear,
-            month: parseInt(month),
-            value,
-            hours: 160,
-            providerId: provider.id
-          }
-        });
-
-        // If there was an existing record and the value changed, create history
-        if (existingRecord && existingRecord.value !== value) {
+      if (existingRecord) {
+        // If value changed, create history record
+        if (existingRecord.value !== value) {
           await prisma.wRVUHistory.create({
             data: {
-              wrvuDataId: updatedRecord.id,
+              wrvuDataId: existingRecord.id,
               changeType: 'UPDATE',
-              fieldName: 'value',
-              oldValue: existingRecord.value.toString(),
-              newValue: value.toString(),
-              changedAt: new Date(),
+              fieldName: monthKey,
+              oldValue: String(existingRecord.value),
+              newValue: String(value),
+              changedAt: new Date()
             }
           });
-        } else if (!existingRecord) {
-          // If this is a new record, create history
-          await prisma.wRVUHistory.create({
-            data: {
-              wrvuDataId: updatedRecord.id,
-              changeType: 'CREATE',
-              fieldName: 'value',
-              oldValue: null,
-              newValue: value.toString(),
-              changedAt: new Date(),
-            }
+
+          // Update existing record
+          return prisma.wRVUData.update({
+            where: { id: existingRecord.id },
+            data: { value }
           });
         }
+        return existingRecord;
+      } else {
+        // Create new record with history
+        const newRecord = await prisma.wRVUData.create({
+          data: {
+            providerId,
+            year,
+            month,
+            value,
+            hours: 160
+          }
+        });
 
-        return updatedRecord;
-      })
-    );
+        await prisma.wRVUHistory.create({
+          data: {
+            wrvuDataId: newRecord.id,
+            changeType: 'CREATE',
+            fieldName: monthKey,
+            oldValue: null,
+            newValue: String(value),
+            changedAt: new Date()
+          }
+        });
 
-    return NextResponse.json({ success: true, count: wrvuData.length });
+        return newRecord;
+      }
+    });
+
+    // Execute all updates in parallel
+    await Promise.all(updates);
+
+    // Get updated records with history
+    const updatedRecords = await prisma.wRVUData.findMany({
+      where: {
+        providerId,
+        year
+      },
+      include: {
+        history: {
+          orderBy: {
+            changedAt: 'desc'
+          },
+          take: 5
+        }
+      }
+    });
+
+    return NextResponse.json({ success: true, data: updatedRecords });
   } catch (error) {
-    console.error('Error updating wRVU data:', error);
+    console.error('Failed to update wRVU data:', error);
     return NextResponse.json(
       { error: 'Failed to update wRVU data' },
       { status: 500 }

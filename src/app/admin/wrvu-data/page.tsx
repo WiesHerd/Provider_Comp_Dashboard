@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MagnifyingGlassIcon, PlusIcon, PencilIcon, TrashIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, PlusIcon, PencilIcon, TrashIcon, ClockIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import EditWRVUModal from '@/components/WRVU/EditWRVUModal';
 import { toast } from 'react-hot-toast';
@@ -14,6 +14,7 @@ function classNames(...classes: (string | boolean | undefined)[]) {
 
 interface WRVUData {
   id: string;
+  providerId?: string;
   employee_id: string;
   first_name: string;
   last_name: string;
@@ -31,6 +32,16 @@ interface WRVUData {
   oct: number;
   nov: number;
   dec: number;
+  history?: {
+    id: string;
+    wrvuDataId: string;
+    changeType: string;
+    fieldName: string;
+    oldValue: string | null;
+    newValue: string | null;
+    changedAt: Date;
+    changedBy: string | null;
+  }[];
 }
 
 const formatNumber = (value: number | null | undefined) => {
@@ -50,6 +61,10 @@ const formatHistoryTooltip = (history: any) => {
   const date = format(new Date(history.changedAt), 'MMM d, yyyy h:mm a');
   return `Changed from ${oldValue} to ${newValue} on ${date}`;
 };
+
+function isRecentlyEdited(item: any) {
+  return Array.isArray(item.history) && item.history.length > 0;
+}
 
 export default function WRVUDataPage() {
   const [wrvuData, setWRVUData] = useState<WRVUData[]>([]);
@@ -91,30 +106,23 @@ export default function WRVUDataPage() {
 
   const fetchWRVUData = async () => {
     try {
-      console.log('Fetching wRVU data...');
+      setIsLoading(true);
+      setError(null);
+      
       const response = await fetch('/api/wrvu-data');
-      console.log('Response status:', response.status);
       
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`Failed to fetch wRVU data: ${response.status} ${errorText}`);
+        const errorData = await response.json().catch(() => null);
+        const errorMessage = errorData?.error || `HTTP error! status: ${response.status}`;
+        throw new Error(errorMessage);
       }
-      
+
       const data = await response.json();
-      console.log('Received wRVU data:', data);
-      
-      if (!Array.isArray(data)) {
-        console.error('Received non-array data:', data);
-        throw new Error('Invalid data format received');
-      }
-      
       setWRVUData(data);
-      setFilteredData(data);
-      console.log('State updated with', data.length, 'records');
     } catch (err) {
-      console.error('Error in fetchWRVUData:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch wRVU data';
+      setError(errorMessage);
+      console.error('Failed to fetch wRVU data:', err);
     } finally {
       setIsLoading(false);
     }
@@ -200,31 +208,45 @@ export default function WRVUDataPage() {
   };
 
   const handleEditWRVU = (data: WRVUData) => {
+    setEditingData({
+      ...data,
+      providerId: data.id
+    });
     setModalMode('edit');
-    setEditingData(data);
     setIsModalOpen(true);
   };
 
-  const handleSubmitWRVU = async (data: WRVUData) => {
+  const handleSubmitWRVU = async (formData: any) => {
     try {
       const response = await fetch('/api/wrvu-data', {
-        method: modalMode === 'add' ? 'POST' : 'PUT',
+        method: editingData ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          id: editingData?.id,
+          providerId: editingData?.id,
+          ...formData
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save wRVU data');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save wRVU data');
       }
 
-      await fetchWRVUData();
-      setIsModalOpen(false);
-      setEditingData(null);
+      const result = await response.json();
+      if (result.success) {
+        toast.success('wRVU data saved successfully');
+        setIsModalOpen(false);
+        setEditingData(null);
+        fetchWRVUData();
+      } else {
+        throw new Error('Failed to save wRVU data');
+      }
     } catch (error) {
       console.error('Error saving wRVU data:', error);
-      alert('Failed to save wRVU data. Please try again.');
+      toast.error(error instanceof Error ? error.message : 'Failed to save wRVU data');
     }
   };
 
@@ -368,8 +390,17 @@ export default function WRVUDataPage() {
       <div className="flex flex-col bg-white shadow-lg rounded-lg flex-1 min-h-0 border border-gray-200">
         <div className="overflow-y-scroll flex-1 rounded-t-lg scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr key="main-header-row">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col"></th>
+                <th scope="col"></th>
+                <th scope="col"></th>
+                <th scope="col"></th>
+                <th scope="col"></th>
+                <th scope="col" colSpan={12} className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap border-l border-gray-200">Monthly wRVUs</th>
+                <th scope="col"></th>
+              </tr>
+              <tr>
                 <th scope="col" className="relative w-12 px-4 sm:w-16 sm:px-6">
                   <input
                     type="checkbox"
@@ -384,41 +415,28 @@ export default function WRVUDataPage() {
                     }}
                   />
                 </th>
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Edit</th>
                 <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Employee ID</th>
                 <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Name</th>
                 <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Specialty</th>
-                <th scope="col" colSpan={12} className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap border-l border-gray-200">Monthly wRVUs</th>
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-gray-50">YTD</th>
-              </tr>
-              <tr key="month-header-row">
-                <th key="checkbox-header-month" scope="col"></th>
-                <th key="employee-id-header-month" scope="col"></th>
-                <th key="name-header-month" scope="col"></th>
-                <th key="specialty-header-month" scope="col"></th>
-                <th key="jan-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Jan</th>
-                <th key="feb-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Feb</th>
-                <th key="mar-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Mar</th>
-                <th key="apr-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Apr</th>
-                <th key="may-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">May</th>
-                <th key="jun-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Jun</th>
-                <th key="jul-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Jul</th>
-                <th key="aug-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Aug</th>
-                <th key="sep-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Sep</th>
-                <th key="oct-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Oct</th>
-                <th key="nov-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Nov</th>
-                <th key="dec-header" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Dec</th>
-                <th key="ytd-header-month" scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap bg-gray-50"></th>
+                {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, index) => (
+                  <th
+                    key={month}
+                    scope="col"
+                    className={classNames(
+                      "px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap",
+                      index === 0 && "border-l border-gray-200"
+                    )}
+                  >
+                    {month}
+                  </th>
+                ))}
+                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">YTD</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
               {paginatedData.map((data) => (
-                <tr 
-                  key={data.id}
-                  className={classNames(
-                    selectedItems.has(data.id) ? 'bg-gray-50' : 'bg-white',
-                    'hover:bg-gray-50'
-                  )}
-                >
+                <tr key={data.id} className={selectedItems.has(data.id) ? 'bg-gray-50' : undefined}>
                   <td className="relative w-12 px-4 sm:w-16 sm:px-6">
                     <input
                       type="checkbox"
@@ -428,20 +446,61 @@ export default function WRVUDataPage() {
                       onChange={() => handleSelectItem(data.id)}
                     />
                   </td>
+                  <td className="px-3 py-2">
+                    {isRecentlyEdited(data) && (
+                      <div className="group relative inline-block flex items-center gap-1">
+                        <ClockIcon className="h-4 w-4 text-blue-500" />
+                        <button
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            try {
+                              const response = await fetch(`/api/wrvu-data/clear-history/${data.id}`, {
+                                method: 'POST'
+                              });
+                              if (!response.ok) throw new Error('Failed to clear history');
+                              await fetchWRVUData();
+                              toast.success('History cleared successfully');
+                            } catch (error) {
+                              console.error('Error clearing history:', error);
+                              toast.error('Failed to clear history');
+                            }
+                          }}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <XMarkIcon className="h-3 w-3" />
+                        </button>
+                        <div className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white p-2 rounded shadow-lg z-50 min-w-[200px]">
+                          <div className="text-sm font-medium mb-1">Edit History</div>
+                          {data.history?.slice(0, 3).map((change: any, idx: number) => (
+                            <div key={idx} className="text-xs mb-2">
+                              <div className="text-gray-300">{new Date(change.changedAt).toLocaleString()}</div>
+                              <div>
+                                <span className="text-gray-400">{change.fieldName}: </span>
+                                <span className="text-red-400">{change.oldValue}</span>
+                                <span className="text-gray-400"> → </span>
+                                <span className="text-green-400">{change.newValue}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </td>
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">{data.employee_id}</td>
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">{`${data.first_name} ${data.last_name}`}</td>
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">{data.specialty}</td>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => {
-                    const monthKey = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'][month - 1];
-                    const value = data[monthKey as keyof typeof data];
-                    
-                    return (
-                      <td key={month} className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">
-                        {formatNumber(typeof value === 'number' ? value : 0)}
-                      </td>
-                    );
-                  })}
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right font-medium text-gray-900 bg-gray-50">
+                  {['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].map((month, index) => (
+                    <td 
+                      key={month} 
+                      className={classNames(
+                        "whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900",
+                        index === 0 && "border-l border-gray-200"
+                      )}
+                    >
+                      {formatNumber(data[month as keyof typeof data] as number)}
+                    </td>
+                  ))}
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right font-medium text-gray-900">
                     {formatNumber(calculateYTD(data))}
                   </td>
                 </tr>
@@ -517,13 +576,19 @@ export default function WRVUDataPage() {
       </div>
 
       {/* Edit/Add Modal */}
-      <EditWRVUModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleSubmitWRVU}
-        data={editingData || undefined}
-        mode={modalMode}
-      />
+      {isModalOpen && (
+        <EditWRVUModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setEditingData(null);
+          }}
+          onSubmit={handleSubmitWRVU}
+          onSave={fetchWRVUData}
+          data={editingData || undefined}
+          mode={modalMode}
+        />
+      )}
     </div>
   );
 } 

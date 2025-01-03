@@ -3,6 +3,7 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment, useState, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { toast } from 'react-hot-toast';
 
 interface WRVUFormData {
   id?: string;
@@ -29,14 +30,16 @@ interface EditWRVUModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: WRVUFormData) => Promise<void>;
-  data?: Partial<WRVUFormData>;
+  onSave?: () => void;
+  data?: Partial<WRVUFormData> & { providerId?: string };
   mode?: 'add' | 'edit';
 }
 
 export default function EditWRVUModal({ 
   isOpen, 
   onClose, 
-  onSubmit, 
+  onSubmit,
+  onSave,
   data,
   mode = 'add' 
 }: EditWRVUModalProps) {
@@ -93,11 +96,48 @@ export default function EditWRVUModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await onSubmit(formData);
-      onClose();
+      const response = await fetch('/api/wrvu-data', {
+        method: data?.id ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: data?.id,
+          providerId: data?.providerId,
+          year: new Date().getFullYear(),
+          month: 1, // This will be handled in the API for each month
+          jan: Number(formData.jan || 0),
+          feb: Number(formData.feb || 0),
+          mar: Number(formData.mar || 0),
+          apr: Number(formData.apr || 0),
+          may: Number(formData.may || 0),
+          jun: Number(formData.jun || 0),
+          jul: Number(formData.jul || 0),
+          aug: Number(formData.aug || 0),
+          sep: Number(formData.sep || 0),
+          oct: Number(formData.oct || 0),
+          nov: Number(formData.nov || 0),
+          dec: Number(formData.dec || 0),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save wRVU data');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        toast.success('wRVU data saved successfully');
+        onClose();
+        if (onSave) onSave();
+      } else {
+        throw new Error('Failed to save wRVU data');
+      }
     } catch (error) {
-      console.error('Error submitting wRVU data:', error);
-      alert('Failed to submit wRVU data. Please try again.');
+      console.error('Error saving wRVU data:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to save wRVU data');
     }
   };
 

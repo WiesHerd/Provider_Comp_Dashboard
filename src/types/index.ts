@@ -79,4 +79,44 @@ export interface TargetAdjustmentResponse {
   success: boolean;
   error?: string;
   data?: TargetAdjustment;
+}
+
+export interface WRVUHistory {
+  id: string;
+  wrvuDataId: string;
+  changeType: string;
+  fieldName: string;
+  oldValue: string | null;
+  newValue: string | null;
+  changedAt: Date;
+  changedBy: string | null;
+}
+
+export interface WRVUData {
+  id: string;
+  year: number;
+  month: number;
+  value: number;
+  hours: number;
+  providerId: string;
+  provider: Provider;
+  createdAt: Date;
+  updatedAt: Date;
+  history?: WRVUHistory[];
+  employee_id?: string;
+  first_name?: string;
+  last_name?: string;
+  specialty?: string;
+  jan?: number;
+  feb?: number;
+  mar?: number;
+  apr?: number;
+  may?: number;
+  jun?: number;
+  jul?: number;
+  aug?: number;
+  sep?: number;
+  oct?: number;
+  nov?: number;
+  dec?: number;
 } 
