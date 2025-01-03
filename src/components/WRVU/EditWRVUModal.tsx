@@ -102,8 +102,18 @@ export default function EditWRVUModal({
   };
 
   const handleMonthChange = (month: string, value: string) => {
-    const numValue = value === '' ? 0 : parseFloat(value);
-    if (!isNaN(numValue)) {
+    // Allow empty string to clear the field
+    if (value === '') {
+      setFormData(prev => ({
+        ...prev,
+        [month]: 0
+      }));
+      return;
+    }
+
+    // Parse the value and round to 2 decimal places
+    const numValue = parseFloat(parseFloat(value).toFixed(2));
+    if (!isNaN(numValue) && numValue >= 0) {
       setFormData(prev => ({
         ...prev,
         [month]: numValue
@@ -251,7 +261,7 @@ export default function EditWRVUModal({
                               <label className="block text-xs font-medium text-gray-700">{label}</label>
                               <input
                                 type="number"
-                                step="0.1"
+                                step="0.01"
                                 min="0"
                                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-indigo-500"
                                 value={formData[key as keyof WRVUFormData] || ''}

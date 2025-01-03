@@ -16,11 +16,8 @@ export async function GET() {
       }
     });
     
-    console.log('Raw providers data:', JSON.stringify(providers, null, 2));
-    
     // Transform the data to match the expected format, one entry per provider
     const formattedData = providers.map(provider => {
-      console.log(`Processing provider ${provider.id}:`, provider);
       // Create a map of month -> value from the wRVU data
       const monthlyValues = provider.wrvuData.reduce((acc, data) => {
         acc[data.month] = data.value;
@@ -49,7 +46,6 @@ export async function GET() {
       };
     });
     
-    console.log('Formatted data being returned:', formattedData);
     return NextResponse.json(formattedData);
   } catch (error) {
     console.error('Error fetching wRVU data:', error);
@@ -166,10 +162,22 @@ export async function PUT(request: Request) {
       12: data.dec || 0
     };
 
-    // Update all monthly records
+    // Update all monthly records and track history
     const wrvuData = await Promise.all(
-      Object.entries(monthlyData).map(([month, value]) =>
-        prisma.wRVUData.upsert({
+      Object.entries(monthlyData).map(async ([month, value]) => {
+        // First get the existing record if any
+        const existingRecord = await prisma.wRVUData.findUnique({
+          where: {
+            providerId_year_month: {
+              providerId: provider.id,
+              year: currentYear,
+              month: parseInt(month)
+            }
+          }
+        });
+
+        // Perform the upsert
+        const updatedRecord = await prisma.wRVUData.upsert({
           where: {
             providerId_year_month: {
               providerId: provider.id,
@@ -188,8 +196,36 @@ export async function PUT(request: Request) {
             hours: 160,
             providerId: provider.id
           }
-        })
-      )
+        });
+
+        // If there was an existing record and the value changed, create history
+        if (existingRecord && existingRecord.value !== value) {
+          await prisma.wRVUHistory.create({
+            data: {
+              wrvuDataId: updatedRecord.id,
+              changeType: 'UPDATE',
+              fieldName: 'value',
+              oldValue: existingRecord.value.toString(),
+              newValue: value.toString(),
+              changedAt: new Date(),
+            }
+          });
+        } else if (!existingRecord) {
+          // If this is a new record, create history
+          await prisma.wRVUHistory.create({
+            data: {
+              wrvuDataId: updatedRecord.id,
+              changeType: 'CREATE',
+              fieldName: 'value',
+              oldValue: null,
+              newValue: value.toString(),
+              changedAt: new Date(),
+            }
+          });
+        }
+
+        return updatedRecord;
+      })
     );
 
     return NextResponse.json({ success: true, count: wrvuData.length });

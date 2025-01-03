@@ -149,9 +149,25 @@ model WRVUData {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   provider   Provider @relation(fields: [providerId], references: [id])
+  history    WRVUHistory[]
 
   @@unique([providerId, year, month])
   @@index([providerId, year])
+}
+
+model WRVUHistory {
+  id          String   @id @default(cuid())
+  wrvuDataId  String
+  wrvuData    WRVUData @relation(fields: [wrvuDataId], references: [id], onDelete: Cascade)
+  changeType  String   // "CREATE", "UPDATE", "DELETE"
+  fieldName   String   // Name of the field that changed
+  oldValue    String?  // Previous value (JSON stringified if needed)
+  newValue    String?  // New value (JSON stringified if needed)
+  changedAt   DateTime @default(now())
+  changedBy   String?  // Optional: track who made the change
+
+  @@index([wrvuDataId])
+  @@index([changedAt])
 }
 
 model ProviderMetrics {

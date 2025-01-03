@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MagnifyingGlassIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, PlusIcon, PencilIcon, TrashIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import EditWRVUModal from '@/components/WRVU/EditWRVUModal';
 import { toast } from 'react-hot-toast';
+import { format } from 'date-fns';
 
 function classNames(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ');
@@ -35,6 +36,19 @@ interface WRVUData {
 const formatNumber = (value: number | null | undefined) => {
   if (value === null || value === undefined) return '-';
   return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+// Add helper function to check if a value has history
+const hasHistory = (data: any, month: number) => {
+  return data.history && data.history[month];
+};
+
+// Add helper function to format history tooltip content
+const formatHistoryTooltip = (history: any) => {
+  const oldValue = parseFloat(history.oldValue || '0').toFixed(2);
+  const newValue = parseFloat(history.newValue || '0').toFixed(2);
+  const date = format(new Date(history.changedAt), 'MMM d, yyyy h:mm a');
+  return `Changed from ${oldValue} to ${newValue} on ${date}`;
 };
 
 export default function WRVUDataPage() {
@@ -320,8 +334,8 @@ export default function WRVUDataPage() {
 
       {/* Action Buttons */}
       {selectedItems.size > 0 && (
-        <div className="bg-gray-50 px-5 py-3">
-          <div className="flex items-center gap-3">
+        <div className="bg-white rounded-lg shadow p-4">
+          <div className="flex gap-2">
             <button
               onClick={() => {
                 const selectedId = Array.from(selectedItems)[0];
@@ -331,17 +345,20 @@ export default function WRVUDataPage() {
                 }
               }}
               disabled={selectedItems.size !== 1}
-              className="inline-flex items-center gap-x-1.5 px-2.5 py-1.5 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-gray-300 rounded-md shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className={classNames(
+                "inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500",
+                selectedItems.size !== 1 && "opacity-50 cursor-not-allowed"
+              )}
             >
-              <PencilIcon className="h-4 w-4" aria-hidden="true" />
+              <PencilIcon className="h-4 w-4 mr-2" />
               Edit
             </button>
             <button
               onClick={handleDelete}
-              className="inline-flex items-center gap-x-1.5 px-2.5 py-1.5 text-sm font-medium text-red-600 bg-white hover:bg-red-50 border border-red-300 rounded-md shadow-sm"
+              className="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 text-sm font-medium rounded-full hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             >
-              <TrashIcon className="h-4 w-4" aria-hidden="true" />
-              Delete
+              <TrashIcon className="h-4 w-4 mr-2" />
+              Delete Selected ({selectedItems.size})
             </button>
           </div>
         </div>
@@ -414,18 +431,16 @@ export default function WRVUDataPage() {
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">{data.employee_id}</td>
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">{`${data.first_name} ${data.last_name}`}</td>
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">{data.specialty}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.jan)}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.feb)}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.mar)}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.apr)}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.may)}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.jun)}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.jul)}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.aug)}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.sep)}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.oct)}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.nov)}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">{formatNumber(data.dec)}</td>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((month) => {
+                    const monthKey = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'][month - 1];
+                    const value = data[monthKey as keyof typeof data];
+                    
+                    return (
+                      <td key={month} className="whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900">
+                        {formatNumber(typeof value === 'number' ? value : 0)}
+                      </td>
+                    );
+                  })}
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-right font-medium text-gray-900 bg-gray-50">
                     {formatNumber(calculateYTD(data))}
                   </td>
