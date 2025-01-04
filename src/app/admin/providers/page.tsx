@@ -1229,10 +1229,7 @@ export default function ProvidersPage() {
                           EMPLOYEE ID
                         </th>
                         <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-left">
-                          FIRST NAME
-                        </th>
-                        <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-left">
-                          LAST NAME
+                          NAME
                         </th>
                         <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-left">
                           EMAIL
@@ -1304,10 +1301,12 @@ export default function ProvidersPage() {
                             {provider.employeeId}
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
-                            {provider.firstName}
-                          </td>
-                          <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
-                            {provider.lastName}
+                            <Link
+                              href={`/provider/${provider.employeeId}`}
+                              className="text-blue-600 hover:text-blue-900"
+                            >
+                              {`${provider.firstName} ${provider.lastName}`}
+                            </Link>
                           </td>
                           <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
                             {provider.email}

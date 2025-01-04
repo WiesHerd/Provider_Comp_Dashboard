@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { MagnifyingGlassIcon, PlusIcon, PencilIcon, TrashIcon, ClockIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
@@ -172,6 +172,14 @@ export default function WRVUDataPage() {
     setSelectedItems(newSelected);
   };
 
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedItems(new Set(paginatedData.map(item => item.id)));
+    } else {
+      setSelectedItems(new Set());
+    }
+  };
+
   const handleDelete = async () => {
     if (selectedItems.size === 0) return;
     
@@ -268,6 +276,10 @@ export default function WRVUDataPage() {
       data.jul, data.aug, data.sep, data.oct, data.nov, data.dec
     ].reduce((sum, val) => sum + (val || 0), 0);
   };
+
+  const hasEdits = useMemo(() => {
+    return wrvuData.some(data => isRecentlyEdited(data));
+  }, [wrvuData]);
 
   if (isLoading) {
     return (
@@ -393,29 +405,27 @@ export default function WRVUDataPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th scope="col"></th>
+                {hasEdits && <th scope="col"></th>}
                 <th scope="col"></th>
                 <th scope="col"></th>
                 <th scope="col"></th>
-                <th scope="col"></th>
-                <th scope="col" colSpan={12} className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap border-l border-gray-200">Monthly wRVUs</th>
+                <th scope="col" colSpan={12} className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Monthly wRVUs</th>
                 <th scope="col"></th>
               </tr>
-              <tr>
+              <tr className="border-b border-gray-200">
                 <th scope="col" className="relative w-12 px-4 sm:w-16 sm:px-6">
                   <input
                     type="checkbox"
                     className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
                     checked={selectedItems.size > 0 && selectedItems.size === paginatedData.length}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedItems(new Set(paginatedData.map(item => item.id)));
-                      } else {
-                        setSelectedItems(new Set());
-                      }
-                    }}
+                    onChange={(e) => handleSelectAll(e)}
                   />
                 </th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Edit</th>
+                {hasEdits && (
+                  <th scope="col" className="w-8 px-2 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center">
+                    EDIT
+                  </th>
+                )}
                 <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Employee ID</th>
                 <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Name</th>
                 <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Specialty</th>
@@ -425,8 +435,9 @@ export default function WRVUDataPage() {
                     scope="col"
                     className={classNames(
                       "px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap",
-                      index === 0 && "border-l border-gray-200"
+                      index === 0 && "border-l border-gray-200 border-t-0"
                     )}
+                    style={index === 0 ? { borderRight: 'none' } : undefined}
                   >
                     {month}
                   </th>
@@ -446,46 +457,29 @@ export default function WRVUDataPage() {
                       onChange={() => handleSelectItem(data.id)}
                     />
                   </td>
-                  <td className="px-3 py-2">
-                    {isRecentlyEdited(data) && (
-                      <div className="group relative inline-block flex items-center gap-1">
-                        <ClockIcon className="h-4 w-4 text-blue-500" />
-                        <button
-                          onClick={async (e) => {
-                            e.preventDefault();
-                            try {
-                              const response = await fetch(`/api/wrvu-data/clear-history/${data.id}`, {
-                                method: 'POST'
-                              });
-                              if (!response.ok) throw new Error('Failed to clear history');
-                              await fetchWRVUData();
-                              toast.success('History cleared successfully');
-                            } catch (error) {
-                              console.error('Error clearing history:', error);
-                              toast.error('Failed to clear history');
-                            }
-                          }}
-                          className="text-gray-400 hover:text-gray-600"
-                        >
-                          <XMarkIcon className="h-3 w-3" />
-                        </button>
-                        <div className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white p-2 rounded shadow-lg z-50 min-w-[200px]">
-                          <div className="text-sm font-medium mb-1">Edit History</div>
-                          {data.history?.slice(0, 3).map((change: any, idx: number) => (
-                            <div key={idx} className="text-xs mb-2">
-                              <div className="text-gray-300">{new Date(change.changedAt).toLocaleString()}</div>
-                              <div>
-                                <span className="text-gray-400">{change.fieldName}: </span>
-                                <span className="text-red-400">{change.oldValue}</span>
-                                <span className="text-gray-400"> → </span>
-                                <span className="text-green-400">{change.newValue}</span>
+                  {hasEdits && (
+                    <td className="whitespace-nowrap w-8 px-2 py-2 text-center">
+                      {isRecentlyEdited(data) && (
+                        <div className="group relative inline-block">
+                          <ClockIcon className="h-4 w-4 text-blue-500" aria-hidden="true" />
+                          <div className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white p-2 rounded shadow-lg z-50 min-w-[200px]">
+                            <div className="text-sm font-medium mb-1">Edit History</div>
+                            {data.history?.slice(0, 3).map((change: any, idx: number) => (
+                              <div key={idx} className="text-xs mb-2">
+                                <div className="text-gray-300">{new Date(change.changedAt).toLocaleString()}</div>
+                                <div>
+                                  <span className="text-gray-400">{change.fieldName}: </span>
+                                  <span className="text-red-400">{change.oldValue}</span>
+                                  <span className="text-gray-400"> → </span>
+                                  <span className="text-green-400">{change.newValue}</span>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </td>
+                      )}
+                    </td>
+                  )}
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">{data.employee_id}</td>
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">{`${data.first_name} ${data.last_name}`}</td>
                   <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">{data.specialty}</td>

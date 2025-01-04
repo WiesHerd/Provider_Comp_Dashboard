@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { MagnifyingGlassIcon, ClockIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import EditMarketDataModal from '@/components/MarketData/EditMarketDataModal';
@@ -32,6 +32,7 @@ interface MarketData {
     newValue: string;
     changedAt: string;
   }[];
+  lastEditedAt?: Date | null;
 }
 
 // Add a helper function for safe number formatting
@@ -46,12 +47,6 @@ const formatNumber = (value: number | null | undefined, isDecimal: boolean = fal
   // For TCC values and wRVU values, just use commas
   return value.toLocaleString();
 };
-
-interface Column {
-  id: string;
-  label: string;
-  key: keyof MarketData | ((data: MarketData) => React.ReactNode);
-}
 
 function classNames(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ');
@@ -88,6 +83,13 @@ export default function MarketDataPage() {
     message: ''
   });
 
+  const hasEdits = useMemo(() => {
+    return marketData.some(data => 
+      data.lastEditedAt != null || 
+      (data.history && data.history.length > 0)
+    );
+  }, [marketData]);
+
   useEffect(() => {
     fetchMarketData();
   }, []);
@@ -118,20 +120,20 @@ export default function MarketDataPage() {
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-      // Select all items in the filtered list
-      setSelectedItems(new Set(filteredData.map(item => item.id)));
+      const newSelected = new Set(filteredData.map(item => item.id));
+      setSelectedItems(newSelected);
     } else {
-      // Deselect all items
       setSelectedItems(new Set());
     }
   };
 
-  const handleSelectItem = (id: string) => {
+  const handleSelectRow = (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
+    e.stopPropagation();
     const newSelected = new Set(selectedItems);
-    if (selectedItems.has(id)) {
-      newSelected.delete(id);
-    } else {
+    if (e.target.checked) {
       newSelected.add(id);
+    } else {
+      newSelected.delete(id);
     }
     setSelectedItems(newSelected);
   };
@@ -278,37 +280,6 @@ export default function MarketDataPage() {
     }
   };
 
-  const [columns] = useState<Column[]>([
-    { 
-      id: 'select', 
-      label: '', 
-      key: (data: MarketData) => (
-        <input
-          type="checkbox"
-          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-          checked={selectedItems.has(data.id)}
-          onChange={(e) => {
-            e.stopPropagation();
-            handleSelectItem(data.id);
-          }}
-        />
-      )
-    },
-    { id: 'specialty', label: 'Specialty', key: 'specialty' },
-    { id: 'p25_total', label: '25th TCC', key: (data: MarketData) => `$${formatNumber(data.p25_total)}` },
-    { id: 'p50_total', label: '50th TCC', key: (data: MarketData) => `$${formatNumber(data.p50_total)}` },
-    { id: 'p75_total', label: '75th TCC', key: (data: MarketData) => `$${formatNumber(data.p75_total)}` },
-    { id: 'p90_total', label: '90th TCC', key: (data: MarketData) => `$${formatNumber(data.p90_total)}` },
-    { id: 'p25_wrvu', label: '25th wRVU', key: (data: MarketData) => formatNumber(data.p25_wrvu) },
-    { id: 'p50_wrvu', label: '50th wRVU', key: (data: MarketData) => formatNumber(data.p50_wrvu) },
-    { id: 'p75_wrvu', label: '75th wRVU', key: (data: MarketData) => formatNumber(data.p75_wrvu) },
-    { id: 'p90_wrvu', label: '90th wRVU', key: (data: MarketData) => formatNumber(data.p90_wrvu) },
-    { id: 'p25_cf', label: '25th CF', key: (data: MarketData) => `$${formatNumber(data.p25_cf, true)}` },
-    { id: 'p50_cf', label: '50th CF', key: (data: MarketData) => `$${formatNumber(data.p50_cf, true)}` },
-    { id: 'p75_cf', label: '75th CF', key: (data: MarketData) => `$${formatNumber(data.p75_cf, true)}` },
-    { id: 'p90_cf', label: '90th CF', key: (data: MarketData) => `$${formatNumber(data.p90_cf, true)}` }
-  ]);
-
   // Calculate pagination values
   const totalPages = Math.ceil(filteredData.length / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
@@ -423,142 +394,95 @@ export default function MarketDataPage() {
       )}
 
       {/* Table Container */}
-      <div className="flex flex-col bg-white shadow-lg rounded-lg flex-1 min-h-0 border border-gray-200 overflow-hidden">
-        <div className="overflow-auto flex-1 rounded-t-lg scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-          <div className="min-w-max">
-            <table className="w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 shadow-sm z-10">
-                <tr>
-                  <th scope="col" className="w-10 px-2 py-3 text-left bg-gray-50">
-                  </th>
-                  <th scope="col" className="w-10 px-2 py-3 bg-gray-50 border-r border-gray-300">
-                  </th>
-                  <th scope="col" className="w-48 px-3 py-3 sticky left-0 bg-gray-50 border-r border-gray-300">
-                  </th>
-                  <th colSpan={4} scope="col" className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-50 border-r border-gray-300">
-                    Total Cash Compensation
-                  </th>
-                  <th colSpan={4} scope="col" className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-50 border-r border-gray-300">
-                    wRVUs
-                  </th>
-                  <th colSpan={4} scope="col" className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider bg-gray-50">
-                    Conversion Factor
-                  </th>
-                </tr>
-                <tr className="bg-gray-50">
-                  <th scope="col" className="w-10 px-2 py-2">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                      checked={filteredData.length > 0 && selectedItems.size === filteredData.length}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedItems(new Set(filteredData.map(p => p.id)));
-                        } else {
-                          setSelectedItems(new Set());
-                        }
-                      }}
-                    />
-                  </th>
-                  <th scope="col" className="w-10 px-2 py-2 text-center text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-300">
-                    Edit
-                  </th>
-                  <th scope="col" className="w-48 px-3 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider sticky left-0 bg-gray-50 border-r border-gray-300">
-                    Specialty
-                  </th>
-                  <th scope="col" className="w-24 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">25th</th>
-                  <th scope="col" className="w-24 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">50th</th>
-                  <th scope="col" className="w-24 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">75th</th>
-                  <th scope="col" className="w-24 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-300">90th</th>
-                  <th scope="col" className="w-20 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">25th</th>
-                  <th scope="col" className="w-20 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">50th</th>
-                  <th scope="col" className="w-20 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">75th</th>
-                  <th scope="col" className="w-20 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider border-r border-gray-300">90th</th>
-                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">25th</th>
-                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">50th</th>
-                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">75th</th>
-                  <th scope="col" className="w-16 px-2 py-2 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">90th</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {paginatedData.map((item) => (
-                  <tr 
-                    key={item.id}
-                    className={classNames(
-                      'hover:bg-gray-50 transition-colors duration-200',
-                      selectedItems.has(item.id) ? 'bg-blue-50' : ''
-                    )}
-                  >
-                    <td className={classNames(
-                      'whitespace-nowrap px-2 py-3 text-sm sticky left-0 bg-white w-10',
-                      selectedItems.has(item.id) ? 'bg-indigo-50' : ''
-                    )}>
+      <div className="flex-1 min-h-0 bg-white shadow-lg rounded-lg border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <div className="inline-block min-w-full align-middle">
+            <div className="overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="w-12 px-4 sm:w-16 sm:px-6"></th>
+                    {hasEdits && <th scope="col" className="w-8 px-2"></th>}
+                    <th scope="col" className="px-3"></th>
+                    <th scope="col" colSpan={4} className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap border-l border-gray-200">Total Cash Compensation</th>
+                    <th scope="col" colSpan={4} className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap border-l border-gray-200">wRVUs</th>
+                    <th scope="col" colSpan={4} className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap border-l border-gray-200">Conversion Factor</th>
+                  </tr>
+                  <tr className="border-b border-gray-200">
+                    <th scope="col" className="relative w-12 px-4 sm:w-16 sm:px-6">
                       <input
                         type="checkbox"
-                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                        checked={selectedItems.has(item.id)}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          handleSelectItem(item.id);
-                        }}
+                        className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
+                        checked={selectedItems.size > 0 && selectedItems.size === paginatedData.length}
+                        onChange={handleSelectAll}
                       />
-                    </td>
-                    <td className="whitespace-nowrap w-10 px-2 py-3 text-sm text-center border-r border-gray-300">
-                      {Array.isArray(item.history) && item.history.length > 0 && (
-                        <div className="group relative inline-block">
-                          <div className="flex items-center gap-1">
-                            <ClockIcon className="h-4 w-4 text-blue-500 hover:text-blue-600 cursor-pointer" aria-hidden="true" />
-                            <button
-                              onClick={() => clearHistory([item.id])}
-                              className="text-gray-400 hover:text-gray-600"
-                              title="Clear edit history"
-                            >
-                              <XMarkIcon className="h-3 w-3" />
-                            </button>
-                          </div>
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute z-50 left-full bottom-full mb-2 ml-2 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm min-w-[300px]">
-                            <div className="flex flex-col gap-1">
-                              <span className="font-semibold border-b border-gray-700 pb-1">Change History</span>
-                              {item.history?.slice(0, 3).map((change, idx) => (
-                                <div key={idx} className="text-xs">
-                                  <span className="text-gray-300">{new Date(change.changedAt).toLocaleString()}</span>
-                                  <div className="ml-2">
-                                    <span className="text-blue-300">{change.fieldName}:</span>
-                                    <span className="text-red-300 line-through ml-1">{change.oldValue}</span>
-                                    <span className="text-green-300 ml-1">→ {change.newValue}</span>
-                                  </div>
-                                </div>
-                              ))}
-                              {item.history && item.history.length > 3 && (
-                                <span className="text-xs text-gray-400">+ {item.history.length - 3} more changes</span>
-                              )}
-                            </div>
-                            <div className="absolute top-1/2 right-full -translate-y-1/2 -mr-2">
-                              <div className="border-8 border-transparent border-r-gray-900"></div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-sm font-medium text-gray-900 sticky left-0 bg-white w-48 border-r border-gray-300">
-                      {item.specialty}
-                    </td>
-                    <td className="whitespace-nowrap w-24 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(item.p25_total)}</td>
-                    <td className="whitespace-nowrap w-24 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(item.p50_total)}</td>
-                    <td className="whitespace-nowrap w-24 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(item.p75_total)}</td>
-                    <td className="whitespace-nowrap w-24 px-3 py-3 text-sm text-gray-600 text-right font-medium border-r border-gray-300">${formatNumber(item.p90_total)}</td>
-                    <td className="whitespace-nowrap w-20 px-3 py-3 text-sm text-gray-600 text-right font-medium">{formatNumber(item.p25_wrvu)}</td>
-                    <td className="whitespace-nowrap w-20 px-3 py-3 text-sm text-gray-600 text-right font-medium">{formatNumber(item.p50_wrvu)}</td>
-                    <td className="whitespace-nowrap w-20 px-3 py-3 text-sm text-gray-600 text-right font-medium">{formatNumber(item.p75_wrvu)}</td>
-                    <td className="whitespace-nowrap w-20 px-3 py-3 text-sm text-gray-600 text-right font-medium border-r border-gray-300">{formatNumber(item.p90_wrvu)}</td>
-                    <td className="whitespace-nowrap w-16 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(item.p25_cf, true)}</td>
-                    <td className="whitespace-nowrap w-16 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(item.p50_cf, true)}</td>
-                    <td className="whitespace-nowrap w-16 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(item.p75_cf, true)}</td>
-                    <td className="whitespace-nowrap w-16 px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(item.p90_cf, true)}</td>
+                    </th>
+                    {hasEdits && (
+                      <th scope="col" className="w-8 px-2 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center">
+                        Edit
+                      </th>
+                    )}
+                    <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap border-r border-gray-200">
+                      Specialty
+                    </th>
+                    <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">25th</th>
+                    <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">50th</th>
+                    <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">75th</th>
+                    <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap border-r border-gray-200">90th</th>
+                    <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">25th</th>
+                    <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">50th</th>
+                    <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">75th</th>
+                    <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap border-r border-gray-200">90th</th>
+                    <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">25th</th>
+                    <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">50th</th>
+                    <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">75th</th>
+                    <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">90th</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-50 bg-white">
+                  {paginatedData.map((data) => (
+                    <tr 
+                      key={data.id}
+                      className={classNames(
+                        selectedItems.has(data.id) ? 'bg-gray-50' : 'bg-white',
+                        'hover:bg-gray-50'
+                      )}
+                    >
+                      <td className="relative w-12 px-4 sm:w-16 sm:px-6">
+                        <input
+                          type="checkbox"
+                          className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          checked={selectedItems.has(data.id)}
+                          onChange={(e) => handleSelectRow(e, data.id)}
+                        />
+                      </td>
+                      {hasEdits && (
+                        <td className="w-8 px-2 py-3 text-center">
+                          {data.history && data.history.length > 0 && (
+                            <ClockIcon className="h-4 w-4 text-blue-500 inline-block" aria-hidden="true" />
+                          )}
+                        </td>
+                      )}
+                      <td className="px-3 py-3 text-sm text-gray-900 border-r border-gray-200">
+                        {data.specialty}
+                      </td>
+                      <td className="px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(data.p25_total)}</td>
+                      <td className="px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(data.p50_total)}</td>
+                      <td className="px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(data.p75_total)}</td>
+                      <td className="px-3 py-3 text-sm text-gray-600 text-right font-medium border-r border-gray-200">${formatNumber(data.p90_total)}</td>
+                      <td className="px-3 py-3 text-sm text-gray-600 text-right font-medium">{formatNumber(data.p25_wrvu)}</td>
+                      <td className="px-3 py-3 text-sm text-gray-600 text-right font-medium">{formatNumber(data.p50_wrvu)}</td>
+                      <td className="px-3 py-3 text-sm text-gray-600 text-right font-medium">{formatNumber(data.p75_wrvu)}</td>
+                      <td className="px-3 py-3 text-sm text-gray-600 text-right font-medium border-r border-gray-200">{formatNumber(data.p90_wrvu)}</td>
+                      <td className="px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(data.p25_cf, true)}</td>
+                      <td className="px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(data.p50_cf, true)}</td>
+                      <td className="px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(data.p75_cf, true)}</td>
+                      <td className="px-3 py-3 text-sm text-gray-600 text-right font-medium">${formatNumber(data.p90_cf, true)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
