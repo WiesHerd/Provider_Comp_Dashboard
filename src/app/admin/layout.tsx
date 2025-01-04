@@ -13,7 +13,7 @@ import {
   PresentationChartLineIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 const navigation = [
   { 
@@ -55,6 +55,27 @@ export default function AdminLayout({
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+
+  const getPageTitle = () => {
+    const route = pathname?.split('/').pop();
+    switch (route) {
+      case 'providers':
+        return 'Providers';
+      case 'market-data':
+        return 'Market Data';
+      case 'wrvu-data':
+        return 'wRVU Data';
+      case 'upload':
+        return 'Upload Data';
+      case 'reports':
+        return 'Reports';
+      case 'settings':
+        return 'Settings';
+      default:
+        return 'Dashboard';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">

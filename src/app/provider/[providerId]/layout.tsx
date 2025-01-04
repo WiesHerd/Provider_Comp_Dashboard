@@ -15,6 +15,7 @@ import {
   Cog6ToothIcon,
   PresentationChartLineIcon
 } from '@heroicons/react/24/outline';
+import JumpToProvider from '@/components/common/JumpToProvider';
 
 const navigation = [
   { 
@@ -124,6 +125,21 @@ export default function ProviderLayout({
 
       {/* Main content */}
       <div className={`transition-all duration-300 ${isCollapsed ? 'pl-16' : 'pl-64'}`}>
+        {/* Top header with JumpToProvider */}
+        <div className="bg-white border-b border-gray-200 px-8 py-4">
+          <div className="flex items-center justify-between mb-6">
+            <Link
+              href="/admin/providers"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm"
+            >
+              <ArrowLeftIcon className="w-4 h-4" />
+              Back to Providers
+            </Link>
+            <div className="w-64">
+              <JumpToProvider />
+            </div>
+          </div>
+        </div>
         <main className="py-6 px-8">
           {children}
         </main>

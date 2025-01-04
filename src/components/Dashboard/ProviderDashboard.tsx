@@ -1839,56 +1839,6 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     <>
       <div className="w-full">
         <style>{customStyles}</style>
-        <div className="flex items-center justify-between mb-8">
-          <Link
-            href="/admin/providers"
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            <ArrowLeftIcon className="w-4 h-4" />
-            Back to Providers
-          </Link>
-          <div className="relative" ref={providerSelectorRef}>
-            <button
-              onClick={() => setIsProviderSelectorOpen(!isProviderSelectorOpen)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              <span>Jump to Provider</span>
-              <ChevronDownIcon className="w-4 h-4" />
-            </button>
-            {isProviderSelectorOpen && (
-              <div className="absolute right-0 z-10 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg">
-                <div className="p-2">
-                  <input
-                    type="text"
-                    placeholder="Search providers..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="max-h-64 overflow-y-auto">
-                  {filteredProviders.length > 0 ? (
-                    filteredProviders.map((p) => (
-                      <button
-                        key={p.employeeId}
-                        onClick={() => handleProviderSelect(p.employeeId)}
-                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50"
-                      >
-                        <div className="font-medium text-gray-900">{p.firstName} {p.lastName}</div>
-                        <div className="text-gray-500 text-xs">{p.specialty} • {p.employeeId}</div>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="px-4 py-2 text-sm text-gray-500">
-                      {searchTerm ? 'No providers found' : 'Start typing to search...'}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
         <div className="dashboard-header bg-white rounded-lg shadow-sm mb-8 border border-gray-200">
           <div className="px-8 py-6">
             <div className="flex flex-col items-center text-center">

@@ -5,45 +5,26 @@ export async function GET() {
   try {
     console.log('Fetching providers...');
     const providers = await prisma.provider.findMany({
-      orderBy: {
-        lastName: 'asc'
-      }
+      orderBy: [
+        { lastName: 'asc' },
+        { firstName: 'asc' }
+      ]
     });
 
-    // Update base salaries for providers where it's 0
-    await Promise.all(providers.map(async (provider) => {
-      if (provider.baseSalary === 0) {
-        const totalSalary = provider.clinicalSalary + provider.nonClinicalSalary;
-        if (totalSalary > 0) {
-          await prisma.provider.update({
-            where: { id: provider.id },
-            data: { baseSalary: totalSalary }
-          });
-          provider.baseSalary = totalSalary; // Update the local object as well
-        }
-      }
-    }));
-
-    // Log the data
+    // Log the data for verification
     if (providers.length > 0) {
-      console.log('Sample provider data:', JSON.stringify({
+      console.log('Sample provider data:', {
         id: providers[0].id,
         employeeId: providers[0].employeeId,
         name: `${providers[0].firstName} ${providers[0].lastName}`,
         specialty: providers[0].specialty,
+        compensationModel: providers[0].compensationModel,
+        hireDate: providers[0].hireDate,
+        formattedHireDate: providers[0].hireDate ? new Date(providers[0].hireDate).toLocaleDateString() : 'N/A',
         baseSalary: providers[0].baseSalary,
         clinicalSalary: providers[0].clinicalSalary,
-        nonClinicalSalary: providers[0].nonClinicalSalary,
-        formattedBaseSalary: new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        }).format(providers[0].baseSalary),
-        fte: providers[0].fte,
-        clinicalFte: providers[0].clinicalFte,
-        nonClinicalFte: providers[0].nonClinicalFte
-      }, null, 2));
+        nonClinicalSalary: providers[0].nonClinicalSalary
+      });
     }
 
     return NextResponse.json(providers);
@@ -73,6 +54,13 @@ export async function POST(request: Request) {
           const nonClinicalSalary = Number(provider.nonClinicalSalary) || 0;
           const baseSalary = clinicalSalary + nonClinicalSalary;
 
+          // Parse hire date properly
+          let hireDate = provider.hireDate ? new Date(provider.hireDate) : null;
+          if (!hireDate || isNaN(hireDate.getTime())) {
+            console.warn(`Invalid hire date for ${provider.employeeId}: ${provider.hireDate}`);
+            hireDate = null;
+          }
+
           const processedProvider = {
             employeeId: provider.employeeId?.toString() || '',
             firstName: provider.firstName || '',
@@ -81,31 +69,25 @@ export async function POST(request: Request) {
             specialty: provider.specialty || '',
             department: provider.department || provider.specialty || '',
             status: provider.status || 'Active',
-            hireDate: provider.hireDate ? new Date(provider.hireDate) : new Date(),
+            hireDate: hireDate,
             fte: Number(provider.fte) || 1.0,
             clinicalFte: Number(provider.clinicalFte) || Number(provider.fte) || 1.0,
             nonClinicalFte: Number(provider.nonClinicalFte) || 0,
             baseSalary: baseSalary,
             clinicalSalary: clinicalSalary,
             nonClinicalSalary: nonClinicalSalary,
-            compensationModel: provider.compensationModel || 'Standard',
+            compensationModel: provider.compensationModel || '',
             targetWRVUs: Number(provider.targetWRVUs) || 0
           };
 
-          // Log the hire date for debugging
+          // Log the processed data for verification
           console.log('Processing provider:', {
             employeeId: provider.employeeId,
             name: `${provider.firstName} ${provider.lastName}`,
             originalHireDate: provider.hireDate,
-            processedHireDate: processedProvider.hireDate.toISOString(),
-            isDefaultDate: !provider.hireDate
+            processedHireDate: processedProvider.hireDate?.toISOString() || 'null',
+            compensationModel: processedProvider.compensationModel
           });
-
-          // Validate hire date and ensure it's not in the future
-          if (isNaN(processedProvider.hireDate.getTime()) || processedProvider.hireDate.getFullYear() > new Date().getFullYear()) {
-            console.warn(`Invalid or future hire date for ${provider.employeeId}, using current date`);
-            processedProvider.hireDate = new Date();
-          }
 
           // Upsert the provider (create if not exists, update if exists)
           const result = await prisma.provider.upsert({

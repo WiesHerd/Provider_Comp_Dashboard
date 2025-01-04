@@ -1206,208 +1206,171 @@ export default function ProvidersPage() {
               )}
 
               {/* Table */}
-              <div className="bg-white rounded-lg shadow overflow-hidden">
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
-                  {/* Top Scrollbar */}
-                  <div className="overflow-x-auto border-b border-gray-200" style={{ width: '100%' }} onScroll={(e) => {
-                    const bottomScroll = document.getElementById('bottom-scroll');
-                    if (bottomScroll) {
-                      bottomScroll.scrollLeft = e.currentTarget.scrollLeft;
-                    }
-                  }}>
-                    <div style={{ width: '250%', minHeight: '20px' }}>
-                      <div className="h-4" /> {/* Spacer for scrollbar */}
-                    </div>
-                  </div>
-
-                  {/* Bottom Scrollable Table */}
-                  <div className="overflow-x-auto" id="bottom-scroll" onScroll={(e) => {
-                    const topScroll = e.currentTarget.previousElementSibling;
-                    if (topScroll) {
-                      topScroll.scrollLeft = e.currentTarget.scrollLeft;
-                    }
-                  }}>
-                    <table className="min-w-full divide-y divide-gray-50" style={{ width: '250%' }}>
-                      <thead className="bg-gray-50">
-                        <tr className="divide-x divide-gray-50">
-                          <th scope="col" className="relative w-12 px-4 sm:w-16 sm:px-6">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="overflow-x-auto" style={{ maxWidth: '100%' }}>
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead>
+                      <tr>
+                        <th scope="col" className="relative w-12 px-4 sm:w-16 sm:px-6">
+                          <input
+                            type="checkbox"
+                            className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            checked={selectedProviders.length > 0 && selectedProviders.length === paginatedProviders.length}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedProviders(paginatedProviders.map(p => p.id));
+                              } else {
+                                setSelectedProviders([]);
+                              }
+                            }}
+                          />
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-left">
+                          EMPLOYEE ID
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-left">
+                          FIRST NAME
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-left">
+                          LAST NAME
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-left">
+                          EMAIL
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-left">
+                          SPECIALTY
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-left">
+                          DEPARTMENT
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-left">
+                          HIRE DATE
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-left">
+                          TERM DATE
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-right">
+                          FTE
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-right">
+                          BASE SALARY
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-left">
+                          COMP MODEL
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-right">
+                          CLINICAL FTE
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-right">
+                          NON-CLINICAL FTE
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-right">
+                          CLINICAL SALARY
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-right">
+                          NON-CLINICAL SALARY
+                        </th>
+                        <th scope="col" className="px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50 text-center">
+                          STATUS
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50 bg-white">
+                      {paginatedProviders.map((provider) => (
+                        <tr 
+                          key={provider.id}
+                          className={classNames(
+                            selectedProviders.includes(provider.id) ? 'bg-gray-50' : 'bg-white',
+                            'hover:bg-gray-50 divide-x divide-gray-50'
+                          )}
+                        >
+                          <td className="relative w-12 px-4 sm:w-16 sm:px-6">
                             <input
                               type="checkbox"
-                              className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
-                              checked={selectedProviders.length > 0 && selectedProviders.length === paginatedProviders.length}
+                              className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                              value={provider.id}
+                              checked={selectedProviders.includes(provider.id)}
                               onChange={(e) => {
+                                e.stopPropagation();
                                 if (e.target.checked) {
-                                  setSelectedProviders(paginatedProviders.map(p => p.id));
+                                  setSelectedProviders([...selectedProviders, provider.id]);
                                 } else {
-                                  setSelectedProviders([]);
+                                  setSelectedProviders(selectedProviders.filter(id => id !== provider.id));
                                 }
                               }}
                             />
-                          </th>
-                          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Employee ID</th>
-                          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Name</th>
-                          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Email</th>
-                          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Specialty</th>
-                          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Department</th>
-                          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
-                          <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Total FTE</th>
-                          <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Clinical FTE</th>
-                          <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Non-Clinical FTE</th>
-                          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Hire Date</th>
-                          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Termination Date</th>
-                          <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Base Salary</th>
-                          <th scope="col" className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Compensation Model</th>
-                          <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Clinical Salary</th>
-                          <th scope="col" className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Non-Clinical Salary</th>
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                            {provider.employeeId}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                            {provider.firstName}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                            {provider.lastName}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                            {provider.email}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                            {provider.specialty}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                            {provider.department}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                            {provider.hireDate ? new Date(provider.hireDate).toLocaleDateString() : '-'}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                            {provider.terminationDate ? new Date(provider.terminationDate).toLocaleDateString() : '-'}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-right text-gray-900">
+                            {provider.fte?.toFixed(2) || '0.00'}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-right text-gray-900">
+                            ${(provider.baseSalary || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
+                            {provider.compensationModel}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-right text-gray-900">
+                            {provider.clinicalFte?.toFixed(2) || '0.00'}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-right text-gray-900">
+                            {provider.nonClinicalFte?.toFixed(2) || '0.00'}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-right text-gray-900">
+                            ${(provider.clinicalSalary || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm text-right text-gray-900">
+                            ${(provider.nonClinicalSalary || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3 text-sm">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStatusChange(provider);
+                              }}
+                              className={classNames(
+                                'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium',
+                                provider.status === 'Active'
+                                  ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                              )}
+                            >
+                              {provider.status === 'Active' ? (
+                                <CheckCircleIcon className="mr-1 h-4 w-4 text-green-400" />
+                              ) : (
+                                <XCircleIcon className="mr-1 h-4 w-4 text-gray-400" />
+                              )}
+                              {provider.status}
+                            </button>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50 bg-white">
-                        {paginatedProviders.map((provider) => (
-                          <tr 
-                            key={provider.id}
-                            className={classNames(
-                              selectedProviders.includes(provider.id) ? 'bg-gray-50' : 'bg-white',
-                              'hover:bg-gray-50 divide-x divide-gray-50'
-                            )}
-                          >
-                            <td className="relative w-12 px-4 sm:w-16 sm:px-6">
-                              <input
-                                type="checkbox"
-                                className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
-                                value={provider.id}
-                                checked={selectedProviders.includes(provider.id)}
-                                onChange={(e) => {
-                                  e.stopPropagation();
-                                  if (e.target.checked) {
-                                    setSelectedProviders([...selectedProviders, provider.id]);
-                                  } else {
-                                    setSelectedProviders(selectedProviders.filter(id => id !== provider.id));
-                                  }
-                                }}
-                              />
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">
-                              {provider.employeeId}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm">
-                              <Link
-                                href={`/provider/${provider.employeeId}`}
-                                className="text-blue-600 hover:text-blue-800 hover:underline"
-                              >
-                                {provider.firstName} {provider.lastName}
-                              </Link>
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-500">
-                              {provider.email}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">
-                              {provider.specialty}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">
-                              {provider.department}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm">
-                              <button
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  const newStatus = provider.status === 'Active' ? 'Inactive' : 'Active';
-                                  if (newStatus === 'Inactive') {
-                                    setSelectedProviderForTermination(provider);
-                                    setIsTerminationModalOpen(true);
-                                    return;
-                                  }
-
-                                  try {
-                                    const response = await fetch(`/api/admin/providers/${provider.id}/status`, {
-                                      method: 'PATCH',
-                                      headers: {
-                                        'Content-Type': 'application/json',
-                                      },
-                                      body: JSON.stringify({ 
-                                        status: 'Active',
-                                        terminationDate: null 
-                                      }),
-                                    });
-
-                                    if (!response.ok) {
-                                      const contentType = response.headers.get('content-type');
-                                      let errorMessage = 'Failed to update provider status.';
-                                      
-                                      if (contentType?.includes('application/json')) {
-                                        const errorData = await response.json();
-                                        errorMessage = errorData.error || errorMessage;
-                                      } else {
-                                        const textError = await response.text();
-                                        console.error('Server response:', textError);
-                                      }
-                                      
-                                      alert(errorMessage);
-                                      return;
-                                    }
-
-                                    const updatedProvider = await response.json();
-                                    setProviders(prevProviders => 
-                                      prevProviders.map(p => 
-                                        p.id === provider.id ? updatedProvider : p
-                                      )
-                                    );
-                                  } catch (error) {
-                                    console.error('Failed to update status:', error);
-                                    alert('An error occurred while updating the provider status.');
-                                  }
-                                }}
-                                className={classNames(
-                                  'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium',
-                                  provider.status === 'Active'
-                                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                )}
-                              >
-                                {provider.status === 'Active' ? (
-                                  <CheckCircleIcon className="mr-1 h-4 w-4 text-green-400" />
-                                ) : (
-                                  <XCircleIcon className="mr-1 h-4 w-4 text-gray-400" />
-                                )}
-                                {provider.status}
-                              </button>
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">
-                              {provider.fte?.toFixed(2) || '0.00'}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">
-                              {provider.clinicalFte?.toFixed(2) || '0.00'}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">
-                              {provider.nonClinicalFte?.toFixed(2) || '0.00'}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">
-                              {provider.hireDate ? new Date(provider.hireDate).toLocaleDateString() : 'N/A'}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">
-                              {provider.terminationDate ? new Date(provider.terminationDate).toLocaleDateString() : '-'}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">
-                              ${(provider.baseSalary || 0).toLocaleString()}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-gray-900">
-                              {provider.compensationModel}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">
-                              ${(provider.clinicalSalary || 0).toLocaleString()}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-3 text-sm text-right text-gray-900">
-                              ${(provider.nonClinicalSalary || 0).toLocaleString()}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </DndContext>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               {/* Pagination */}
@@ -1689,27 +1652,26 @@ export default function ProvidersPage() {
 
               {/* Add these styles to your global CSS file (e.g., globals.css) */}
               <style jsx global>{`
-                /* Style both top and bottom scrollbars consistently */
+                /* Scrollbar styles */
                 .overflow-x-auto {
                   scrollbar-width: thin;
                   scrollbar-color: #888 #f1f1f1;
                   max-width: 100%;
+                  overflow-x: auto;
                 }
 
                 .overflow-x-auto::-webkit-scrollbar {
-                  height: 12px;
-                  display: block;
+                  height: 8px;
                 }
 
                 .overflow-x-auto::-webkit-scrollbar-track {
                   background: #f1f1f1;
-                  border-radius: 6px;
+                  border-radius: 4px;
                 }
 
                 .overflow-x-auto::-webkit-scrollbar-thumb {
                   background: #888;
-                  border-radius: 6px;
-                  border: 3px solid #f1f1f1;
+                  border-radius: 4px;
                 }
 
                 .overflow-x-auto::-webkit-scrollbar-thumb:hover {
@@ -1721,120 +1683,59 @@ export default function ProvidersPage() {
                   border-collapse: separate;
                   border-spacing: 0;
                   width: 100%;
-                  table-layout: auto;
                 }
 
                 th, td {
                   padding: 0.75rem 1rem;
-                  vertical-align: top;
+                  white-space: nowrap;
                 }
 
-                /* Header text wrapping */
-                th {
-                  white-space: normal;
-                  word-wrap: break-word;
-                  min-width: 100px;
-                  max-width: fit-content;
-                  height: auto;
-                  vertical-align: top;
-                  line-height: 1.2;
-                  position: sticky;
-                  top: 0;
-                  z-index: 1;
-                  background: #f9fafb;
-                }
-
-                /* Cell content */
-                td {
-                  white-space: normal;
-                  word-wrap: break-word;
-                  min-width: 100px;
-                  max-width: fit-content;
-                  background: inherit;
-                }
-
-                /* Special column handling */
-                th:first-child, td:first-child { /* Checkbox */
-                  width: 50px;
-                  min-width: 50px;
-                  max-width: 50px;
-                }
-
-                th[scope="col"] {
+                /* Column alignment */
+                th:first-child, td:first-child {
+                  width: 48px;
+                  min-width: 48px;
+                  max-width: 48px;
+                  text-align: center;
+                  position: relative;
                   padding: 0.75rem 1rem;
+                }
+
+                /* Text columns - left aligned */
+                th:nth-child(2), td:nth-child(2),  /* Employee ID */
+                th:nth-child(3), td:nth-child(3),  /* First Name */
+                th:nth-child(4), td:nth-child(4),  /* Last Name */
+                th:nth-child(5), td:nth-child(5),  /* Email */
+                th:nth-child(6), td:nth-child(6),  /* Specialty */
+                th:nth-child(7), td:nth-child(7),  /* Department */
+                th:nth-child(8), td:nth-child(8),  /* Hire Date */
+                th:nth-child(9), td:nth-child(9),  /* Term Date */
+                th:nth-child(12), td:nth-child(12) /* Comp Model */ {
                   text-align: left;
-                  font-size: 0.75rem;
-                  font-weight: 500;
-                  text-transform: uppercase;
-                  letter-spacing: 0.05em;
-                  color: #6B7280;
-                  background-color: #F9FAFB;
                 }
 
-                /* Specific column minimums */
-                th:nth-child(2), td:nth-child(2) { /* Employee ID */
-                  min-width: 100px;
-                }
-
-                th:nth-child(3), td:nth-child(3) { /* Name */
-                  min-width: 150px;
-                }
-
-                th:nth-child(4), td:nth-child(4) { /* Email */
-                  min-width: 200px;
-                }
-
-                /* Salary columns */
-                th:nth-child(12), td:nth-child(12), /* Base Salary */
-                th:nth-child(14), td:nth-child(14), /* Clinical Salary */
-                th:nth-child(15), td:nth-child(15) { /* Non-Clinical Salary */
-                  min-width: 120px;
+                /* Numeric columns - right aligned */
+                th:nth-child(10), td:nth-child(10), /* FTE */
+                th:nth-child(11), td:nth-child(11), /* Base Salary */
+                th:nth-child(13), td:nth-child(13), /* Clinical FTE */
+                th:nth-child(14), td:nth-child(14), /* Non-Clinical FTE */
+                th:nth-child(15), td:nth-child(15), /* Clinical Salary */
+                th:nth-child(16), td:nth-child(16)  /* Non-Clinical Salary */ {
                   text-align: right;
                 }
 
-                /* FTE columns */
-                th:nth-child(8), td:nth-child(8), /* Total FTE */
-                th:nth-child(9), td:nth-child(9), /* Clinical FTE */
-                th:nth-child(10), td:nth-child(10) { /* Non-Clinical FTE */
-                  min-width: 100px;
-                  text-align: right;
+                /* Status column - center aligned */
+                th:last-child, td:last-child {
+                  text-align: center;
                 }
 
-                /* Date columns */
-                th:nth-child(11), td:nth-child(11), /* Hire Date */
-                th:nth-child(13), td:nth-child(13) { /* Termination Date */
-                  min-width: 100px;
-                }
-
-                tr:hover td {
-                  background: #f9fafb;
-                }
-
-                /* Scrollbar styles */
-                .overflow-x-auto {
-                  scrollbar-width: thin;
-                  scrollbar-color: #888 #f1f1f1;
-                  max-width: 100%;
-                }
-
-                .overflow-x-auto::-webkit-scrollbar {
-                  height: 12px;
-                  display: block;
-                }
-
-                .overflow-x-auto::-webkit-scrollbar-track {
-                  background: #f1f1f1;
-                  border-radius: 6px;
-                }
-
-                .overflow-x-auto::-webkit-scrollbar-thumb {
-                  background: #888;
-                  border-radius: 6px;
-                  border: 3px solid #f1f1f1;
-                }
-
-                .overflow-x-auto::-webkit-scrollbar-thumb:hover {
-                  background: #666;
+                /* Checkbox alignment */
+                th:first-child input[type="checkbox"],
+                td:first-child input[type="checkbox"] {
+                  position: absolute;
+                  left: 50%;
+                  top: 50%;
+                  transform: translate(-50%, -50%);
+                  margin: 0;
                 }
               `}</style>
             </>
