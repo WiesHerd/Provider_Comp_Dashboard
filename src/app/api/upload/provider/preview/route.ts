@@ -9,13 +9,13 @@ interface ProviderUploadData {
   specialty: string;
   department: string;
   hire_date: string;
-  fte: string;
-  base_salary: string;
+  fte: string | number;
+  base_salary: string | number;
   compensation_model: string;
-  clinical_fte: string;
-  non_clinical_fte: string;
-  clinical_salary: string;
-  non_clinical_salary: string;
+  clinical_fte: string | number;
+  non_clinical_fte: string | number;
+  clinical_salary: string | number;
+  non_clinical_salary: string | number;
 }
 
 export async function POST(request: Request) {
@@ -26,12 +26,9 @@ export async function POST(request: Request) {
 
     if (!file || !(file instanceof File)) {
       console.error('No file found in request');
-      return new Response(
-        JSON.stringify({ error: 'No file uploaded' }),
-        { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
+      return NextResponse.json(
+        { error: 'No file uploaded' },
+        { status: 400 }
       );
     }
 
@@ -43,12 +40,9 @@ export async function POST(request: Request) {
       workbook = XLSX.read(bytes, { type: 'array' });
     } catch (e) {
       console.error('Error reading file:', e);
-      return new Response(
-        JSON.stringify({ error: 'Could not read file. Please ensure it is a valid Excel or CSV file.' }),
-        { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
+      return NextResponse.json(
+        { error: 'Could not read file. Please ensure it is a valid Excel or CSV file.' },
+        { status: 400 }
       );
     }
     
@@ -62,16 +56,26 @@ export async function POST(request: Request) {
       defval: ''
     }) as ProviderUploadData[];
 
+    console.log('Raw data from Excel:', data[0]); // Log first row for debugging
+
     // Validate and transform the data
     const previewData = data.map((item: ProviderUploadData) => {
-      const fte = Number(item.fte);
-      const baseSalary = Number(item.base_salary);
-      const clinicalFte = Number(item.clinical_fte || '0');
-      const nonClinicalFte = Number(item.non_clinical_fte || '0');
-      const clinicalSalary = Number(item.clinical_salary || '0');
-      const nonClinicalSalary = Number(item.non_clinical_salary || '0');
+      // Remove currency symbol and commas from salary fields
+      const cleanNumber = (value: string | number) => {
+        if (typeof value === 'string') {
+          return Number(value.replace(/[$,]/g, ''));
+        }
+        return Number(value);
+      };
 
-      return {
+      const fte = cleanNumber(item.fte);
+      const baseSalary = cleanNumber(item.base_salary);
+      const clinicalFte = cleanNumber(item.clinical_fte || '0');
+      const nonClinicalFte = cleanNumber(item.non_clinical_fte || '0');
+      const clinicalSalary = cleanNumber(item.clinical_salary || '0');
+      const nonClinicalSalary = cleanNumber(item.non_clinical_salary || '0');
+
+      const transformed = {
         employeeId: item.employee_id,
         firstName: item.first_name,
         lastName: item.last_name,
@@ -87,30 +91,24 @@ export async function POST(request: Request) {
         clinicalSalary: isNaN(clinicalSalary) ? 0 : clinicalSalary,
         nonClinicalSalary: isNaN(nonClinicalSalary) ? 0 : nonClinicalSalary
       };
+
+      console.log('Transformed data:', transformed); // Log transformed data for debugging
+      return transformed;
     });
 
-    return new Response(
-      JSON.stringify({
-        message: `Found ${data.length} records`,
-        count: data.length,
-        data: previewData
-      }),
-      { 
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    );
+    return NextResponse.json({
+      message: `Found ${data.length} records`,
+      count: data.length,
+      data: previewData
+    });
   } catch (error) {
     console.error('Error previewing providers:', error);
-    return new Response(
-      JSON.stringify({ 
+    return NextResponse.json(
+      { 
         error: 'Failed to preview providers',
         details: error instanceof Error ? error.message : 'Unknown error'
-      }),
-      { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
+      },
+      { status: 500 }
     );
   }
 } 

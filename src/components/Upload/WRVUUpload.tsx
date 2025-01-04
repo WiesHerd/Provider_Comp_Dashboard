@@ -50,45 +50,59 @@ export default function WRVUUpload({ onPreview, previewData }: WRVUUploadProps) 
     setError(null);
     
     try {
+      console.log('Preparing to upload wRVU file:', selectedFile.name);
       const formData = new FormData();
       formData.append('file', selectedFile);
 
+      console.log('Sending wRVU preview request...');
       const response = await fetch('/api/upload/wrvu/preview', {
         method: 'POST',
         body: formData,
       });
 
+      console.log('wRVU preview response status:', response.status);
       if (!response.ok) {
-        throw new Error('Failed to preview file');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('wRVU preview error:', errorData);
+        throw new Error(errorData.error || 'Failed to preview wRVU file');
       }
 
       const result = await response.json();
+      console.log('wRVU preview result:', result);
       
       const formatNumber = (value: number | string) => {
         const num = typeof value === 'string' ? parseFloat(value) : value;
-        if (typeof num !== 'number' || isNaN(num)) return 0;
+        if (typeof num !== 'number' || isNaN(num)) {
+          console.warn('Invalid number value:', value);
+          return 0;
+        }
         return num;
       };
 
       // Transform the data to match the API expectations
-      const transformedData = result.data.map((row: any) => ({
-        employee_id: row.employee_id,
-        first_name: row.first_name,
-        last_name: row.last_name,
-        specialty: row.specialty,
-        jan: formatNumber(row.Jan),
-        feb: formatNumber(row.Feb),
-        mar: formatNumber(row.Mar),
-        apr: formatNumber(row.Apr),
-        may: formatNumber(row.May),
-        jun: formatNumber(row.Jun),
-        jul: formatNumber(row.Jul),
-        aug: formatNumber(row.Aug),
-        sep: formatNumber(row.Sep),
-        oct: formatNumber(row.Oct),
-        nov: formatNumber(row.Nov),
-        dec: formatNumber(row.Dec)
-      }));
+      console.log('Transforming wRVU data...');
+      const transformedData = result.data.map((row: any) => {
+        const transformed = {
+          employee_id: row.employee_id,
+          first_name: row.first_name,
+          last_name: row.last_name,
+          specialty: row.specialty,
+          jan: formatNumber(row.Jan),
+          feb: formatNumber(row.Feb),
+          mar: formatNumber(row.Mar),
+          apr: formatNumber(row.Apr),
+          may: formatNumber(row.May),
+          jun: formatNumber(row.Jun),
+          jul: formatNumber(row.Jul),
+          aug: formatNumber(row.Aug),
+          sep: formatNumber(row.Sep),
+          oct: formatNumber(row.Oct),
+          nov: formatNumber(row.Nov),
+          dec: formatNumber(row.Dec)
+        };
+        console.log('Transformed row:', transformed);
+        return transformed;
+      });
 
       const columns = [
         { key: 'employee_id', header: 'EMPLOYEE ID' },
@@ -111,7 +125,8 @@ export default function WRVUUpload({ onPreview, previewData }: WRVUUploadProps) 
 
       onPreview(transformedData, columns, uploadMode, selectedFile);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to preview file');
+      console.error('wRVU file selection error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to preview wRVU file');
     }
   };
 
@@ -122,30 +137,36 @@ export default function WRVUUpload({ onPreview, previewData }: WRVUUploadProps) 
       setIsUploading(true);
       setError(null);
 
+      console.log('Starting wRVU file upload:', file.name);
       const formData = new FormData();
       formData.append('file', file);
       formData.append('mode', uploadMode);
 
+      console.log('Sending wRVU upload request...');
       const response = await fetch('/api/upload/wrvu', {
         method: 'POST',
         body: formData,
       });
 
+      console.log('wRVU upload response status:', response.status);
       let result;
       try {
         result = await response.json();
+        console.log('wRVU upload result:', result);
       } catch (e) {
-        console.error('Response parsing error:', e);
+        console.error('wRVU response parsing error:', e);
         throw new Error('Server response was invalid');
       }
 
       if (!response.ok) {
+        console.error('wRVU upload failed:', result);
         throw new Error(result.message || result.error || 'Upload failed');
       }
 
       toast.success(`Successfully uploaded ${result.count} wRVU records`);
       router.push('/admin/wrvu-data');
     } catch (err) {
+      console.error('wRVU upload error:', err);
       setError(err instanceof Error ? err.message : 'Upload failed');
       toast.error(err instanceof Error ? err.message : 'Upload failed');
     } finally {
@@ -161,41 +182,6 @@ export default function WRVUUpload({ onPreview, previewData }: WRVUUploadProps) 
 
   return (
     <div className="space-y-4">
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <h2 className="text-lg font-medium text-gray-900">wRVU Data</h2>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setIsConfirmDialogOpen(true)}
-              disabled={isClearing}
-              className="inline-flex items-center min-w-fit px-2 py-1 text-sm text-red-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isClearing ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Clearing...
-                </>
-              ) : (
-                'Clear Data'
-              )}
-            </button>
-            <button
-              onClick={() => window.location.href = '/api/templates/wrvu'}
-              className="inline-flex items-center min-w-fit px-2 py-1 text-sm text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              <DocumentArrowDownIcon className="w-4 h-4 mr-1" />
-              Template
-            </button>
-          </div>
-        </div>
-        <p className="text-sm text-gray-500">
-          Upload monthly wRVU data for providers, including work RVU values and service dates.
-        </p>
-      </div>
-
       <div className="space-y-4">
         <UploadSection
           onFileSelect={handleFileSelect}

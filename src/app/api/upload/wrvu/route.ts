@@ -42,13 +42,39 @@ export async function POST(request: Request) {
       );
     }
 
+    // Test database connection
+    try {
+      await prisma.$connect();
+      console.log('Database connection established');
+    } catch (dbError) {
+      console.error('Database connection error:', dbError);
+      return NextResponse.json(
+        { 
+          error: 'Database connection failed',
+          details: dbError instanceof Error ? dbError.message : 'Unknown error'
+        },
+        { status: 500 }
+      );
+    }
+
     // If mode is 'clear', delete all existing wRVU data for the current year
     const currentYear = new Date().getFullYear();
     if (mode === 'clear') {
-      await prisma.wRVUData.deleteMany({
-        where: { year: currentYear }
-      });
-      console.log('Cleared existing wRVU data for year:', currentYear);
+      try {
+        await prisma.wRVUData.deleteMany({
+          where: { year: currentYear }
+        });
+        console.log('Cleared existing wRVU data for year:', currentYear);
+      } catch (clearError) {
+        console.error('Error clearing existing data:', clearError);
+        return NextResponse.json(
+          { 
+            error: 'Failed to clear existing data',
+            details: clearError instanceof Error ? clearError.message : 'Unknown error'
+          },
+          { status: 500 }
+        );
+      }
     }
 
     // Read file content
@@ -164,6 +190,14 @@ export async function POST(request: Request) {
 
     console.log(`Completed processing. Provider rows: ${rawData.length}, Errors: ${errors.length}`);
 
+    // Disconnect from database
+    try {
+      await prisma.$disconnect();
+      console.log('Database connection closed');
+    } catch (disconnectError) {
+      console.error('Error disconnecting from database:', disconnectError);
+    }
+
     return NextResponse.json({
       message: `Successfully uploaded ${rawData.length} records`,
       count: rawData.length,
@@ -172,6 +206,15 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error('Error uploading wRVU data:', error);
+    
+    // Ensure database connection is closed even on error
+    try {
+      await prisma.$disconnect();
+      console.log('Database connection closed after error');
+    } catch (disconnectError) {
+      console.error('Error disconnecting from database after error:', disconnectError);
+    }
+
     return NextResponse.json(
       { 
         error: 'Failed to upload wRVU data',

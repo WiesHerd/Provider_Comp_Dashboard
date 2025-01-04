@@ -50,19 +50,25 @@ export default function ProviderUpload({ onPreview, previewData }: ProviderUploa
     setError(null);
     
     try {
+      console.log('Preparing to upload file:', selectedFile.name);
       const formData = new FormData();
       formData.append('file', selectedFile);
 
+      console.log('Sending preview request...');
       const response = await fetch('/api/upload/provider/preview', {
         method: 'POST',
         body: formData,
       });
 
+      console.log('Preview response status:', response.status);
       if (!response.ok) {
-        throw new Error('Failed to preview file');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Preview error:', errorData);
+        throw new Error(errorData.error || 'Failed to preview file');
       }
 
       const result = await response.json();
+      console.log('Preview result:', result);
       
       const columns = [
         { key: 'employeeId', header: 'Employee ID' },
@@ -104,6 +110,7 @@ export default function ProviderUpload({ onPreview, previewData }: ProviderUploa
 
       onPreview(result.data, columns, uploadMode, selectedFile);
     } catch (err) {
+      console.error('File selection error:', err);
       setError(err instanceof Error ? err.message : 'Failed to preview file');
     }
   };
@@ -115,30 +122,36 @@ export default function ProviderUpload({ onPreview, previewData }: ProviderUploa
       setIsUploading(true);
       setError(null);
 
+      console.log('Starting file upload:', file.name);
       const formData = new FormData();
       formData.append('file', file);
       formData.append('mode', uploadMode);
 
+      console.log('Sending upload request...');
       const response = await fetch('/api/upload/provider', {
         method: 'POST',
         body: formData,
       });
 
+      console.log('Upload response status:', response.status);
       let result;
       try {
         result = await response.json();
+        console.log('Upload result:', result);
       } catch (e) {
         console.error('Response parsing error:', e);
         throw new Error('Server response was invalid');
       }
 
       if (!response.ok) {
+        console.error('Upload failed:', result);
         throw new Error(result.message || result.error || 'Upload failed');
       }
 
       toast.success(`Successfully uploaded ${result.count} provider records`);
       router.push('/admin/providers');
     } catch (err) {
+      console.error('Upload error:', err);
       setError(err instanceof Error ? err.message : 'Upload failed');
       toast.error(err instanceof Error ? err.message : 'Upload failed');
     } finally {
@@ -154,41 +167,6 @@ export default function ProviderUpload({ onPreview, previewData }: ProviderUploa
 
   return (
     <div className="space-y-4">
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <h2 className="text-lg font-medium text-gray-900">Provider Data</h2>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setIsConfirmDialogOpen(true)}
-              disabled={isClearing}
-              className="inline-flex items-center min-w-fit px-2 py-1 text-sm text-red-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isClearing ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Clearing...
-                </>
-              ) : (
-                'Clear Data'
-              )}
-            </button>
-            <button
-              onClick={() => window.location.href = '/api/templates/provider'}
-              className="inline-flex items-center min-w-fit px-2 py-1 text-sm text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              <DocumentArrowDownIcon className="w-4 h-4 mr-1" />
-              Template
-            </button>
-          </div>
-        </div>
-        <p className="text-sm text-gray-500">
-          Upload provider data including employee IDs, names, specialties, and other relevant information.
-        </p>
-      </div>
-
       <div className="space-y-4">
         <UploadSection
           onFileSelect={handleFileSelect}

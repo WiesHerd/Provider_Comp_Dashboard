@@ -51,10 +51,10 @@ const navigation = [
 export default function AdminLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
-  const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const pathname = usePathname();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -80,7 +80,7 @@ export default function AdminLayout({
         {/* Navigation */}
         <nav className="mt-4 px-2">
           {navigation.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname?.startsWith(item.href) ?? false;
             return (
               <Link
                 key={item.name}
@@ -94,11 +94,11 @@ export default function AdminLayout({
                 `}
                 title={isCollapsed ? item.name : ''}
               >
-                <item.icon 
+                <item.icon
                   className={`
                     ${isCollapsed ? 'mr-0' : 'mr-3'} h-5 w-5 flex-shrink-0
                   `}
-                  aria-hidden="true" 
+                  aria-hidden="true"
                 />
                 {!isCollapsed && (
                   <span>{item.name}</span>
