@@ -17,15 +17,8 @@ export async function POST() {
     });
     
     console.log(`Found ${providers.length} providers`);
-    console.log('Sample of provider base salaries:', providers.slice(0, 5).map(p => ({
-      id: p.id,
-      employeeId: p.employeeId,
-      name: `${p.firstName} ${p.lastName}`,
-      baseSalary: p.baseSalary,
-      hasBaseSalary: p.baseSalary > 0
-    })));
-
     if (providers.length === 0) {
+      console.log('No providers found in the database');
       return NextResponse.json({ 
         message: 'No providers found',
         results: [] 
@@ -38,183 +31,105 @@ export async function POST() {
     const currentMonth = now.getMonth() + 1;
     console.log(`Calculating metrics for ${currentYear}-${currentMonth}`);
 
-    // Pre-calculate all provider TCCs for percentile calculation
-    console.log('Starting TCC calculations...');
-    const allProviderTCCs = providers.map(p => {
-      try {
-        // Log raw provider data first
-        console.log(`Raw provider data for ${p.firstName} ${p.lastName}:`, {
-          id: p.id,
-          baseSalary: p.baseSalary,
-          hasBaseSalary: p.baseSalary > 0,
-          additionalPaymentsCount: p.additionalPayments?.length
-        });
-
-        // Calculate YTD incentives and additional pay
-        const ytdIncentives = (p.additionalPayments || [])
-          .filter(payment => payment.year === currentYear && payment.month <= currentMonth)
-          .reduce((sum, payment) => sum + (payment.amount || 0), 0);
-        
-        const annualBaseSalary = p.baseSalary || 0;
-        const ytdBaseSalary = (annualBaseSalary / 12) * currentMonth;
-        const totalComp = ytdBaseSalary + ytdIncentives;
-        
-        console.log(`Provider ${p.firstName} ${p.lastName} TCC calculation:`, {
-          ytdIncentives,
-          annualBaseSalary,
-          ytdBaseSalary,
-          totalComp,
-          hasAdditionalPayments: p.additionalPayments?.length > 0,
-          additionalPaymentsCount: p.additionalPayments?.length
-        });
-        
-        return totalComp;
-      } catch (error) {
-        console.error(`Error calculating TCC for provider ${p.firstName} ${p.lastName}:`, error);
-        return 0;
-      }
-    });
-
-    console.log('All provider TCCs:', {
-      count: allProviderTCCs.length,
-      values: allProviderTCCs,
-      nonZeroCount: allProviderTCCs.filter(tcc => tcc > 0).length
-    });
+    // Get market data for all specialties
+    const marketData = await prisma.marketData.findMany();
+    console.log(`Found ${marketData.length} market data entries`);
 
     // Calculate and store metrics for each provider
     const results = await Promise.all(providers.map(async (provider) => {
       try {
-        console.log(`Processing provider ${provider.id}`);
-        
-        // Calculate actual wRVUs including adjustments for current month
-        const actualWRVUs = (provider.wrvuData || [])
-          .filter(data => data.year === currentYear && data.month === currentMonth)
-          .reduce((sum, data) => sum + (data.value || 0), 0) +
-          (provider.wrvuAdjustments || [])
-          .filter(adj => adj.year === currentYear && adj.month === currentMonth)
-          .reduce((sum, adj) => sum + (adj.value || 0), 0);
-        console.log(`Raw actual wRVUs for month: ${actualWRVUs}`);
+        // Get all wRVU data for the current month
+        const currentMonthData = provider.wrvuData.filter(
+          data => data.year === currentYear && data.month === currentMonth
+        );
 
-        // Get YTD wRVUs
-        const ytdWRVUs = (provider.wrvuData || [])
-          .filter(data => data.year === currentYear && data.month <= currentMonth)
-          .reduce((sum, data) => sum + (data.value || 0), 0) +
-          (provider.wrvuAdjustments || [])
-          .filter(adj => adj.year === currentYear && adj.month <= currentMonth)
-          .reduce((sum, adj) => sum + (adj.value || 0), 0);
+        console.log(`Processing wRVUs for ${provider.firstName} ${provider.lastName}:`, {
+          currentYear,
+          currentMonth,
+          wrvuDataCount: provider.wrvuData.length,
+          currentMonthDataCount: currentMonthData.length
+        });
 
-        // Annualize the YTD wRVUs
-        const annualizedWRVUs = currentMonth > 0 ? (ytdWRVUs / currentMonth) * 12 : 0;
-        
-        // Adjust for FTE (gross up to 1.0 FTE)
-        const fteAdjustedWRVUs = provider.fte > 0 ? annualizedWRVUs / provider.fte : annualizedWRVUs;
-        
-        console.log(`wRVU calculations for ${provider.firstName} ${provider.lastName}:`, {
-          currentMonthWRVUs: actualWRVUs,
+        // Calculate actual wRVUs for current month
+        const actualWRVUs = currentMonthData.reduce((sum, data) => sum + (data.value || 0), 0);
+
+        // Get previous month's data for MoM trend
+        const previousMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+        const previousYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+        const previousMonthData = provider.wrvuData.filter(
+          data => data.year === previousYear && data.month === previousMonth
+        );
+        const previousMonthWRVUs = previousMonthData.reduce((sum, data) => sum + (data.value || 0), 0);
+
+        // Calculate MoM trend
+        const momTrend = previousMonthWRVUs > 0 
+          ? ((actualWRVUs - previousMonthWRVUs) / previousMonthWRVUs) * 100 
+          : 0;
+
+        // Calculate YTD wRVUs including adjustments
+        const ytdData = provider.wrvuData.filter(
+          data => data.year === currentYear && data.month <= currentMonth
+        );
+        const ytdWRVUs = ytdData.reduce((sum, data) => sum + (data.value || 0), 0);
+
+        // Calculate YTD target including adjustments
+        const baseMonthlyTarget = (provider.targetWRVUs || 0) / 12;
+        const ytdBaseTarget = baseMonthlyTarget * currentMonth;
+
+        // Get YTD adjustments
+        const ytdTargetAdjustments = (provider.targetAdjustments || [])
+          .filter((adj: any) => adj.year === currentYear && adj.month <= currentMonth)
+          .reduce((sum: number, adj: any) => sum + (adj.value || 0), 0);
+
+        const ytdTarget = ytdBaseTarget + ytdTargetAdjustments;
+
+        // Calculate YTD progress
+        const ytdProgress = ytdTarget > 0 ? (ytdWRVUs / ytdTarget) * 100 : 0;
+
+        // Calculate current month target with adjustments
+        const currentMonthAdjustments = (provider.targetAdjustments || [])
+          .filter((adj: any) => adj.year === currentYear && adj.month === currentMonth)
+          .reduce((sum: number, adj: any) => sum + (adj.value || 0), 0);
+
+        const currentMonthTarget = baseMonthlyTarget + currentMonthAdjustments;
+
+        console.log(`Provider ${provider.firstName} ${provider.lastName} metrics:`, {
           ytdWRVUs,
-          annualizedWRVUs,
-          fte: provider.fte,
-          fteAdjustedWRVUs
+          currentMonth,
+          fte: provider.clinicalFte,
+          wrvuPercentile: calculateWRVUPercentile(ytdWRVUs, currentMonth, provider.clinicalFte, marketData)
         });
 
-        // Get market data for specialty
-        const marketData = await prisma.marketData.findFirst({
-          where: {
-            specialty: provider.specialty
-          }
-        });
+        // Get market data for provider's specialty
+        const providerMarketData = marketData.find(data => data.specialty === provider.specialty);
+        if (!providerMarketData) {
+          console.log(`No market data found for specialty: ${provider.specialty}`);
+          return null;
+        }
 
-        // Calculate target wRVUs based on base salary and conversion factor
-        const conversionFactor = marketData?.p50_cf || 81.20; // Default to 81.20 if not found
-        const annualTarget = provider.baseSalary / conversionFactor;
-        const monthlyTarget = annualTarget / 12;
+        // Calculate wRVU percentile
+        const wrvuPercentile = calculateWRVUPercentile(
+          ytdWRVUs,
+          currentMonth,
+          provider.clinicalFte,
+          providerMarketData
+        );
+
+        // Calculate compensation using the same logic as the dashboard
+        const annualBaseSalary = provider.baseSalary || 0;
+        const monthlyBaseSalary = annualBaseSalary / 12;
 
         // Calculate additional payments
         const additionalPay = (provider.additionalPayments || [])
           .filter(payment => payment.year === currentYear && payment.month === currentMonth)
           .reduce((sum, payment) => sum + (payment.amount || 0), 0);
 
-        // Calculate compensation using the same logic as the dashboard
-        const annualBaseSalary = provider.baseSalary || 0;
-        const monthlyBaseSalary = annualBaseSalary / 12;
-
-        // Calculate YTD compensation
-        const ytdBaseSalary = monthlyBaseSalary * currentMonth;
-        const ytdIncentives = (provider.additionalPayments || [])
-          .filter(payment => payment.year === currentYear && payment.month <= currentMonth)
-          .reduce((sum, payment) => sum + (payment.amount || 0), 0);
-
-        // Calculate monthly compensation
-        const monthlyIncentives = (provider.additionalPayments || [])
-          .filter(payment => payment.year === currentYear && payment.month === currentMonth)
-          .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+        // Calculate monthly incentives and total compensation
+        const monthlyIncentives = additionalPay;
         const monthlyTotalComp = monthlyBaseSalary + monthlyIncentives;
 
-        // Annualize base salary
-        const annualizedBaseSalary = currentMonth > 0 ? (ytdBaseSalary / currentMonth) * 12 : 0;
-        // Add YTD incentives without annualizing
-        const annualizedTotalComp = annualizedBaseSalary + ytdIncentives;
-
-        // Adjust for FTE if less than 1.0
-        const fteAdjustedTotalComp = provider.fte < 1.0 ? annualizedTotalComp / provider.fte : annualizedTotalComp;
-
-        // Calculate total comp percentile using market data
-        const matchingMarket = marketData.find(data => data.specialty === provider.specialty);
-        let compPercentile = 0;
-
-        if (matchingMarket) {
-          const benchmarks = [
-            { percentile: 25, value: matchingMarket.p25_total || 0 },
-            { percentile: 50, value: matchingMarket.p50_total || 0 },
-            { percentile: 75, value: matchingMarket.p75_total || 0 },
-            { percentile: 90, value: matchingMarket.p90_total || 0 }
-          ];
-
-          // If below 25th percentile
-          if (fteAdjustedTotalComp < benchmarks[0].value) {
-            compPercentile = benchmarks[0].value > 0 ? (fteAdjustedTotalComp / benchmarks[0].value) * 25 : 0;
-          }
-          // If above 90th percentile
-          else if (fteAdjustedTotalComp > benchmarks[3].value) {
-            compPercentile = benchmarks[3].value > 0 
-              ? Math.min(100, 90 + ((fteAdjustedTotalComp - benchmarks[3].value) / benchmarks[3].value) * 10)
-              : 90;
-          }
-          // Find which benchmarks we're between
-          else {
-            for (let i = 0; i < benchmarks.length - 1; i++) {
-              const lower = benchmarks[i];
-              const upper = benchmarks[i + 1];
-              if (fteAdjustedTotalComp >= lower.value && fteAdjustedTotalComp <= upper.value) {
-                const range = upper.value - lower.value;
-                const position = fteAdjustedTotalComp - lower.value;
-                const percentileRange = upper.percentile - lower.percentile;
-                compPercentile = range > 0 
-                  ? lower.percentile + (position / range) * percentileRange 
-                  : lower.percentile;
-                break;
-              }
-            }
-          }
-        }
-
-        console.log(`Total comp calculations for ${provider.firstName} ${provider.lastName}:`, {
-          ytdBaseSalary,
-          ytdIncentives,
-          annualizedBaseSalary,
-          annualizedTotalComp,
-          fte: provider.fte,
-          fteAdjustedTotalComp,
-          compPercentile
-        });
-
-        // Calculate wRVU percentile using market data benchmarks
-        const wrvuPercentile = calculateWRVUPercentile(
-          ytdWRVUs,
-          currentMonth,
-          provider.fte || 1.0,
-          marketData
-        );
+        // Calculate compensation percentile
+        const compPercentile = calculateCompPercentile(monthlyTotalComp, providerMarketData);
 
         // Store metrics in database
         const metrics = await prisma.providerMetrics.upsert({
@@ -225,34 +140,38 @@ export async function POST() {
               month: currentMonth
             }
           },
-          update: {
-            actualWRVUs: annualizedWRVUs,
-            rawMonthlyWRVUs: actualWRVUs,
-            ytdWRVUs: ytdWRVUs,
-            targetWRVUs: monthlyTarget,
-            baseSalary: monthlyBaseSalary,
-            totalCompensation: monthlyTotalComp,
-            wrvuPercentile: wrvuPercentile,
-            compPercentile: compPercentile,
-            incentivesEarned: monthlyIncentives,
-            holdbackAmount: calculateHoldback(monthlyIncentives),
-            planProgress: monthlyTarget > 0 ? (actualWRVUs / monthlyTarget) * 100 : 0
-          },
           create: {
             providerId: provider.id,
             year: currentYear,
             month: currentMonth,
-            actualWRVUs: annualizedWRVUs,
+            actualWRVUs,
             rawMonthlyWRVUs: actualWRVUs,
-            ytdWRVUs: ytdWRVUs,
-            targetWRVUs: monthlyTarget,
+            cumulativeWRVUs: ytdWRVUs,
+            targetWRVUs: baseMonthlyTarget,
+            cumulativeTarget: ytdTarget,
+            wrvuPercentile,
+            compPercentile,
             baseSalary: monthlyBaseSalary,
             totalCompensation: monthlyTotalComp,
-            wrvuPercentile: wrvuPercentile,
-            compPercentile: compPercentile,
             incentivesEarned: monthlyIncentives,
             holdbackAmount: calculateHoldback(monthlyIncentives),
-            planProgress: monthlyTarget > 0 ? (actualWRVUs / monthlyTarget) * 100 : 0
+            planProgress: baseMonthlyTarget > 0 ? (actualWRVUs / baseMonthlyTarget) * 100 : 0,
+            monthsCompleted: currentMonth
+          },
+          update: {
+            actualWRVUs,
+            rawMonthlyWRVUs: actualWRVUs,
+            cumulativeWRVUs: ytdWRVUs,
+            targetWRVUs: baseMonthlyTarget,
+            cumulativeTarget: ytdTarget,
+            wrvuPercentile,
+            compPercentile,
+            baseSalary: monthlyBaseSalary,
+            totalCompensation: monthlyTotalComp,
+            incentivesEarned: monthlyIncentives,
+            holdbackAmount: calculateHoldback(monthlyIncentives),
+            planProgress: baseMonthlyTarget > 0 ? (actualWRVUs / baseMonthlyTarget) * 100 : 0,
+            monthsCompleted: currentMonth
           }
         });
 
@@ -359,10 +278,9 @@ function calculateClinicalUtilization(provider: any, year: number, month: number
   return expectedHours > 0 ? Math.round((totalHours / expectedHours) * 100 * 10) / 10 : 0;
 }
 
-// Helper function to calculate wRVU percentile using market data benchmarks
-function calculateWRVUPercentile(actualWRVUs: number, monthsCompleted: number, fte: number, marketData: any): number {
+// Helper function to calculate wRVU percentile
+const calculateWRVUPercentile = (actualWRVUs: number, monthsCompleted: number, fte: number, marketData: any): number => {
   if (!marketData) {
-    console.log('No market data available for percentile calculation');
     return 0;
   }
 
@@ -396,7 +314,7 @@ function calculateWRVUPercentile(actualWRVUs: number, monthsCompleted: number, f
     return Math.min(100, 90 + extraPercentile);
   }
 
-  // Find which benchmarks we're between
+  // Find which benchmarks we're between and interpolate
   for (let i = 0; i < benchmarks.length - 1; i++) {
     const lower = benchmarks[i];
     const upper = benchmarks[i + 1];
@@ -411,48 +329,16 @@ function calculateWRVUPercentile(actualWRVUs: number, monthsCompleted: number, f
   }
 
   return 0;
-} 
+};
 
 // Helper function to calculate compensation percentile using market data benchmarks
 function calculateCompPercentile(totalComp: number, marketData: any): number {
-  if (!marketData) {
-    console.log('No market data available for percentile calculation');
-    return 0;
-  }
-
-  const benchmarks = [
-    { percentile: 25, value: marketData.p25_total || 0 },
-    { percentile: 50, value: marketData.p50_total || 0 },
-    { percentile: 75, value: marketData.p75_total || 0 },
-    { percentile: 90, value: marketData.p90_total || 0 }
-  ];
-
-  // If below 25th percentile
-  if (totalComp < benchmarks[0].value) {
-    return benchmarks[0].value > 0 ? (totalComp / benchmarks[0].value) * 25 : 0;
-  }
-
-  // If above 90th percentile
-  if (totalComp > benchmarks[3].value) {
-    const extraPercentile = benchmarks[3].value > 0 
-      ? ((totalComp - benchmarks[3].value) / benchmarks[3].value) * 10 
-      : 0;
-    return Math.min(100, 90 + extraPercentile);
-  }
-
-  // Find which benchmarks we're between
-  for (let i = 0; i < benchmarks.length - 1; i++) {
-    const lower = benchmarks[i];
-    const upper = benchmarks[i + 1];
-    if (totalComp >= lower.value && totalComp <= upper.value) {
-      const range = upper.value - lower.value;
-      const position = totalComp - lower.value;
-      const percentileRange = upper.percentile - lower.percentile;
-      return range > 0 
-        ? lower.percentile + (position / range) * percentileRange 
-        : lower.percentile;
-    }
-  }
-
-  return 0;
+  if (!marketData) return 0;
+  
+  const annualizedComp = totalComp * 12;
+  if (annualizedComp <= marketData.p25_total) return 25;
+  if (annualizedComp <= marketData.p50_total) return 50;
+  if (annualizedComp <= marketData.p75_total) return 75;
+  if (annualizedComp <= marketData.p90_total) return 90;
+  return 100;
 } 

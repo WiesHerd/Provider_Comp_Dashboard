@@ -1,14 +1,14 @@
 export interface ProviderMetrics {
   id: string;
   providerId: string;
-  providerName: string;
-  specialty: string;
-  clinicalFte: number;
+  year: number;
+  month: number;
   actualWRVUs: number;
   rawMonthlyWRVUs: number;
-  cumulativeWRVUs: number;
+  ytdWRVUs: number;
+  ytdActualWRVUs: number;
   targetWRVUs: number;
-  cumulativeTarget: number;
+  ytdTargetWRVUs: number;
   baseSalary: number;
   totalCompensation: number;
   incentivesEarned: number;
@@ -16,10 +16,8 @@ export interface ProviderMetrics {
   wrvuPercentile: number;
   compPercentile: number;
   planProgress: number;
-  ytdProgress: number;
-  ytdTargetProgress: number;
-  incentivePercentage: number;
-  clinicalUtilization: number;
-  year: number;
-  month: number;
+  monthsCompleted: number;
+  momTrend: number;
+  createdAt: Date;
+  updatedAt: Date;
 } 

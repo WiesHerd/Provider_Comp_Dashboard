@@ -1,127 +1,130 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { Provider, ProviderMetrics } from '@prisma/client';
+
+interface ProviderWithMetricsResponse extends Provider {
+  actualWRVUs: number;
+  rawMonthlyWRVUs: number;
+  cumulativeWRVUs: number;
+  targetWRVUs: number;
+  cumulativeTarget: number;
+  totalCompensation: number;
+  incentivesEarned: number;
+  holdbackAmount: number;
+  wrvuPercentile: number;
+  compPercentile: number;
+  planProgress: number;
+}
 
 export async function GET(request: Request) {
   try {
-    console.log('Successfully connected to the database');
     const { searchParams } = new URL(request.url);
-    const period = searchParams.get('period');
     const specialty = searchParams.get('specialty');
+    const department = searchParams.get('department');
+    const month = searchParams.get('month');
+    const year = searchParams.get('year');
+    const search = searchParams.get('search')?.toLowerCase();
 
-    console.log('Starting provider fetch...');
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
+    const currentYear = year ? parseInt(year) : new Date().getFullYear();
+    const currentMonth = month ? parseInt(month) : new Date().getMonth() + 1;
 
-    console.log(`Fetching data for period: ${period}, Month: ${currentMonth}, Year: ${currentYear}`);
+    // Build where clause for provider filtering
+    const where: any = {
+      status: 'Active'
+    };
 
-    // Build the where clause
-    const where: any = {};
-    if (specialty && specialty !== 'All Departments') {
+    if (specialty) {
       where.specialty = specialty;
     }
 
-    // Get all providers with their metrics and analytics
+    if (department) {
+      where.department = department;
+    }
+
+    if (search) {
+      where.OR = [
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
+        { employeeId: { contains: search, mode: 'insensitive' } },
+        { specialty: { contains: search, mode: 'insensitive' } }
+      ];
+    }
+
+    // Get providers with their metrics and wRVU data for all months up to current month
     const providers = await prisma.provider.findMany({
       where,
       include: {
         metrics: {
           where: {
             year: currentYear,
-            month: currentMonth
+            month: {
+              lte: currentMonth
+            }
           }
         },
-        analytics: {
+        wrvuData: {
           where: {
             year: currentYear,
-            month: currentMonth
+            month: {
+              lte: currentMonth
+            }
+          }
+        },
+        targetAdjustments: {
+          where: {
+            year: currentYear,
+            month: {
+              lte: currentMonth
+            }
           }
         }
       },
-      orderBy: {
-        lastName: 'asc'
-      }
+      orderBy: [
+        { lastName: 'asc' },
+        { firstName: 'asc' }
+      ]
     });
 
-    console.log(`Found ${providers.length} providers`);
-
-    // Transform the data and add MoM trend
-    const providersWithMetrics = await Promise.all(
+    // Process each provider
+    const processedProviders = await Promise.all(
       providers.map(async (provider) => {
-        // Get previous month metrics for MoM trend
-        const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
-        const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
-        const prevMetrics = await prisma.providerMetrics.findFirst({
-          where: {
-            providerId: provider.id,
-            year: prevYear,
-            month: prevMonth
-          }
-        });
+        // Get current month metrics
+        const currentMonthMetrics = provider.metrics.find(m => m.month === currentMonth);
+        
+        // Calculate cumulative values
+        const cumulativeWRVUs = provider.wrvuData.reduce((sum, data) => sum + data.value, 0);
+        const monthlyTarget = provider.targetWRVUs / 12; // Monthly target
+        const cumulativeTarget = monthlyTarget * currentMonth; // YTD target
 
-        const metrics = provider.metrics[0] || {
-          actualWRVUs: 0,
-          rawMonthlyWRVUs: 0,
-          ytdWRVUs: 0,
-          targetWRVUs: 0,
-          baseSalary: 0,
-          totalCompensation: 0,
-          incentivesEarned: 0,
-          holdbackAmount: 0,
-          wrvuPercentile: 0,
-          compPercentile: 0,
-          planProgress: 0
-        };
-        const analytics = provider.analytics[0] || {
-          ytdProgress: 0
-        };
-
-        // Calculate MoM trend
-        const momTrend = prevMetrics?.actualWRVUs 
-          ? ((metrics.actualWRVUs || 0) - prevMetrics.actualWRVUs) / prevMetrics.actualWRVUs * 100
-          : 0;
+        // Add adjustments to target
+        const targetAdjustmentsTotal = provider.targetAdjustments.reduce(
+          (sum, adj) => sum + adj.value,
+          0
+        );
 
         return {
-          id: provider.id,
-          employeeId: provider.employeeId,
-          firstName: provider.firstName,
-          lastName: provider.lastName,
-          email: provider.email,
-          specialty: provider.specialty,
-          department: provider.department,
-          status: provider.status,
-          terminationDate: provider.terminationDate,
-          hireDate: provider.hireDate,
-          fte: provider.fte,
-          clinicalFte: provider.clinicalFte,
-          nonClinicalFte: provider.nonClinicalFte,
-          baseSalary: provider.baseSalary,
-          clinicalSalary: provider.clinicalSalary,
-          nonClinicalSalary: provider.nonClinicalSalary,
-          compensationModel: provider.compensationModel,
-          createdAt: provider.createdAt,
-          updatedAt: provider.updatedAt,
-          // Metrics data
-          actualWRVUs: metrics.actualWRVUs,
-          rawMonthlyWRVUs: metrics.rawMonthlyWRVUs,
-          ytdWRVUs: metrics.ytdWRVUs,
-          targetWRVUs: metrics.targetWRVUs,
-          totalCompensation: metrics.totalCompensation,
-          incentivesEarned: metrics.incentivesEarned,
-          holdbackAmount: metrics.holdbackAmount,
-          wrvuPercentile: metrics.wrvuPercentile,
-          compPercentile: metrics.compPercentile,
-          planProgress: metrics.planProgress,
-          ytdProgress: analytics.ytdProgress,
-          momTrend
-        };
+          ...provider,
+          actualWRVUs: currentMonthMetrics?.actualWRVUs ?? 0,
+          rawMonthlyWRVUs: currentMonthMetrics?.rawMonthlyWRVUs ?? 0,
+          cumulativeWRVUs,
+          targetWRVUs: monthlyTarget + targetAdjustmentsTotal,
+          cumulativeTarget: cumulativeTarget + targetAdjustmentsTotal,
+          totalCompensation: currentMonthMetrics?.totalCompensation ?? 0,
+          incentivesEarned: currentMonthMetrics?.incentivesEarned ?? 0,
+          holdbackAmount: currentMonthMetrics?.holdbackAmount ?? 0,
+          wrvuPercentile: currentMonthMetrics?.wrvuPercentile ?? 0,
+          compPercentile: currentMonthMetrics?.compPercentile ?? 0,
+          planProgress: monthlyTarget > 0 ? ((currentMonthMetrics?.actualWRVUs ?? 0) / monthlyTarget) * 100 : 0
+        } as ProviderWithMetricsResponse;
       })
     );
 
-    console.log(`Returning formatted providers: ${providersWithMetrics.length}`);
-    return NextResponse.json(providersWithMetrics);
+    return NextResponse.json(processedProviders);
   } catch (error) {
-    console.error('Error in providers route:', error);
-    return NextResponse.json({ error: 'Failed to fetch providers' }, { status: 500 });
+    console.error('Error fetching providers:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch providers' },
+      { status: 500 }
+    );
   }
 } 

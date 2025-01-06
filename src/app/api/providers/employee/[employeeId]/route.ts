@@ -52,6 +52,16 @@ export async function GET(
           where: {
             year: currentYear
           }
+        },
+        compensationChanges: {
+          where: {
+            effectiveDate: {
+              lte: now
+            }
+          },
+          orderBy: {
+            effectiveDate: 'desc'
+          }
         }
       },
     });
@@ -75,7 +85,7 @@ export async function GET(
       ytdWRVUs,
       currentMetrics: currentMetrics || {
         actualWRVUs: 0,
-        targetWRVUs: 0,
+        targetWRVUs: provider.targetWRVUs || 0,
         baseSalary: provider.baseSalary || 0,
         totalCompensation: 0,
         wrvuPercentile: 0,

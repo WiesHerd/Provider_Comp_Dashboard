@@ -52,9 +52,9 @@ export default function JumpToProvider({ className = '' }: JumpToProviderProps) 
         console.log('Response status:', response.status);
         
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error('API Error:', errorText);
-          throw new Error(`Failed to fetch providers: ${response.status} ${errorText}`);
+          const errorData = await response.json();
+          console.error('API Error:', errorData);
+          throw new Error(errorData.error || `Failed to fetch providers: ${response.status}`);
         }
         
         const data = await response.json();
@@ -67,6 +67,11 @@ export default function JumpToProvider({ className = '' }: JumpToProviderProps) 
         
         setProviders(data);
         setFilteredProviders(data); // Initialize filtered providers with all providers
+        
+        if (data.length === 0) {
+          console.log('No providers found');
+          setError('No providers found in the system. Please ensure there are active providers.');
+        }
       } catch (error) {
         console.error('Error fetching providers:', error);
         setError(error instanceof Error ? error.message : 'Failed to load providers');
@@ -153,7 +158,7 @@ export default function JumpToProvider({ className = '' }: JumpToProviderProps) 
               ))
             ) : (
               <div className="px-4 py-2 text-sm text-gray-500">
-                {searchTerm ? 'No providers found' : 'Start typing to search...'}
+                {searchTerm ? 'No matching providers found' : 'Start typing to search...'}
               </div>
             )}
           </div>

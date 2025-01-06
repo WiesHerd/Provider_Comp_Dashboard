@@ -27,7 +27,7 @@ export default function UploadPage() {
   const handleClearProviderData = async () => {
     if (confirm('Are you sure you want to clear all provider data?')) {
       try {
-        const response = await fetch('/api/providers/clear', { method: 'POST' });
+        const response = await fetch('/api/clear/provider', { method: 'POST' });
         if (!response.ok) throw new Error('Failed to clear provider data');
         alert('Provider data cleared successfully');
       } catch (error) {
@@ -40,7 +40,7 @@ export default function UploadPage() {
   const handleClearMarketData = async () => {
     if (confirm('Are you sure you want to clear all market data?')) {
       try {
-        const response = await fetch('/api/market-data/clear', { method: 'POST' });
+        const response = await fetch('/api/clear/market', { method: 'POST' });
         if (!response.ok) throw new Error('Failed to clear market data');
         alert('Market data cleared successfully');
       } catch (error) {
@@ -53,7 +53,7 @@ export default function UploadPage() {
   const handleClearWRVUData = async () => {
     if (confirm('Are you sure you want to clear all wRVU data?')) {
       try {
-        const response = await fetch('/api/wrvu-data/clear', { method: 'POST' });
+        const response = await fetch('/api/clear/wrvu', { method: 'POST' });
         if (!response.ok) throw new Error('Failed to clear wRVU data');
         alert('wRVU data cleared successfully');
       } catch (error) {

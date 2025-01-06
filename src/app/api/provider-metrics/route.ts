@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-
-const monthToNumber: { [key: string]: number } = {
-  'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
-  'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
-};
+import { monthToNumber } from '@/lib/utils';
 
 export async function POST(request: Request) {
   try {
@@ -16,6 +12,11 @@ export async function POST(request: Request) {
     if (!month) {
       throw new Error('Invalid month provided');
     }
+
+    // Calculate cumulative values
+    const cumulativeWRVUs = Number(data.ytdWRVUs) || 0;
+    const monthlyTarget = Number(data.targetWRVUs) || 0;
+    const cumulativeTarget = monthlyTarget * month;
 
     // Ensure all numeric fields are properly typed
     const metrics = await prisma.providerMetrics.upsert({
@@ -29,15 +30,17 @@ export async function POST(request: Request) {
       update: {
         actualWRVUs: Number(data.actualWRVUs) || 0,
         rawMonthlyWRVUs: Number(data.rawMonthlyWRVUs) || 0,
-        ytdWRVUs: Number(data.ytdWRVUs) || 0,
-        targetWRVUs: Number(data.targetWRVUs) || 0,
+        cumulativeWRVUs,
+        targetWRVUs: monthlyTarget,
+        cumulativeTarget,
         baseSalary: Number(data.baseSalary) || 0,
         totalCompensation: Number(data.totalCompensation) || 0,
         wrvuPercentile: Number(data.wrvuPercentile) || 0,
         compPercentile: Number(data.compPercentile) || 0,
         incentivesEarned: Number(data.incentivesEarned) || 0,
         holdbackAmount: Number(data.holdbackAmount) || 0,
-        planProgress: Number(data.planProgress) || 0
+        planProgress: Number(data.planProgress) || 0,
+        monthsCompleted: month
       },
       create: {
         providerId: data.providerId,
@@ -45,15 +48,17 @@ export async function POST(request: Request) {
         month: month,
         actualWRVUs: Number(data.actualWRVUs) || 0,
         rawMonthlyWRVUs: Number(data.rawMonthlyWRVUs) || 0,
-        ytdWRVUs: Number(data.ytdWRVUs) || 0,
-        targetWRVUs: Number(data.targetWRVUs) || 0,
+        cumulativeWRVUs,
+        targetWRVUs: monthlyTarget,
+        cumulativeTarget,
         baseSalary: Number(data.baseSalary) || 0,
         totalCompensation: Number(data.totalCompensation) || 0,
         wrvuPercentile: Number(data.wrvuPercentile) || 0,
         compPercentile: Number(data.compPercentile) || 0,
         incentivesEarned: Number(data.incentivesEarned) || 0,
         holdbackAmount: Number(data.holdbackAmount) || 0,
-        planProgress: Number(data.planProgress) || 0
+        planProgress: Number(data.planProgress) || 0,
+        monthsCompleted: month
       }
     });
 

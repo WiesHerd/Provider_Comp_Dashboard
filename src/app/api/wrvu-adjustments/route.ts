@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import { WRVUAdjustment, WRVUAdjustmentFormData } from '@/types/wrvu-adjustment';
 
 // GET /api/wrvu-adjustments
@@ -88,81 +88,41 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate monthly values
-    if (!data.monthlyValues || typeof data.monthlyValues !== 'object') {
-      return NextResponse.json(
-        { success: false, error: 'Monthly values are required' },
-        { status: 400 }
-      );
-    }
-
-    // Create the adjustment data with explicit type casting
-    const adjustmentData = {
-      name: data.name.trim(),
-      description: data.description?.trim() ?? '',
-      year: Number(data.year),
-      providerId: String(data.providerId),
-      jan: Number(data.monthlyValues.jan ?? 0),
-      feb: Number(data.monthlyValues.feb ?? 0),
-      mar: Number(data.monthlyValues.mar ?? 0),
-      apr: Number(data.monthlyValues.apr ?? 0),
-      may: Number(data.monthlyValues.may ?? 0),
-      jun: Number(data.monthlyValues.jun ?? 0),
-      jul: Number(data.monthlyValues.jul ?? 0),
-      aug: Number(data.monthlyValues.aug ?? 0),
-      sep: Number(data.monthlyValues.sep ?? 0),
-      oct: Number(data.monthlyValues.oct ?? 0),
-      nov: Number(data.monthlyValues.nov ?? 0),
-      dec: Number(data.monthlyValues.dec ?? 0)
-    };
-    
-    console.log('4. Attempting to create adjustment with data:', JSON.stringify(adjustmentData, null, 2));
-
-    try {
-      // Create the adjustment with explicit type information
-      const adjustment = await prisma.wRVUAdjustment.create({
-        data: {
-          name: adjustmentData.name,
-          description: adjustmentData.description,
-          year: adjustmentData.year,
-          providerId: adjustmentData.providerId,
-          jan: adjustmentData.jan,
-          feb: adjustmentData.feb,
-          mar: adjustmentData.mar,
-          apr: adjustmentData.apr,
-          may: adjustmentData.may,
-          jun: adjustmentData.jun,
-          jul: adjustmentData.jul,
-          aug: adjustmentData.aug,
-          sep: adjustmentData.sep,
-          oct: adjustmentData.oct,
-          nov: adjustmentData.nov,
-          dec: adjustmentData.dec
-        },
-        include: {
-          provider: {
-            select: {
-              employeeId: true,
-              firstName: true,
-              lastName: true
+    // Create adjustments for each month with a value
+    const adjustments = await Promise.all(
+      Object.entries(data.monthlyValues || {}).map(async ([month, value]) => {
+        if (value && value !== 0) {
+          return prisma.wRVUAdjustment.create({
+            data: {
+              name: data.name.trim(),
+              description: data.description?.trim() ?? '',
+              year: Number(data.year),
+              month: Number(month),
+              value: Number(value),
+              providerId: String(data.providerId)
+            },
+            include: {
+              provider: {
+                select: {
+                  employeeId: true,
+                  firstName: true,
+                  lastName: true
+                }
+              }
             }
-          }
+          });
         }
-      });
+      })
+    );
 
-      console.log('5. Successfully created adjustment:', JSON.stringify(adjustment, null, 2));
+    const validAdjustments = adjustments.filter(Boolean);
 
-      return NextResponse.json({ 
-        success: true, 
-        data: adjustment 
-      });
-    } catch (dbError) {
-      console.error('Database error:', dbError);
-      return NextResponse.json(
-        { success: false, error: 'Failed to save adjustment to database' },
-        { status: 500 }
-      );
-    }
+    console.log('4. Successfully created adjustments:', JSON.stringify(validAdjustments, null, 2));
+
+    return NextResponse.json({ 
+      success: true, 
+      data: validAdjustments 
+    });
   } catch (error) {
     console.error('Error creating wRVU adjustment:', error);
     if (error instanceof Error) {

@@ -810,13 +810,14 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
 
     // If above 90th percentile
     if (fteAdjustedWRVUs > benchmarks[3].value) {
-      const percentile = benchmarks[3].value > 0 
-        ? 90 + ((fteAdjustedWRVUs - benchmarks[3].value) / benchmarks[3].value) * 10 
-        : 90;
-      return { percentile: Math.min(100, percentile), nearestBenchmark: '> 90th' };
+      const extraPercentile = benchmarks[3].value > 0 
+        ? ((fteAdjustedWRVUs - benchmarks[3].value) / benchmarks[3].value) * 10 
+        : 0;
+      const percentile = Math.min(100, 90 + extraPercentile);
+      return { percentile, nearestBenchmark: '> 90th' };
     }
 
-    // Find which benchmarks we're between
+    // Find which benchmarks we're between and interpolate
     for (let i = 0; i < benchmarks.length - 1; i++) {
       const lower = benchmarks[i];
       const upper = benchmarks[i + 1];
