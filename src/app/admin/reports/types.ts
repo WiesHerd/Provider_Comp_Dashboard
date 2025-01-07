@@ -6,9 +6,8 @@ export interface ProviderMetrics {
   clinicalFte: number;
   actualWRVUs: number;
   rawMonthlyWRVUs: number;
-  cumulativeWRVUs: number;
+  ytdWRVUs: number;
   targetWRVUs: number;
-  cumulativeTarget: number;
   baseSalary: number;
   totalCompensation: number;
   incentivesEarned: number;

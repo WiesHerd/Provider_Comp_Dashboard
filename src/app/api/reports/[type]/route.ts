@@ -1,13 +1,9 @@
 import { NextResponse } from 'next/server';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
+import { PrismaClient } from '@prisma/client';
 
-// Mock data - Replace with actual database queries
-const mockProviderData = [
-  { id: 1, name: 'Dr. Smith', department: 'Cardiology', actualWRVU: 450, targetWRVU: 400, month: '2024-01' },
-  { id: 2, name: 'Dr. Johnson', department: 'Cardiology', actualWRVU: 380, targetWRVU: 400, month: '2024-01' },
-  // Add more mock data
-];
+const prisma = new PrismaClient();
 
 interface ReportParams {
   timeframe: string;
@@ -15,6 +11,19 @@ interface ReportParams {
   reportType: string;
   subType: string;
 }
+
+const formatWRVU = (value: number) => {
+  if (value === null || value === undefined || value === 0) return '-';
+  return value.toFixed(1);
+};
+
+const getMonthName = (month: number) => {
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  return months[month - 1] || '';
+};
 
 async function generateReport(params: ReportParams) {
   const { timeframe, department, reportType, subType } = params;
@@ -50,30 +59,63 @@ async function generateReport(params: ReportParams) {
 }
 
 async function generatePerformanceReport(subType: string, timeframe: string, department: string) {
-  // Filter data based on timeframe and department
-  let filteredData = mockProviderData;
-  if (department !== 'all') {
-    filteredData = filteredData.filter(d => d.department.toLowerCase() === department.toLowerCase());
-  }
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
+
+  // Get all providers with their metrics and wRVU data
+  const providers = await prisma.provider.findMany({
+    where: {
+      status: 'Active',
+      ...(department !== 'all' && { department })
+    },
+    include: {
+      metrics: {
+        where: {
+          year: currentYear,
+          month: currentMonth
+        }
+      },
+      wrvuData: {
+        where: {
+          year: currentYear,
+          month: currentMonth
+        }
+      },
+      targetAdjustments: {
+        where: {
+          year: currentYear,
+          month: currentMonth
+        }
+      }
+    }
+  });
 
   switch (subType) {
     case 'monthly':
-      return filteredData.map(d => ({
-        'Provider Name': d.name,
-        'Department': d.department,
-        'Actual wRVUs': d.actualWRVU,
-        'Target wRVUs': d.targetWRVU,
-        'Achievement %': ((d.actualWRVU / d.targetWRVU) * 100).toFixed(1) + '%',
-        'Month': d.month
-      }));
+      return providers.map(provider => {
+        const metrics = provider.metrics[0];
+        const wrvuData = provider.wrvuData[0];
+        const targetAdjustments = provider.targetAdjustments.reduce((sum, adj) => sum + adj.value, 0);
+
+        const actualWRVUs = metrics?.actualWRVUs || wrvuData?.value || 0;
+        const targetWRVUs = (metrics?.targetWRVUs || provider.targetWRVUs || 0) + targetAdjustments;
+
+        return {
+          'Provider Name': `${provider.firstName} ${provider.lastName}`,
+          'Department': provider.department,
+          'Specialty': provider.specialty,
+          'Actual wRVUs': actualWRVUs,
+          'Target wRVUs': targetWRVUs,
+          'Achievement %': targetWRVUs > 0 ? ((actualWRVUs / targetWRVUs) * 100).toFixed(1) + '%' : '-',
+          'Month': getMonthName(currentMonth),
+          'Year': currentYear
+        };
+      });
     case 'quarterly':
-      // Aggregate data by quarter
-      return filteredData.map(d => ({
-        // Add quarterly calculations
-      }));
-    // Add more cases for other report subtypes
+      // Implement quarterly aggregation here
+      return [];
     default:
-      return filteredData;
+      return providers;
   }
 }
 

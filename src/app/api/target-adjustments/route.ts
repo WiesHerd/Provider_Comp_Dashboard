@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { TargetAdjustmentFormData } from '@/types/target-adjustment';
 
 export async function GET(request: Request) {
@@ -86,41 +86,63 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create adjustments for each month with a value
-    const adjustments = await Promise.all(
-      Object.entries(data.monthlyValues || {}).map(async ([month, value]) => {
-        if (value && value !== 0) {
-          return prisma.targetAdjustment.create({
-            data: {
-              name: data.name.trim(),
-              description: data.description?.trim() ?? '',
-              year: Number(data.year),
-              month: Number(month),
-              value: Number(value),
-              providerId: String(data.providerId)
-            },
-            include: {
-              provider: {
-                select: {
-                  employeeId: true,
-                  firstName: true,
-                  lastName: true
-                }
-              }
+    // Validate monthly values
+    if (!data.monthlyValues || typeof data.monthlyValues !== 'object') {
+      return NextResponse.json(
+        { success: false, error: 'Monthly values are required' },
+        { status: 400 }
+      );
+    }
+
+    // Create the adjustment data with explicit type casting
+    const adjustmentData = {
+      name: data.name.trim(),
+      description: data.description?.trim() ?? '',
+      year: Number(data.year),
+      providerId: String(data.providerId),
+      jan: Number(data.monthlyValues.jan ?? 0),
+      feb: Number(data.monthlyValues.feb ?? 0),
+      mar: Number(data.monthlyValues.mar ?? 0),
+      apr: Number(data.monthlyValues.apr ?? 0),
+      may: Number(data.monthlyValues.may ?? 0),
+      jun: Number(data.monthlyValues.jun ?? 0),
+      jul: Number(data.monthlyValues.jul ?? 0),
+      aug: Number(data.monthlyValues.aug ?? 0),
+      sep: Number(data.monthlyValues.sep ?? 0),
+      oct: Number(data.monthlyValues.oct ?? 0),
+      nov: Number(data.monthlyValues.nov ?? 0),
+      dec: Number(data.monthlyValues.dec ?? 0)
+    };
+    
+    console.log('4. Attempting to create adjustment with data:', JSON.stringify(adjustmentData, null, 2));
+
+    try {
+      const adjustment = await prisma.targetAdjustment.create({
+        data: adjustmentData,
+        include: {
+          provider: {
+            select: {
+              employeeId: true,
+              firstName: true,
+              lastName: true
             }
-          });
+          }
         }
-      })
-    );
+      });
 
-    const validAdjustments = adjustments.filter(Boolean);
+      console.log('5. Successfully created adjustment:', JSON.stringify(adjustment, null, 2));
 
-    console.log('4. Successfully created adjustments:', JSON.stringify(validAdjustments, null, 2));
-
-    return NextResponse.json({ 
-      success: true, 
-      data: validAdjustments 
-    });
+      return NextResponse.json({ 
+        success: true, 
+        data: adjustment 
+      });
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to save adjustment to database' },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error('Error creating target adjustment:', error);
     if (error instanceof Error) {

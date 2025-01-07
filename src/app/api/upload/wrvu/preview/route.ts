@@ -35,6 +35,7 @@ export async function POST(request: Request) {
       'first_name': 'first_name',
       'last_name': 'last_name',
       'specialty': 'specialty',
+      'year': 'year',
       'Jan': 'Jan',
       'Feb': 'Feb',
       'Mar': 'Mar',
@@ -54,15 +55,30 @@ export async function POST(request: Request) {
       raw: true,
       defval: 0,  // Default value for empty cells
       blankrows: false,  // Skip blank rows
-      header: Object.keys(headerMapping)  // Use our defined headers
+      header: 1  // Use first row as headers
     });
 
     // Skip the header row and map the data
     const mappedData = (rawData as any[]).slice(1).map(row => {
       const mappedRow: any = {};
-      Object.entries(headerMapping).forEach(([from, to]) => {
-        mappedRow[to] = row[from];
-      });
+      // Map the columns based on their position in the CSV
+      mappedRow.employee_id = row[0];
+      mappedRow.first_name = row[1];
+      mappedRow.last_name = row[2];
+      mappedRow.specialty = row[3];
+      mappedRow.year = row[4];
+      mappedRow.Jan = row[5];
+      mappedRow.Feb = row[6];
+      mappedRow.Mar = row[7];
+      mappedRow.Apr = row[8];
+      mappedRow.May = row[9];
+      mappedRow.Jun = row[10];
+      mappedRow.Jul = row[11];
+      mappedRow.Aug = row[12];
+      mappedRow.Sep = row[13];
+      mappedRow.Oct = row[14];
+      mappedRow.Nov = row[15];
+      mappedRow.Dec = row[16];
       return mappedRow;
     });
 

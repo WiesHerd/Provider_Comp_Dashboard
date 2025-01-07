@@ -45,6 +45,7 @@ export default function WRVUUpload({ onPreview, previewData }: WRVUUploadProps) 
         { key: 'first_name', header: 'First Name' },
         { key: 'last_name', header: 'Last Name' },
         { key: 'specialty', header: 'Specialty' },
+        { key: 'year', header: 'Year' },
         { key: 'Jan', header: 'Jan', formatter: formatNumber },
         { key: 'Feb', header: 'Feb', formatter: formatNumber },
         { key: 'Mar', header: 'Mar', formatter: formatNumber },

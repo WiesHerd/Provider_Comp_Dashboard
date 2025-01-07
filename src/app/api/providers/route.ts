@@ -14,6 +14,7 @@ interface ProviderWithMetricsResponse extends Provider {
   wrvuPercentile: number;
   compPercentile: number;
   planProgress: number;
+  monthsCompleted: number;
 }
 
 export async function GET(request: Request) {
@@ -23,101 +24,117 @@ export async function GET(request: Request) {
     const department = searchParams.get('department');
     const month = searchParams.get('month');
     const year = searchParams.get('year');
-    const search = searchParams.get('search')?.toLowerCase();
+    const refresh = searchParams.get('refresh') === 'true';
 
     const currentYear = year ? parseInt(year) : new Date().getFullYear();
     const currentMonth = month ? parseInt(month) : new Date().getMonth() + 1;
+    const isYTD = month === 'YTD';
 
     // Build where clause for provider filtering
     const where: any = {
-      status: 'Active'
+      status: 'Active',
+      ...(specialty && { specialty }),
+      ...(department && { department })
     };
 
-    if (specialty) {
-      where.specialty = specialty;
+    // Refresh metrics if requested
+    if (refresh) {
+      await fetch('http://localhost:3000/api/metrics/calculate-all', { method: 'POST' });
     }
 
-    if (department) {
-      where.department = department;
-    }
-
-    if (search) {
-      where.OR = [
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
-        { employeeId: { contains: search, mode: 'insensitive' } },
-        { specialty: { contains: search, mode: 'insensitive' } }
-      ];
-    }
-
-    // Get providers with their metrics and wRVU data for all months up to current month
+    // Optimized single query with all necessary data
     const providers = await prisma.provider.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        specialty: true,
+        department: true,
+        status: true,
+        hireDate: true,
+        fte: true,
+        clinicalFte: true,
+        nonClinicalFte: true,
+        baseSalary: true,
+        clinicalSalary: true,
+        nonClinicalSalary: true,
+        compensationModel: true,
         metrics: {
           where: {
             year: currentYear,
-            month: {
-              lte: currentMonth
-            }
-          }
-        },
-        wrvuData: {
-          where: {
-            year: currentYear,
-            month: {
-              lte: currentMonth
-            }
+            month: currentMonth
+          },
+          select: {
+            actualWRVUs: true,
+            rawMonthlyWRVUs: true,
+            cumulativeWRVUs: true,
+            targetWRVUs: true,
+            cumulativeTarget: true,
+            totalCompensation: true,
+            incentivesEarned: true,
+            holdbackAmount: true,
+            wrvuPercentile: true,
+            compPercentile: true,
+            monthsCompleted: true
           }
         },
         targetAdjustments: {
           where: {
             year: currentYear,
-            month: {
-              lte: currentMonth
-            }
+            ...(isYTD ? {} : { month: currentMonth })
+          },
+          select: {
+            value: true,
+            month: true
           }
         }
-      },
-      orderBy: [
-        { lastName: 'asc' },
-        { firstName: 'asc' }
-      ]
+      }
     });
 
-    // Process each provider
-    const processedProviders = await Promise.all(
-      providers.map(async (provider) => {
-        // Get current month metrics
-        const currentMonthMetrics = provider.metrics.find(m => m.month === currentMonth);
-        
-        // Calculate cumulative values
-        const cumulativeWRVUs = provider.wrvuData.reduce((sum, data) => sum + data.value, 0);
-        const monthlyTarget = provider.targetWRVUs / 12; // Monthly target
-        const cumulativeTarget = monthlyTarget * currentMonth; // YTD target
+    // Process providers in memory (more efficient than additional queries)
+    const processedProviders = providers.map(provider => {
+      const metrics = provider.metrics[0] || {
+        actualWRVUs: 0,
+        rawMonthlyWRVUs: 0,
+        cumulativeWRVUs: 0,
+        targetWRVUs: 0,
+        cumulativeTarget: 0,
+        totalCompensation: 0,
+        incentivesEarned: 0,
+        holdbackAmount: 0,
+        wrvuPercentile: 0,
+        compPercentile: 0,
+        monthsCompleted: currentMonth
+      };
 
-        // Add adjustments to target
-        const targetAdjustmentsTotal = provider.targetAdjustments.reduce(
-          (sum, adj) => sum + adj.value,
-          0
-        );
+      const targetAdjustmentsTotal = provider.targetAdjustments.reduce((sum, adj) => {
+        if (isYTD || adj.month === currentMonth) {
+          return sum + (adj.value || 0);
+        }
+        return sum;
+      }, 0);
 
-        return {
-          ...provider,
-          actualWRVUs: currentMonthMetrics?.actualWRVUs ?? 0,
-          rawMonthlyWRVUs: currentMonthMetrics?.rawMonthlyWRVUs ?? 0,
-          cumulativeWRVUs,
-          targetWRVUs: monthlyTarget + targetAdjustmentsTotal,
-          cumulativeTarget: cumulativeTarget + targetAdjustmentsTotal,
-          totalCompensation: currentMonthMetrics?.totalCompensation ?? 0,
-          incentivesEarned: currentMonthMetrics?.incentivesEarned ?? 0,
-          holdbackAmount: currentMonthMetrics?.holdbackAmount ?? 0,
-          wrvuPercentile: currentMonthMetrics?.wrvuPercentile ?? 0,
-          compPercentile: currentMonthMetrics?.compPercentile ?? 0,
-          planProgress: monthlyTarget > 0 ? ((currentMonthMetrics?.actualWRVUs ?? 0) / monthlyTarget) * 100 : 0
-        } as ProviderWithMetricsResponse;
-      })
-    );
+      const targetWRVUs = (isYTD ? metrics.cumulativeTarget : metrics.targetWRVUs) + targetAdjustmentsTotal;
+      const actualWRVUs = isYTD ? metrics.cumulativeWRVUs : metrics.actualWRVUs;
+
+      return {
+        ...provider,
+        actualWRVUs,
+        rawMonthlyWRVUs: metrics.rawMonthlyWRVUs,
+        cumulativeWRVUs: metrics.cumulativeWRVUs,
+        targetWRVUs,
+        cumulativeTarget: metrics.cumulativeTarget || targetWRVUs,
+        totalCompensation: metrics.totalCompensation,
+        incentivesEarned: metrics.incentivesEarned,
+        holdbackAmount: metrics.holdbackAmount,
+        wrvuPercentile: metrics.wrvuPercentile,
+        compPercentile: metrics.compPercentile,
+        planProgress: targetWRVUs > 0 ? (actualWRVUs / targetWRVUs) * 100 : 0,
+        monthsCompleted: metrics.monthsCompleted
+      };
+    });
 
     return NextResponse.json(processedProviders);
   } catch (error) {

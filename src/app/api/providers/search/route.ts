@@ -5,11 +5,8 @@ export async function GET() {
   try {
     console.log('Fetching providers for search...');
     
-    // Get only active providers
+    // Get providers without status filter
     const providers = await prisma.provider.findMany({
-      where: {
-        status: 'Active'
-      },
       select: {
         id: true,
         employeeId: true,
@@ -24,16 +21,11 @@ export async function GET() {
 
     console.log(`Found ${providers.length} providers:`, providers);
 
-    if (providers.length === 0) {
-      console.log('No active providers found in the database');
-      return NextResponse.json([]);
-    }
-
     return NextResponse.json(providers);
   } catch (error) {
-    console.error('Error fetching providers:', error);
+    console.error('Error fetching providers for search:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch providers', details: error.message },
+      { error: 'Failed to fetch providers' },
       { status: 500 }
     );
   }

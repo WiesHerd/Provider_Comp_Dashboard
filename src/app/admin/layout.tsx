@@ -38,7 +38,7 @@ const navigation = [
   },
   { 
     name: 'Reports', 
-    href: '/admin/reports', 
+    href: '/admin/reports/select', 
     icon: ChartBarIcon
   },
   { 

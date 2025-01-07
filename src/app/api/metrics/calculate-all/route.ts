@@ -72,32 +72,19 @@ export async function POST() {
         );
         const ytdWRVUs = ytdData.reduce((sum, data) => sum + (data.value || 0), 0);
 
-        // Calculate YTD target including adjustments
-        const baseMonthlyTarget = (provider.targetWRVUs || 0) / 12;
-        const ytdBaseTarget = baseMonthlyTarget * currentMonth;
+        // Get YTD wRVU adjustments
+        const ytdAdjustments = (provider.wrvuAdjustments || [])
+          .filter(adj => adj.year === currentYear && adj.month <= currentMonth)
+          .reduce((sum, adj) => sum + (adj.value || 0), 0);
 
-        // Get YTD adjustments
-        const ytdTargetAdjustments = (provider.targetAdjustments || [])
-          .filter((adj: any) => adj.year === currentYear && adj.month <= currentMonth)
-          .reduce((sum: number, adj: any) => sum + (adj.value || 0), 0);
+        // Total YTD wRVUs including adjustments
+        const totalYtdWRVUs = ytdWRVUs + ytdAdjustments;
 
-        const ytdTarget = ytdBaseTarget + ytdTargetAdjustments;
-
-        // Calculate YTD progress
-        const ytdProgress = ytdTarget > 0 ? (ytdWRVUs / ytdTarget) * 100 : 0;
-
-        // Calculate current month target with adjustments
-        const currentMonthAdjustments = (provider.targetAdjustments || [])
-          .filter((adj: any) => adj.year === currentYear && adj.month === currentMonth)
-          .reduce((sum: number, adj: any) => sum + (adj.value || 0), 0);
-
-        const currentMonthTarget = baseMonthlyTarget + currentMonthAdjustments;
-
-        console.log(`Provider ${provider.firstName} ${provider.lastName} metrics:`, {
+        console.log(`wRVU calculations for ${provider.firstName} ${provider.lastName}:`, {
+          actualWRVUs,
           ytdWRVUs,
-          currentMonth,
-          fte: provider.clinicalFte,
-          wrvuPercentile: calculateWRVUPercentile(ytdWRVUs, currentMonth, provider.clinicalFte, marketData)
+          ytdDataCount: ytdData.length,
+          rawData: provider.wrvuData
         });
 
         // Get market data for provider's specialty
@@ -109,27 +96,64 @@ export async function POST() {
 
         // Calculate wRVU percentile
         const wrvuPercentile = calculateWRVUPercentile(
-          ytdWRVUs,
+          totalYtdWRVUs,
           currentMonth,
-          provider.clinicalFte,
+          provider.fte || 1.0,
           providerMarketData
         );
 
-        // Calculate compensation using the same logic as the dashboard
-        const annualBaseSalary = provider.baseSalary || 0;
-        const monthlyBaseSalary = annualBaseSalary / 12;
+        console.log(`Provider ${provider.firstName} ${provider.lastName} metrics:`, {
+          ytdWRVUs,
+          currentMonth,
+          fte: provider.fte,
+          wrvuPercentile
+        });
 
         // Calculate additional payments
         const additionalPay = (provider.additionalPayments || [])
           .filter(payment => payment.year === currentYear && payment.month === currentMonth)
           .reduce((sum, payment) => sum + (payment.amount || 0), 0);
 
-        // Calculate monthly incentives and total compensation
+        // Calculate compensation using the same logic as the dashboard
+        const annualBaseSalary = provider.baseSalary || 0;
+        const monthlyBaseSalary = annualBaseSalary / 12;
+
+        // Calculate YTD compensation
+        const ytdBaseSalary = monthlyBaseSalary * currentMonth;
+        const ytdIncentives = (provider.additionalPayments || [])
+          .filter(payment => payment.year === currentYear && payment.month <= currentMonth)
+          .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+
+        // Calculate monthly incentives and holdback
         const monthlyIncentives = additionalPay;
         const monthlyTotalComp = monthlyBaseSalary + monthlyIncentives;
 
-        // Calculate compensation percentile
-        const compPercentile = calculateCompPercentile(monthlyTotalComp, providerMarketData);
+        // Calculate target wRVUs based on base salary and conversion factor
+        const conversionFactor = providerMarketData?.p50_cf || 81.20; // Default to 81.20 if not found
+        const annualTarget = (provider.targetWRVUs || provider.baseSalary / conversionFactor);
+        const monthlyTarget = annualTarget / 12;
+
+        // Get current month's target adjustments
+        const currentMonthTargetAdjustments = (provider.targetAdjustments || [])
+          .filter(adj => adj.year === currentYear && adj.month === currentMonth)
+          .reduce((sum, adj) => sum + (adj.value || 0), 0);
+
+        // Calculate cumulative target including adjustments
+        const cumulativeTargetAdjustments = (provider.targetAdjustments || [])
+          .filter(adj => adj.year === currentYear && adj.month <= currentMonth)
+          .reduce((sum, adj) => sum + (adj.value || 0), 0);
+        const cumulativeTarget = ((annualTarget + cumulativeTargetAdjustments) / 12) * currentMonth;
+
+        // Add current month's adjustments to monthly target
+        const adjustedMonthlyTarget = monthlyTarget + currentMonthTargetAdjustments;
+
+        // Calculate cumulative WRVUs
+        const cumulativeWRVUs = provider.wrvuData
+          .filter(data => data.year === currentYear && data.month <= currentMonth)
+          .reduce((sum, data) => sum + (data.value || 0), 0) + 
+          (provider.wrvuAdjustments || [])
+            .filter(adj => adj.year === currentYear && adj.month <= currentMonth)
+            .reduce((sum, adj) => sum + (adj.value || 0), 0);
 
         // Store metrics in database
         const metrics = await prisma.providerMetrics.upsert({
@@ -146,31 +170,31 @@ export async function POST() {
             month: currentMonth,
             actualWRVUs,
             rawMonthlyWRVUs: actualWRVUs,
-            cumulativeWRVUs: ytdWRVUs,
-            targetWRVUs: baseMonthlyTarget,
-            cumulativeTarget: ytdTarget,
-            wrvuPercentile,
-            compPercentile,
-            baseSalary: monthlyBaseSalary,
+            cumulativeWRVUs,
+            targetWRVUs: adjustedMonthlyTarget,
+            cumulativeTarget,
+            baseSalary: provider.baseSalary || 0,
             totalCompensation: monthlyTotalComp,
+            compPercentile: calculateCompPercentile(monthlyTotalComp, providerMarketData),
             incentivesEarned: monthlyIncentives,
             holdbackAmount: calculateHoldback(monthlyIncentives),
-            planProgress: baseMonthlyTarget > 0 ? (actualWRVUs / baseMonthlyTarget) * 100 : 0,
+            planProgress: cumulativeTarget > 0 ? (cumulativeWRVUs / cumulativeTarget) * 100 : 0,
+            wrvuPercentile,
             monthsCompleted: currentMonth
           },
           update: {
             actualWRVUs,
             rawMonthlyWRVUs: actualWRVUs,
-            cumulativeWRVUs: ytdWRVUs,
-            targetWRVUs: baseMonthlyTarget,
-            cumulativeTarget: ytdTarget,
-            wrvuPercentile,
-            compPercentile,
-            baseSalary: monthlyBaseSalary,
+            cumulativeWRVUs,
+            targetWRVUs: adjustedMonthlyTarget,
+            cumulativeTarget,
+            baseSalary: provider.baseSalary || 0,
             totalCompensation: monthlyTotalComp,
+            compPercentile: calculateCompPercentile(monthlyTotalComp, providerMarketData),
             incentivesEarned: monthlyIncentives,
             holdbackAmount: calculateHoldback(monthlyIncentives),
-            planProgress: baseMonthlyTarget > 0 ? (actualWRVUs / baseMonthlyTarget) * 100 : 0,
+            planProgress: cumulativeTarget > 0 ? (cumulativeWRVUs / cumulativeTarget) * 100 : 0,
+            wrvuPercentile,
             monthsCompleted: currentMonth
           }
         });

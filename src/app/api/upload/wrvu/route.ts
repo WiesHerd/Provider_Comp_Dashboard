@@ -110,6 +110,7 @@ export async function POST(request: Request) {
     for (const row of rawData) {
       try {
         const employeeId = row.employee_id?.toString();
+        const year = row.year || new Date().getFullYear(); // Get year from data or use current year as fallback
         
         if (!employeeId) {
           console.warn('Skipping row without employee_id');
@@ -159,7 +160,7 @@ export async function POST(request: Request) {
               where: {
                 providerId_year_month: {
                   providerId: provider.id,
-                  year: currentYear,
+                  year: year,  // Use the year from the data
                   month: monthNum
                 }
               },
@@ -169,7 +170,7 @@ export async function POST(request: Request) {
               },
               create: {
                 providerId: provider.id,
-                year: currentYear,
+                year: year,  // Use the year from the data
                 month: monthNum,
                 value,
                 hours: 160 // Default to standard month hours

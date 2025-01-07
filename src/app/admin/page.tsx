@@ -37,9 +37,10 @@ const actions = [
   },
   {
     name: 'Reports',
-    href: '/admin/reports',
+    description: 'View and analyze provider performance metrics',
+    href: '/admin/reports/select',
     icon: ChartBarIcon,
-    description: 'View and generate performance reports'
+    iconBackground: 'bg-blue-500'
   },
   {
     name: 'Settings',

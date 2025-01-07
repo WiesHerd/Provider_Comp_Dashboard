@@ -11,7 +11,7 @@ export default function ReportsSelectionPage() {
       title: 'Monthly Provider Performance Summary',
       description: 'Track and analyze provider productivity and compensation metrics',
       icon: ChartBarIcon,
-      href: '/admin/reports',
+      href: '/admin/reports/monthly-performance',
       color: 'bg-blue-100'
     },
     {

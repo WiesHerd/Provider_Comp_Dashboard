@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { monthToNumber } from '@/lib/utils';
+
+const monthToNumber: { [key: string]: number } = {
+  'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+  'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+};
 
 export async function POST(request: Request) {
   try {
@@ -12,11 +16,6 @@ export async function POST(request: Request) {
     if (!month) {
       throw new Error('Invalid month provided');
     }
-
-    // Calculate cumulative values
-    const cumulativeWRVUs = Number(data.ytdWRVUs) || 0;
-    const monthlyTarget = Number(data.targetWRVUs) || 0;
-    const cumulativeTarget = monthlyTarget * month;
 
     // Ensure all numeric fields are properly typed
     const metrics = await prisma.providerMetrics.upsert({
@@ -30,17 +29,15 @@ export async function POST(request: Request) {
       update: {
         actualWRVUs: Number(data.actualWRVUs) || 0,
         rawMonthlyWRVUs: Number(data.rawMonthlyWRVUs) || 0,
-        cumulativeWRVUs,
-        targetWRVUs: monthlyTarget,
-        cumulativeTarget,
+        ytdWRVUs: Number(data.ytdWRVUs) || 0,
+        targetWRVUs: Number(data.targetWRVUs) || 0,
         baseSalary: Number(data.baseSalary) || 0,
         totalCompensation: Number(data.totalCompensation) || 0,
         wrvuPercentile: Number(data.wrvuPercentile) || 0,
         compPercentile: Number(data.compPercentile) || 0,
         incentivesEarned: Number(data.incentivesEarned) || 0,
         holdbackAmount: Number(data.holdbackAmount) || 0,
-        planProgress: Number(data.planProgress) || 0,
-        monthsCompleted: month
+        planProgress: Number(data.planProgress) || 0
       },
       create: {
         providerId: data.providerId,
@@ -48,17 +45,15 @@ export async function POST(request: Request) {
         month: month,
         actualWRVUs: Number(data.actualWRVUs) || 0,
         rawMonthlyWRVUs: Number(data.rawMonthlyWRVUs) || 0,
-        cumulativeWRVUs,
-        targetWRVUs: monthlyTarget,
-        cumulativeTarget,
+        ytdWRVUs: Number(data.ytdWRVUs) || 0,
+        targetWRVUs: Number(data.targetWRVUs) || 0,
         baseSalary: Number(data.baseSalary) || 0,
         totalCompensation: Number(data.totalCompensation) || 0,
         wrvuPercentile: Number(data.wrvuPercentile) || 0,
         compPercentile: Number(data.compPercentile) || 0,
         incentivesEarned: Number(data.incentivesEarned) || 0,
         holdbackAmount: Number(data.holdbackAmount) || 0,
-        planProgress: Number(data.planProgress) || 0,
-        monthsCompleted: month
+        planProgress: Number(data.planProgress) || 0
       }
     });
 
@@ -77,25 +72,48 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const year = searchParams.get('year') ? parseInt(searchParams.get('year')!) : new Date().getFullYear();
     const month = searchParams.get('month') ? parseInt(searchParams.get('month')!) : new Date().getMonth() + 1;
+    
+    // Add pagination
+    const page = parseInt(searchParams.get('page') || '1');
+    const pageSize = parseInt(searchParams.get('pageSize') || '50');
+    const skip = (page - 1) * pageSize;
 
+    // Get total count for pagination
+    const totalCount = await prisma.providerMetrics.count({
+      where: { year, month }
+    });
+
+    // Optimized query with pagination and specific field selection
     const metrics = await prisma.providerMetrics.findMany({
-      where: {
-        year,
-        month
-      },
-      include: {
+      where: { year, month },
+      select: {
+        id: true,
+        providerId: true,
+        actualWRVUs: true,
+        targetWRVUs: true,
+        wrvuPercentile: true,
+        baseSalary: true,
+        incentivesEarned: true,
+        totalCompensation: true,
+        compPercentile: true,
         provider: {
           select: {
             firstName: true,
             lastName: true,
             specialty: true,
-            clinicalFte: true,
-            baseSalary: true
+            clinicalFte: true
           }
         }
-      }
+      },
+      orderBy: [
+        { provider: { lastName: 'asc' } },
+        { provider: { firstName: 'asc' } }
+      ],
+      skip,
+      take: pageSize
     });
 
+    // Process data in memory
     const formattedMetrics = metrics.map(metric => ({
       id: metric.id,
       providerId: metric.providerId,
@@ -111,7 +129,15 @@ export async function GET(request: Request) {
       clinicalFte: metric.provider.clinicalFte
     }));
 
-    return NextResponse.json(formattedMetrics);
+    return NextResponse.json({
+      metrics: formattedMetrics,
+      pagination: {
+        currentPage: page,
+        pageSize,
+        totalCount,
+        totalPages: Math.ceil(totalCount / pageSize)
+      }
+    });
   } catch (error) {
     console.error('Error fetching provider metrics:', error);
     return NextResponse.json(
