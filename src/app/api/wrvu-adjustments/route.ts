@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { WRVUAdjustment, WRVUAdjustmentFormData } from '@/types/wrvu-adjustment';
+import prisma from '@/lib/prisma';
+import { WRVUAdjustmentFormData } from '@/types/wrvu-adjustment';
 
 // GET /api/wrvu-adjustments
 export async function GET(request: Request) {
@@ -16,18 +16,38 @@ export async function GET(request: Request) {
 
     const adjustments = await prisma.wRVUAdjustment.findMany({
       where,
-      include: {
-        provider: {
-          select: {
-            employeeId: true,
-            firstName: true,
-            lastName: true
-          }
-        }
-      }
+      orderBy: [
+        { year: 'desc' },
+        { name: 'asc' },
+        { month: 'asc' }
+      ]
     });
 
-    return NextResponse.json({ success: true, data: adjustments });
+    // Group adjustments by name and year
+    const groupedAdjustments = adjustments.reduce((acc, adj) => {
+      const key = `${adj.name}-${adj.providerId}-${adj.year}`;
+      if (!acc[key]) {
+        acc[key] = {
+          id: adj.id,
+          name: adj.name,
+          description: adj.description,
+          year: adj.year,
+          providerId: adj.providerId,
+          jan: 0, feb: 0, mar: 0, apr: 0, may: 0, jun: 0,
+          jul: 0, aug: 0, sep: 0, oct: 0, nov: 0, dec: 0
+        };
+      }
+      // Map month number (1-12) to month name (jan-dec)
+      const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+      const monthName = monthNames[adj.month - 1];
+      acc[key][monthName] = adj.value;
+      return acc;
+    }, {});
+
+    return NextResponse.json({ 
+      success: true, 
+      data: Object.values(groupedAdjustments) 
+    });
   } catch (error) {
     console.error('Error fetching wRVU adjustments:', error);
     return NextResponse.json(
@@ -49,7 +69,7 @@ export async function POST(request: Request) {
     }
 
     const data: WRVUAdjustmentFormData = await request.json();
-    console.log('1. Received wRVU adjustment data:', JSON.stringify(data, null, 2));
+    console.log('Received wRVU adjustment data:', JSON.stringify(data, null, 2));
 
     // Validate required fields
     if (!data.name?.trim()) {
@@ -73,136 +93,53 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify providerId exists
-    console.log('2. Looking for provider with ID:', data.providerId);
-    const provider = await prisma.provider.findUnique({
-      where: { id: data.providerId }
+    // Delete any existing adjustments with the same name and year
+    await prisma.wRVUAdjustment.deleteMany({
+      where: {
+        name: data.name,
+        providerId: data.providerId,
+        year: data.year
+      }
     });
-    console.log('3. Found provider:', provider);
 
-    if (!provider) {
-      console.error('Provider not found:', data.providerId);
-      return NextResponse.json(
-        { success: false, error: 'Provider not found' },
-        { status: 404 }
-      );
-    }
+    // Create new records for each non-zero month
+    const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    const adjustmentPromises = monthNames.map(async (monthName, index) => {
+      const value = Number(data.monthlyValues?.[monthName] ?? 0);
+      if (value === 0) return null;
 
-    // Validate monthly values
-    if (!data.monthlyValues || typeof data.monthlyValues !== 'object') {
-      return NextResponse.json(
-        { success: false, error: 'Monthly values are required' },
-        { status: 400 }
-      );
-    }
-
-    // Create the adjustment data with explicit type casting
-    const adjustmentData = {
-      name: data.name.trim(),
-      description: data.description?.trim() ?? '',
-      year: Number(data.year),
-      providerId: String(data.providerId),
-      jan: Number(data.monthlyValues.jan ?? 0),
-      feb: Number(data.monthlyValues.feb ?? 0),
-      mar: Number(data.monthlyValues.mar ?? 0),
-      apr: Number(data.monthlyValues.apr ?? 0),
-      may: Number(data.monthlyValues.may ?? 0),
-      jun: Number(data.monthlyValues.jun ?? 0),
-      jul: Number(data.monthlyValues.jul ?? 0),
-      aug: Number(data.monthlyValues.aug ?? 0),
-      sep: Number(data.monthlyValues.sep ?? 0),
-      oct: Number(data.monthlyValues.oct ?? 0),
-      nov: Number(data.monthlyValues.nov ?? 0),
-      dec: Number(data.monthlyValues.dec ?? 0)
-    };
-    
-    console.log('4. Attempting to create adjustment with data:', JSON.stringify(adjustmentData, null, 2));
-
-    try {
-      // Create the adjustment with explicit type information
-      const adjustment = await prisma.wRVUAdjustment.create({
+      return prisma.wRVUAdjustment.create({
         data: {
-          name: adjustmentData.name,
-          description: adjustmentData.description,
-          year: adjustmentData.year,
-          providerId: adjustmentData.providerId,
-          jan: adjustmentData.jan,
-          feb: adjustmentData.feb,
-          mar: adjustmentData.mar,
-          apr: adjustmentData.apr,
-          may: adjustmentData.may,
-          jun: adjustmentData.jun,
-          jul: adjustmentData.jul,
-          aug: adjustmentData.aug,
-          sep: adjustmentData.sep,
-          oct: adjustmentData.oct,
-          nov: adjustmentData.nov,
-          dec: adjustmentData.dec
-        },
-        include: {
-          provider: {
-            select: {
-              employeeId: true,
-              firstName: true,
-              lastName: true
-            }
-          }
+          name: data.name.trim(),
+          description: data.description?.trim() ?? '',
+          year: Number(data.year),
+          month: index + 1,
+          value,
+          providerId: String(data.providerId)
         }
       });
-
-      console.log('5. Successfully created adjustment:', JSON.stringify(adjustment, null, 2));
-
-      return NextResponse.json({ 
-        success: true, 
-        data: adjustment 
-      });
-    } catch (dbError) {
-      console.error('Database error:', dbError);
-      return NextResponse.json(
-        { success: false, error: 'Failed to save adjustment to database' },
-        { status: 500 }
-      );
-    }
-  } catch (error) {
-    console.error('Error creating wRVU adjustment:', error);
-    if (error instanceof Error) {
-      console.error('Error details:', error.message);
-      console.error('Error stack:', error.stack);
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500 }
-      );
-    }
-    return NextResponse.json(
-      { success: false, error: 'An unexpected error occurred' },
-      { status: 500 }
-    );
-  }
-}
-
-// PUT /api/wrvu-adjustments/:id
-export async function PUT(request: Request) {
-  try {
-    const data: WRVUAdjustment = await request.json();
-    const { id, ...updateData } = data;
-
-    if (!id) {
-      return NextResponse.json(
-        { success: false, error: 'Missing adjustment ID' },
-        { status: 400 }
-      );
-    }
-
-    const adjustment = await prisma.wRVUAdjustment.update({
-      where: { id },
-      data: updateData
     });
 
-    return NextResponse.json({ success: true, data: adjustment });
+    const createdAdjustments = (await Promise.all(adjustmentPromises)).filter(Boolean);
+
+    // Create response object with all monthly values
+    const response = {
+      id: createdAdjustments[0]?.id || '',
+      name: data.name.trim(),
+      description: data.description?.trim() ?? '',
+      year: data.year,
+      providerId: data.providerId,
+      ...monthNames.reduce((acc, month) => ({
+        ...acc,
+        [month]: Number(data.monthlyValues?.[month] ?? 0)
+      }), {})
+    };
+
+    return NextResponse.json({ success: true, data: response });
   } catch (error) {
-    console.error('Error updating wRVU adjustment:', error);
+    console.error('Error creating wRVU adjustment:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update wRVU adjustment' },
+      { success: false, error: 'Failed to create wRVU adjustment' },
       { status: 500 }
     );
   }
@@ -213,8 +150,25 @@ export async function DELETE(request: Request) {
   try {
     const { id } = await request.json();
 
-    await prisma.wRVUAdjustment.delete({
+    // Get the adjustment to find its name and year
+    const adjustment = await prisma.wRVUAdjustment.findUnique({
       where: { id }
+    });
+
+    if (!adjustment) {
+      return NextResponse.json(
+        { success: false, error: 'Adjustment not found' },
+        { status: 404 }
+      );
+    }
+
+    // Delete all records with the same name, provider, and year
+    await prisma.wRVUAdjustment.deleteMany({
+      where: {
+        name: adjustment.name,
+        providerId: adjustment.providerId,
+        year: adjustment.year
+      }
     });
 
     return NextResponse.json({ 

@@ -1,0 +1,5 @@
+[33mcommit f5899ab36b20ccff6d146e2ec2c2250421066943[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: Wieslaw Herdzik <wherdzik@gmail.com>
+Date:   Tue Jan 7 15:16:03 2025 -0700
+
+    Fixed monthly performance report issues: - Fixed month alignment in wRVU data - Added proper YTD calculation - Improved UI with collapsible filters and colored icons - Updated provider links to correct URL format - Removed duplicate reports implementation

@@ -29,15 +29,17 @@ export async function POST(request: Request) {
       update: {
         actualWRVUs: Number(data.actualWRVUs) || 0,
         rawMonthlyWRVUs: Number(data.rawMonthlyWRVUs) || 0,
-        ytdWRVUs: Number(data.ytdWRVUs) || 0,
+        cumulativeWRVUs: Number(data.cumulativeWRVUs) || 0,
         targetWRVUs: Number(data.targetWRVUs) || 0,
+        cumulativeTarget: Number(data.cumulativeTarget) || 0,
         baseSalary: Number(data.baseSalary) || 0,
         totalCompensation: Number(data.totalCompensation) || 0,
         wrvuPercentile: Number(data.wrvuPercentile) || 0,
         compPercentile: Number(data.compPercentile) || 0,
         incentivesEarned: Number(data.incentivesEarned) || 0,
         holdbackAmount: Number(data.holdbackAmount) || 0,
-        planProgress: Number(data.planProgress) || 0
+        planProgress: Number(data.planProgress) || 0,
+        monthsCompleted: Number(data.monthsCompleted) || 0
       },
       create: {
         providerId: data.providerId,
@@ -45,15 +47,17 @@ export async function POST(request: Request) {
         month: month,
         actualWRVUs: Number(data.actualWRVUs) || 0,
         rawMonthlyWRVUs: Number(data.rawMonthlyWRVUs) || 0,
-        ytdWRVUs: Number(data.ytdWRVUs) || 0,
+        cumulativeWRVUs: Number(data.cumulativeWRVUs) || 0,
         targetWRVUs: Number(data.targetWRVUs) || 0,
+        cumulativeTarget: Number(data.cumulativeTarget) || 0,
         baseSalary: Number(data.baseSalary) || 0,
         totalCompensation: Number(data.totalCompensation) || 0,
         wrvuPercentile: Number(data.wrvuPercentile) || 0,
         compPercentile: Number(data.compPercentile) || 0,
         incentivesEarned: Number(data.incentivesEarned) || 0,
         holdbackAmount: Number(data.holdbackAmount) || 0,
-        planProgress: Number(data.planProgress) || 0
+        planProgress: Number(data.planProgress) || 0,
+        monthsCompleted: Number(data.monthsCompleted) || 0
       }
     });
 

@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 import { TargetAdjustmentFormData } from '@/types/target-adjustment';
 
 export async function DELETE(
@@ -22,9 +22,13 @@ export async function DELETE(
       );
     }
 
-    // Delete the adjustment
-    await prisma.targetAdjustment.delete({
-      where: { id: params.id }
+    // Delete all records with the same name, provider, and year
+    await prisma.targetAdjustment.deleteMany({
+      where: {
+        name: existingAdjustment.name,
+        providerId: existingAdjustment.providerId,
+        year: existingAdjustment.year
+      }
     });
 
     console.log('Successfully deleted target adjustment:', params.id);
@@ -44,82 +48,80 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log('Updating target adjustment with ID:', params.id);
     const data: TargetAdjustmentFormData = await request.json();
+    console.log('Received target adjustment update data:', JSON.stringify(data, null, 2));
 
-    // Check if the adjustment exists
+    // Get the existing adjustment
     const existingAdjustment = await prisma.targetAdjustment.findUnique({
       where: { id: params.id }
     });
 
     if (!existingAdjustment) {
-      console.log('Target adjustment not found:', params.id);
       return NextResponse.json(
-        { success: false, error: 'Target adjustment not found' },
+        { success: false, error: 'Adjustment not found' },
         { status: 404 }
       );
     }
 
-    // Validate required fields
-    if (!data.name?.trim()) {
-      return NextResponse.json(
-        { success: false, error: 'Name is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!data.providerId) {
-      return NextResponse.json(
-        { success: false, error: 'Provider ID is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!data.year || typeof data.year !== 'number') {
-      return NextResponse.json(
-        { success: false, error: 'Valid year is required' },
-        { status: 400 }
-      );
-    }
-
-    // Create the update data
-    const updateData = {
-      name: data.name.trim(),
-      description: data.description?.trim() ?? '',
-      year: Number(data.year),
-      providerId: String(data.providerId),
-      jan: Number(data.monthlyValues.jan ?? 0),
-      feb: Number(data.monthlyValues.feb ?? 0),
-      mar: Number(data.monthlyValues.mar ?? 0),
-      apr: Number(data.monthlyValues.apr ?? 0),
-      may: Number(data.monthlyValues.may ?? 0),
-      jun: Number(data.monthlyValues.jun ?? 0),
-      jul: Number(data.monthlyValues.jul ?? 0),
-      aug: Number(data.monthlyValues.aug ?? 0),
-      sep: Number(data.monthlyValues.sep ?? 0),
-      oct: Number(data.monthlyValues.oct ?? 0),
-      nov: Number(data.monthlyValues.nov ?? 0),
-      dec: Number(data.monthlyValues.dec ?? 0)
-    };
-
-    // Update the adjustment
-    const updatedAdjustment = await prisma.targetAdjustment.update({
-      where: { id: params.id },
-      data: updateData,
-      include: {
-        provider: {
-          select: {
-            employeeId: true,
-            firstName: true,
-            lastName: true
-          }
-        }
+    // Delete all records with the same name, provider, and year
+    await prisma.targetAdjustment.deleteMany({
+      where: {
+        name: existingAdjustment.name,
+        providerId: existingAdjustment.providerId,
+        year: existingAdjustment.year
       }
     });
 
-    console.log('Successfully updated target adjustment:', updatedAdjustment);
-    return NextResponse.json({ success: true, data: updatedAdjustment });
+    // Create new records for each non-zero month
+    const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    const adjustmentPromises = monthNames.map(async (monthName, index) => {
+      const value = Number(data.monthlyValues?.[monthName] ?? 0);
+      if (value === 0) return null;
 
+      return prisma.targetAdjustment.create({
+        data: {
+          name: data.name.trim(),
+          description: data.description?.trim() ?? '',
+          year: Number(data.year),
+          month: index + 1,
+          value,
+          providerId: String(data.providerId)
+        }
+      });
+    });
+
+    const createdAdjustments = await Promise.all(adjustmentPromises);
+    const validAdjustments = createdAdjustments.filter((adj): adj is NonNullable<typeof adj> => adj !== null);
+
+    if (validAdjustments.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'No adjustments were created' },
+        { status: 400 }
+      );
+    }
+
+    // Convert the array of monthly records back to the expected format
+    const monthlyValues = monthNames.reduce((acc, month, index) => {
+      const adjustment = validAdjustments.find(adj => adj.month === index + 1);
+      acc[month] = adjustment?.value ?? 0;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const firstAdjustment = validAdjustments[0];
+    const response = {
+      success: true,
+      data: {
+        id: firstAdjustment.id,
+        name: firstAdjustment.name,
+        description: firstAdjustment.description,
+        year: firstAdjustment.year,
+        providerId: firstAdjustment.providerId,
+        ...monthlyValues
+      }
+    };
+
+    console.log('Sending response:', JSON.stringify(response, null, 2));
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error updating target adjustment:', error);
     return NextResponse.json(

@@ -1,24 +1,22 @@
 import { TargetAdjustment, TargetAdjustmentFormData, TargetAdjustmentResponse } from '@/types/target-adjustment';
-import { MonthlyValues } from '@/types/wrvu-adjustment';
 
 const API_BASE = '/api/target-adjustments';
 
-export async function getTargetAdjustments(providerId: string, year: number): Promise<TargetAdjustmentResponse[]> {
+export async function getTargetAdjustments(providerId: string, year: number): Promise<TargetAdjustmentResponse> {
   console.log('Fetching target adjustments for provider:', providerId, 'year:', year);
   
-  const response = await fetch(`/api/target-adjustments?providerId=${providerId}&year=${year}`);
+  const response = await fetch(`${API_BASE}?providerId=${providerId}&year=${year}`);
   if (!response.ok) {
     throw new Error('Failed to fetch target adjustments');
   }
   
-  const result = await response.json();
-  return result.data;
+  return response.json();
 }
 
 export async function createTargetAdjustment(data: TargetAdjustmentFormData): Promise<TargetAdjustmentResponse> {
   console.log('Creating target adjustment:', data);
   
-  const response = await fetch('/api/target-adjustments', {
+  const response = await fetch(API_BASE, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -30,14 +28,13 @@ export async function createTargetAdjustment(data: TargetAdjustmentFormData): Pr
     throw new Error('Failed to create target adjustment');
   }
 
-  const result = await response.json();
-  return result.data;
+  return response.json();
 }
 
 export async function updateTargetAdjustment(id: string, data: TargetAdjustmentFormData): Promise<TargetAdjustmentResponse> {
   console.log('Updating target adjustment:', id, data);
   
-  const response = await fetch(`/api/target-adjustments/${id}`, {
+  const response = await fetch(`${API_BASE}/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -49,18 +46,32 @@ export async function updateTargetAdjustment(id: string, data: TargetAdjustmentF
     throw new Error('Failed to update target adjustment');
   }
 
-  const result = await response.json();
-  return result.data;
+  return response.json();
 }
 
-export async function deleteTargetAdjustment(id: string): Promise<void> {
+export async function deleteTargetAdjustment(id: string): Promise<{ success: boolean; error?: string }> {
   console.log('Deleting target adjustment:', id);
   
-  const response = await fetch(`/api/target-adjustments/${id}`, {
-    method: 'DELETE',
-  });
+  try {
+    const response = await fetch(`${API_BASE}/${id}`, {
+      method: 'DELETE',
+    });
 
-  if (!response.ok) {
-    throw new Error('Failed to delete target adjustment');
+    if (!response.ok) {
+      const errorData = await response.json();
+      return { 
+        success: false, 
+        error: errorData.error || `Failed to delete target adjustment: ${response.status}` 
+      };
+    }
+
+    const data = await response.json();
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting target adjustment:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to delete target adjustment' 
+    };
   }
 } 

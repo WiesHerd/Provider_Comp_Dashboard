@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import { WRVUAdjustmentFormData } from '@/types/wrvu-adjustment';
 
@@ -9,6 +9,7 @@ export async function PUT(
   try {
     console.log('Updating wRVU adjustment with ID:', params.id);
     const data: WRVUAdjustmentFormData = await request.json();
+    console.log('Received update data:', JSON.stringify(data, null, 2));
 
     // Check if the adjustment exists
     const existingAdjustment = await prisma.wRVUAdjustment.findUnique({
@@ -45,43 +46,50 @@ export async function PUT(
       );
     }
 
-    // Create the update data
-    const updateData = {
-      name: data.name.trim(),
-      description: data.description?.trim() ?? '',
-      year: Number(data.year),
-      providerId: String(data.providerId),
-      jan: Number(data.monthlyValues.jan ?? 0),
-      feb: Number(data.monthlyValues.feb ?? 0),
-      mar: Number(data.monthlyValues.mar ?? 0),
-      apr: Number(data.monthlyValues.apr ?? 0),
-      may: Number(data.monthlyValues.may ?? 0),
-      jun: Number(data.monthlyValues.jun ?? 0),
-      jul: Number(data.monthlyValues.jul ?? 0),
-      aug: Number(data.monthlyValues.aug ?? 0),
-      sep: Number(data.monthlyValues.sep ?? 0),
-      oct: Number(data.monthlyValues.oct ?? 0),
-      nov: Number(data.monthlyValues.nov ?? 0),
-      dec: Number(data.monthlyValues.dec ?? 0)
-    };
-
-    // Update the adjustment
-    const updatedAdjustment = await prisma.wRVUAdjustment.update({
-      where: { id: params.id },
-      data: updateData,
-      include: {
-        provider: {
-          select: {
-            employeeId: true,
-            firstName: true,
-            lastName: true
-          }
-        }
+    // Delete existing monthly records for this adjustment
+    await prisma.wRVUAdjustment.deleteMany({
+      where: {
+        name: data.name,
+        providerId: data.providerId,
+        year: data.year
       }
     });
 
-    console.log('Successfully updated wRVU adjustment:', updatedAdjustment);
-    return NextResponse.json({ success: true, data: updatedAdjustment });
+    // Create new records for each non-zero month
+    const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    const adjustmentPromises = monthNames.map(async (monthName, index) => {
+      const value = Number(data.monthlyValues?.[monthName] ?? 0);
+      if (value === 0) return null;
+
+      return prisma.wRVUAdjustment.create({
+        data: {
+          name: data.name.trim(),
+          description: data.description?.trim() ?? '',
+          year: Number(data.year),
+          month: index + 1,
+          value,
+          providerId: String(data.providerId)
+        }
+      });
+    });
+
+    const createdAdjustments = (await Promise.all(adjustmentPromises)).filter(Boolean);
+
+    // Create the response object with all monthly values
+    const response = {
+      id: createdAdjustments[0]?.id || '',
+      name: data.name.trim(),
+      description: data.description?.trim() ?? '',
+      year: data.year,
+      providerId: data.providerId,
+      ...monthNames.reduce((acc, month) => ({
+        ...acc,
+        [month]: Number(data.monthlyValues?.[month] ?? 0)
+      }), {})
+    };
+
+    console.log('Successfully updated wRVU adjustment:', response);
+    return NextResponse.json({ success: true, data: response });
 
   } catch (error) {
     console.error('Error updating wRVU adjustment:', error);
@@ -112,9 +120,13 @@ export async function DELETE(
       );
     }
 
-    // Delete the adjustment
-    await prisma.wRVUAdjustment.delete({
-      where: { id: params.id }
+    // Delete all adjustments with the same name, provider, and year
+    await prisma.wRVUAdjustment.deleteMany({
+      where: {
+        name: existingAdjustment.name,
+        providerId: existingAdjustment.providerId,
+        year: existingAdjustment.year
+      }
     });
 
     console.log('Successfully deleted wRVU adjustment:', params.id);

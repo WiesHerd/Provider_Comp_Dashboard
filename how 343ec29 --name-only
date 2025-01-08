@@ -1,0 +1,4 @@
+[33md22a590[m feat: Add wRVU percentile display and fix adjustment handling
+[33m343ec29[m Fix wRVU adjustment persistence and editing functionality. Adjustments now properly display after refresh and editing works correctly.
+[33md864499[m feat: improved table styling with negative value formatting and column adjustments
+[33mbb6469b[m fix: populate adjustment name fields in edit modals and resolve months array reference

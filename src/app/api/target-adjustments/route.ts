@@ -1,32 +1,53 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import { TargetAdjustmentFormData } from '@/types/target-adjustment';
 
+// GET /api/target-adjustments
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const providerId = searchParams.get('providerId');
     const year = searchParams.get('year');
 
-    const where = {
-      ...(providerId && { providerId }),
-      ...(year && { year: parseInt(year) })
-    };
+    if (!providerId || !year) {
+      return NextResponse.json(
+        { success: false, error: 'Provider ID and year are required' },
+        { status: 400 }
+      );
+    }
 
     const adjustments = await prisma.targetAdjustment.findMany({
-      where,
-      include: {
-        provider: {
-          select: {
-            employeeId: true,
-            firstName: true,
-            lastName: true
-          }
-        }
+      where: {
+        providerId: String(providerId),
+        year: Number(year)
+      },
+      orderBy: {
+        month: 'asc'
       }
     });
 
-    return NextResponse.json({ success: true, data: adjustments });
+    // Group adjustments by name and convert to monthly format
+    const groupedAdjustments = adjustments.reduce((acc, curr) => {
+      if (!acc[curr.name]) {
+        acc[curr.name] = {
+          id: curr.id,
+          name: curr.name,
+          description: curr.description,
+          year: curr.year,
+          providerId: curr.providerId,
+          jan: 0, feb: 0, mar: 0, apr: 0, may: 0, jun: 0,
+          jul: 0, aug: 0, sep: 0, oct: 0, nov: 0, dec: 0
+        };
+      }
+      const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+      acc[curr.name][monthNames[curr.month - 1]] = curr.value;
+      return acc;
+    }, {} as Record<string, any>);
+
+    return NextResponse.json({
+      success: true,
+      data: Object.values(groupedAdjustments)
+    });
   } catch (error) {
     console.error('Error fetching target adjustments:', error);
     return NextResponse.json(
@@ -36,123 +57,110 @@ export async function GET(request: Request) {
   }
 }
 
+// POST /api/target-adjustments
 export async function POST(request: Request) {
   try {
-    const contentType = request.headers.get('content-type');
-    if (!contentType?.includes('application/json')) {
-      return NextResponse.json(
-        { success: false, error: 'Content-Type must be application/json' },
-        { status: 400 }
-      );
-    }
-
     const data: TargetAdjustmentFormData = await request.json();
-    console.log('1. Received target adjustment data:', JSON.stringify(data, null, 2));
+    console.log('Received target adjustment data:', JSON.stringify(data, null, 2));
 
-    // Validate required fields
-    if (!data.name?.trim()) {
-      return NextResponse.json(
-        { success: false, error: 'Name is required' },
-        { status: 400 }
-      );
-    }
+    // Create records for each non-zero month
+    const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    const adjustmentPromises = monthNames.map(async (monthName, index) => {
+      const value = Number(data.monthlyValues?.[monthName] ?? 0);
+      if (value === 0) return null;
 
-    if (!data.providerId) {
-      return NextResponse.json(
-        { success: false, error: 'Provider ID is required' },
-        { status: 400 }
-      );
-    }
-
-    if (!data.year || typeof data.year !== 'number') {
-      return NextResponse.json(
-        { success: false, error: 'Valid year is required' },
-        { status: 400 }
-      );
-    }
-
-    // Verify providerId exists
-    console.log('2. Looking for provider with ID:', data.providerId);
-    const provider = await prisma.provider.findUnique({
-      where: { id: data.providerId }
+      return prisma.targetAdjustment.create({
+        data: {
+          name: data.name.trim(),
+          description: data.description?.trim() ?? '',
+          year: Number(data.year),
+          month: index + 1,
+          value,
+          providerId: String(data.providerId)
+        }
+      });
     });
-    console.log('3. Found provider:', provider);
 
-    if (!provider) {
-      console.error('Provider not found:', data.providerId);
+    const createdAdjustments = await Promise.all(adjustmentPromises);
+    const validAdjustments = createdAdjustments.filter((adj): adj is NonNullable<typeof adj> => adj !== null);
+
+    if (validAdjustments.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'Provider not found' },
+        { success: false, error: 'No adjustments were created' },
+        { status: 400 }
+      );
+    }
+
+    // Convert the array of monthly records back to the expected format
+    const monthlyValues = monthNames.reduce((acc, month, index) => {
+      const adjustment = validAdjustments.find(adj => adj.month === index + 1);
+      acc[month] = adjustment?.value ?? 0;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const firstAdjustment = validAdjustments[0];
+    const response = {
+      success: true,
+      data: {
+        id: firstAdjustment.id,
+        name: firstAdjustment.name,
+        description: firstAdjustment.description,
+        year: firstAdjustment.year,
+        providerId: firstAdjustment.providerId,
+        ...monthlyValues
+      }
+    };
+
+    console.log('Sending response:', JSON.stringify(response, null, 2));
+    return NextResponse.json(response);
+  } catch (error) {
+    console.error('Error creating target adjustment:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to create target adjustment' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/target-adjustments/:id
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'Adjustment ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Get the existing adjustment
+    const existingAdjustment = await prisma.targetAdjustment.findUnique({
+      where: { id }
+    });
+
+    if (!existingAdjustment) {
+      return NextResponse.json(
+        { success: false, error: 'Adjustment not found' },
         { status: 404 }
       );
     }
 
-    // Validate monthly values
-    if (!data.monthlyValues || typeof data.monthlyValues !== 'object') {
-      return NextResponse.json(
-        { success: false, error: 'Monthly values are required' },
-        { status: 400 }
-      );
-    }
+    // Delete all records with the same name, provider, and year
+    await prisma.targetAdjustment.deleteMany({
+      where: {
+        name: existingAdjustment.name,
+        providerId: existingAdjustment.providerId,
+        year: existingAdjustment.year
+      }
+    });
 
-    // Create the adjustment data with explicit type casting
-    const adjustmentData = {
-      name: data.name.trim(),
-      description: data.description?.trim() ?? '',
-      year: Number(data.year),
-      providerId: String(data.providerId),
-      jan: Number(data.monthlyValues.jan ?? 0),
-      feb: Number(data.monthlyValues.feb ?? 0),
-      mar: Number(data.monthlyValues.mar ?? 0),
-      apr: Number(data.monthlyValues.apr ?? 0),
-      may: Number(data.monthlyValues.may ?? 0),
-      jun: Number(data.monthlyValues.jun ?? 0),
-      jul: Number(data.monthlyValues.jul ?? 0),
-      aug: Number(data.monthlyValues.aug ?? 0),
-      sep: Number(data.monthlyValues.sep ?? 0),
-      oct: Number(data.monthlyValues.oct ?? 0),
-      nov: Number(data.monthlyValues.nov ?? 0),
-      dec: Number(data.monthlyValues.dec ?? 0)
-    };
-    
-    console.log('4. Attempting to create adjustment with data:', JSON.stringify(adjustmentData, null, 2));
-
-    try {
-      const adjustment = await prisma.targetAdjustment.create({
-        data: adjustmentData,
-        include: {
-          provider: {
-            select: {
-              employeeId: true,
-              firstName: true,
-              lastName: true
-            }
-          }
-        }
-      });
-
-      console.log('5. Successfully created adjustment:', JSON.stringify(adjustment, null, 2));
-
-      return NextResponse.json({ 
-        success: true, 
-        data: adjustment 
-      });
-    } catch (dbError) {
-      console.error('Database error:', dbError);
-      return NextResponse.json(
-        { success: false, error: 'Failed to save adjustment to database' },
-        { status: 500 }
-      );
-    }
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error creating target adjustment:', error);
-    if (error instanceof Error) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 500 }
-      );
-    }
+    console.error('Error deleting target adjustment:', error);
     return NextResponse.json(
-      { success: false, error: 'An unexpected error occurred' },
+      { success: false, error: 'Failed to delete target adjustment' },
       { status: 500 }
     );
   }

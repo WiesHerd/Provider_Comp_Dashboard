@@ -25,22 +25,20 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 }) => {
   return (
     <>
-      <div className="dashboard-header bg-white p-6 rounded-lg shadow-sm mb-8">
-        <div className="px-6 pt-6">
-          <div className="flex justify-between items-start">
-            <div className="text-center flex-1">
-              <h1 className="text-2xl font-semibold text-gray-900 mb-1">
-                {provider.firstName} {provider.lastName}, {provider.suffix || 'MD'} 
-                <span className="text-gray-600">- Specialty: {provider.specialty}</span>
-              </h1>
-              <div className="text-gray-600 mb-3">
-                Provider Compensation Dashboard
-              </div>
-              <div className="text-gray-600 text-sm">
-                Employee ID: {provider.employeeId} 
-                <span className="mx-3">•</span> 
-                FTE: {provider.fte || 1.0}
-              </div>
+      <div className="dashboard-header bg-gray-200 p-6 mb-8">
+        <div className="flex justify-between items-start">
+          <div className="text-center flex-1">
+            <h1 className="text-2xl font-semibold text-gray-900 mb-1">
+              {provider.firstName} {provider.lastName}, {provider.suffix || 'MD'} 
+              <span className="text-gray-600">- Specialty: {provider.specialty}</span>
+            </h1>
+            <div className="text-gray-600 mb-3">
+              Provider Compensation Dashboard
+            </div>
+            <div className="text-gray-600 text-sm">
+              Employee ID: {provider.employeeId} 
+              <span className="mx-3">•</span> 
+              FTE: {provider.fte || 1.0}
             </div>
           </div>
         </div>

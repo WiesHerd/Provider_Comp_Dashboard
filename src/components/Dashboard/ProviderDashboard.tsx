@@ -1032,7 +1032,6 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
           description: data.description || editingWRVUAdjustment?.description || '',
           year: new Date().getFullYear(),
           providerId: provider.id,
-          newConversionFactor: data.newConversionFactor,
           monthlyValues: {
             jan: Number(data.jan || 0),
             feb: Number(data.feb || 0),
@@ -1049,7 +1048,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
           }
         };
 
-        console.log('Sending adjustment data:', JSON.stringify(adjustmentData, null, 2));
+        console.log('Sending wRVU adjustment data:', JSON.stringify(adjustmentData, null, 2));
         
         try {
           let apiResponse;
@@ -1091,8 +1090,8 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       } else if (adjustmentType === 'target') {
         const adjustmentData = {
           id: isEditing ? editingTargetAdjustment?.id : undefined,
-          name: data.name,
-          description: data.description,
+          name: data.name || editingTargetAdjustment?.name || '',
+          description: data.description || editingTargetAdjustment?.description || '',
           year: new Date().getFullYear(),
           providerId: provider.id,
           monthlyValues: {
@@ -1114,34 +1113,33 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         console.log('Sending target adjustment data:', JSON.stringify(adjustmentData, null, 2));
         
         try {
-          let response;
+          let apiResponse;
           if (isEditing && editingTargetAdjustment?.id) {
             // Update existing adjustment
-            response = await fetch(`/api/target-adjustments/${editingTargetAdjustment.id}`, {
+            apiResponse = await fetch(`/api/target-adjustments/${editingTargetAdjustment.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(adjustmentData)
-            });
+            }).then(res => res.json());
           } else {
             // Create new adjustment
-            response = await createTargetAdjustment(adjustmentData);
+            apiResponse = await createTargetAdjustment(adjustmentData);
           }
 
-          const result = await response.json();
-          console.log('API Response:', JSON.stringify(result, null, 2));
+          console.log('API Response:', JSON.stringify(apiResponse, null, 2));
 
-          if (!result.success) {
-            console.error('Failed to save target adjustment:', result.error);
+          if (!apiResponse.success) {
+            console.error('Failed to save target adjustment:', apiResponse.error);
             return;
           }
 
           // Update local state
           if (isEditing) {
             setTargetAdjustments(prev => prev.map(adj => 
-              adj.id === editingTargetAdjustment?.id ? result.data : adj
+              adj.id === editingTargetAdjustment?.id ? apiResponse.data : adj
             ));
           } else {
-            setTargetAdjustments(prev => [...prev, result.data]);
+            setTargetAdjustments(prev => [...prev, apiResponse.data]);
           }
           
           setIsAdjustmentModalOpen(false);
@@ -1173,18 +1171,20 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         description: data.description || '',
         providerId: provider.id,
         year: new Date().getFullYear(),
-        jan: data.jan || 0,
-        feb: data.feb || 0,
-        mar: data.mar || 0,
-        apr: data.apr || 0,
-        may: data.may || 0,
-        jun: data.jun || 0,
-        jul: data.jul || 0,
-        aug: data.aug || 0,
-        sep: data.sep || 0,
-        oct: data.oct || 0,
-        nov: data.nov || 0,
-        dec: data.dec || 0
+        monthlyValues: {
+          jan: data.jan || 0,
+          feb: data.feb || 0,
+          mar: data.mar || 0,
+          apr: data.apr || 0,
+          may: data.may || 0,
+          jun: data.jun || 0,
+          jul: data.jul || 0,
+          aug: data.aug || 0,
+          sep: data.sep || 0,
+          oct: data.oct || 0,
+          nov: data.nov || 0,
+          dec: data.dec || 0
+        }
       };
       setEditingWRVUAdjustment(wrvuAdjustment);
       setAdjustmentType('wrvu');
@@ -1197,18 +1197,20 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         description: data.description || '',
         providerId: provider.id,
         year: new Date().getFullYear(),
-        jan: data.jan || 0,
-        feb: data.feb || 0,
-        mar: data.mar || 0,
-        apr: data.apr || 0,
-        may: data.may || 0,
-        jun: data.jun || 0,
-        jul: data.jul || 0,
-        aug: data.aug || 0,
-        sep: data.sep || 0,
-        oct: data.oct || 0,
-        nov: data.nov || 0,
-        dec: data.dec || 0
+        monthlyValues: {
+          jan: data.jan || 0,
+          feb: data.feb || 0,
+          mar: data.mar || 0,
+          apr: data.apr || 0,
+          may: data.may || 0,
+          jun: data.jun || 0,
+          jul: data.jul || 0,
+          aug: data.aug || 0,
+          sep: data.sep || 0,
+          oct: data.oct || 0,
+          nov: data.nov || 0,
+          dec: data.dec || 0
+        }
       };
       setEditingTargetAdjustment(targetAdjustment);
       setAdjustmentType('target');
@@ -1217,12 +1219,64 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     }
   };
 
-  const handleRemoveAdjustment = (id: string) => {
-    setAdjustments(prev => prev.filter(adj => adj.id !== id));
+  const handleRemoveAdjustment = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this wRVU adjustment? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await deleteWRVUAdjustment(id);
+      if (response.success) {
+        setAdjustments(prev => prev.filter(adj => adj.id !== id));
+        toast({
+          title: "Success",
+          description: "wRVU adjustment deleted successfully",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to delete wRVU adjustment",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting wRVU adjustment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete wRVU adjustment",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleRemoveTargetAdjustment = (id: string) => {
-    setTargetAdjustments(prev => prev.filter(adj => adj.id !== id));
+  const handleRemoveTargetAdjustment = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this target adjustment? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await deleteTargetAdjustment(id);
+      if (response.success) {
+        setTargetAdjustments(prev => prev.filter(adj => adj.id !== id));
+        toast({
+          title: "Success",
+          description: "Target adjustment deleted successfully",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to delete target adjustment",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting target adjustment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete target adjustment",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleEditAdditionalPay = (payment: any) => {
@@ -1669,8 +1723,9 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
           }
         }
 
-        // Fetch target adjustments
-        const targetResponse = await fetch(`/api/target-adjustments?providerId=${provider.id}`);
+        // Fetch target adjustments with current year
+        const currentYear = new Date().getFullYear();
+        const targetResponse = await fetch(`/api/target-adjustments?providerId=${provider.id}&year=${currentYear}`);
         if (targetResponse.ok) {
           const targetData = await targetResponse.json();
           if (targetData.success) {
@@ -1769,15 +1824,17 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         month: currentMonth,
         actualWRVUs: totalWRVUs?.[currentMonthStr] || 0,
         rawMonthlyWRVUs: baseMonthlyData[currentMonthStr] || 0,
-        ytdWRVUs: totalWRVUs?.ytd || 0,
+        cumulativeWRVUs: totalWRVUs?.ytd || 0,
         targetWRVUs: totalTarget?.[currentMonthStr] || 0,
+        cumulativeTarget: totalTarget?.ytd || 0,
         baseSalary: provider.baseSalary,
         totalCompensation: totalComp?.[currentMonthStr] || 0,
         incentivesEarned: incentives?.[currentMonthStr] || 0,
         holdbackAmount: Math.abs(holdback?.[currentMonthStr] || 0),
-        wrvuPercentile: calculateWRVUPercentile(ytdWRVUs, months.length, provider.fte, marketData).percentile,
+        wrvuPercentile: calculateWRVUPercentile(totalWRVUs?.ytd || 0, months.length, provider.fte, marketData).percentile,
         compPercentile: calculateTotalCompPercentile(totalComp?.ytd || 0, marketData).percentile,
-        planProgress: calculatePlanYearProgress(rowData).percentage
+        planProgress: calculatePlanYearProgress(rowData).percentage,
+        monthsCompleted: currentMonth
       };
 
       // Prepare analytics data with complete information
