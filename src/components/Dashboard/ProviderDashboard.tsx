@@ -937,6 +937,13 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         ytd: Object.values(monthlySalaries).reduce((sum: number, val) => sum + (Number(val) || 0), 0),
       },
       {
+        component: 'Productivity Incentives',
+        isSystem: true,
+        isHeader: true,
+        ...months.reduce((acc, month) => ({ ...acc, [month.toLowerCase()]: '' }), {}),
+        ytd: ''
+      },
+      {
         component: 'Incentives',
         isSystem: true,
         ...months.reduce((acc, month) => ({
@@ -954,16 +961,28 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         }), {}),
         ytd: -1 * Object.values(monthlySalaries).reduce((sum, val) => sum + (Number(val) || 0), 0) * (holdbackPercentage / 100)
       },
-      ...additionalPayments.map(pay => ({
-        ...pay,
-        component: pay.name,
-        isSystem: false,
-        type: 'additionalPay',
-        ytd: months.reduce((sum, month) => sum + (Number(pay[month.toLowerCase()]) || 0), 0)
-      })),
+      {
+        component: 'Net Incentives',
+        isSystem: true,
+        ...months.reduce((acc, month) => {
+          const monthKey = month.toLowerCase();
+          const incentive = getMonthlyIncentive(month) || 0;
+          const holdback = -1 * (monthlySalaries[monthKey] || 0) * (holdbackPercentage / 100);
+          return {
+            ...acc,
+            [monthKey]: incentive + holdback
+          };
+        }, {}),
+        ytd: months.reduce((sum, month) => {
+          const monthKey = month.toLowerCase();
+          const incentive = getMonthlyIncentive(month) || 0;
+          const holdback = -1 * (monthlySalaries[monthKey] || 0) * (holdbackPercentage / 100);
+          return sum + incentive + holdback;
+        }, 0)
+      }
     ];
 
-    // Calculate YTD Incentives row with cumulative values
+    // Calculate YTD Incentives row
     const incentivesRow = baseData.find(row => row.component === 'Incentives');
     const ytdIncentivesRow = {
       component: 'YTD Incentives',
@@ -978,15 +997,20 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       ytd: incentivesRow?.ytd || 0
     };
 
-    // Find the index of Call Pay to insert YTD Incentives after it
-    const callPayIndex = baseData.findIndex(row => row.component === 'Call Pay');
-    if (callPayIndex !== -1) {
-      baseData.splice(callPayIndex + 1, 0, ytdIncentivesRow);
-    } else {
-      const lastSystemRowIndex = baseData.filter(row => row.isSystem).length - 1;
-      baseData.splice(lastSystemRowIndex + 1, 0, ytdIncentivesRow);
-    }
+    // Add YTD Incentives row to baseData
+    baseData.push(ytdIncentivesRow);
 
+    // Add additional payments after YTD Incentives
+    const additionalPayRows = additionalPayments.map(pay => ({
+      ...pay,
+      component: pay.name,
+      isSystem: false,
+      type: 'additionalPay',
+      ytd: months.reduce((sum, month) => sum + (Number(pay[month.toLowerCase()]) || 0), 0)
+    }));
+    baseData.push(...additionalPayRows);
+
+    // Calculate totals
     const totals = months.reduce((acc, month) => {
       const monthKey = month.toLowerCase();
       const baseSalary = baseData.find(row => row.component === 'Base Salary')?.[monthKey] || 0;
@@ -1019,7 +1043,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         ...totals,
         ytd: ytdTotal,
         percentile
-      },
+      }
     ];
   };
 
@@ -1359,8 +1383,12 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       border-radius: 8px;
     }
 
-    .ag-root-wrapper {
-      border: none !important;
+    .subtotal-separator {
+      border-bottom: 1px solid #000;
+    }
+
+    .subtotal-separator-thick {
+      border-bottom: 1px solid #000;
     }
 
     /* Remove gap between pinned right column */
@@ -1555,13 +1583,18 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
             <span className="font-medium">{params.value}</span>
           );
         }
+        if (params.data.isHeader) {
+          return <span className="font-semibold text-gray-900">{params.value}</span>;
+        }
         return <span className={params.data.isSystem ? 'row-section-header' : ''}>{params.value}</span>;
       },
       cellClass: (params: any) => {
         const classes: string[] = [];
         if (params.data.isSystem) classes.push('row-section-header');
+        if (params.data.isHeader) classes.push('font-semibold bg-gray-50');
         if (!params.data.isSystem && params.data.type === 'additionalPay') classes.push('adjustment-row');
         if (params.data.component === 'Total Comp.') classes.push('row-total');
+        if (params.data.component.includes('Holdback')) classes.push('subtotal-separator-thick');
         return classes.join(' ');
       },
     },
@@ -1573,8 +1606,10 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       headerClass: 'text-right',
       cellClass: (params: any) => {
         const classes = ['text-right'];
+        if (params.data.isHeader) classes.push('font-semibold bg-gray-50');
         if (params.value < 0) classes.push('text-red-600');
         if (params.data.component === 'Total Comp.') classes.push('font-semibold');
+        if (params.data.component.includes('Holdback')) classes.push('subtotal-separator-thick');
         return classes.join(' ');
       },
       cellStyle: { textAlign: 'right' },
@@ -1593,11 +1628,16 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       headerClass: 'text-right',
       cellClass: (params: any) => {
         const classes = ['text-right'];
+        if (params.data.isHeader) classes.push('font-semibold bg-gray-50');
         if (params.value < 0) classes.push('text-red-600');
         if (params.data.component === 'Total Comp.') classes.push('font-semibold');
+        if (params.data.component.includes('Holdback')) classes.push('subtotal-separator-thick');
         return classes.join(' ');
       },
-      valueFormatter: (params: any) => formatNegativeCurrency(params.value),
+      valueFormatter: (params: any) => {
+        if (params.data.isHeader) return '';
+        return formatNegativeCurrency(params.value);
+      },
       lockPinned: true,
       lockPosition: true,
       suppressMovable: true
