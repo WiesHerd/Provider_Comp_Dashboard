@@ -987,6 +987,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     const ytdIncentivesRow = {
       component: 'YTD Incentives',
       isSystem: true,
+      isHeader: false,
       ...months.reduce((acc, month, index) => {
         const monthKey = month.toLowerCase();
         const cumulative = months
@@ -1000,7 +1001,18 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     // Add YTD Incentives row to baseData
     baseData.push(ytdIncentivesRow);
 
-    // Add additional payments after YTD Incentives
+    // Add "Other Compensation" header if there are additional payments
+    if (additionalPayments.length > 0) {
+      baseData.push({
+        component: 'Other Compensation',
+        isSystem: true,
+        isHeader: true,
+        ...months.reduce((acc, month) => ({ ...acc, [month.toLowerCase()]: '' }), {}),
+        ytd: ''
+      });
+    }
+
+    // Add additional payments after Other Compensation header
     const additionalPayRows = additionalPayments.map(pay => ({
       ...pay,
       component: pay.name,
@@ -1030,7 +1042,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     const additionalPaysYTD = baseData
       .filter(row => !row.isSystem)
       .reduce((sum, row) => sum + (Number(row.ytd) || 0), 0);
-    const ytdTotal = baseSalaryYTD + incentivesYTD + holdbackYTD + additionalPaysYTD;
+    const ytdTotal = Number(baseSalaryYTD) + Number(incentivesYTD) + Number(holdbackYTD) + Number(additionalPaysYTD);
 
     // Calculate the percentile for YTD total compensation
     const { percentile } = calculateTotalCompPercentile(ytdTotal, marketData);
@@ -1383,14 +1395,6 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       border-radius: 8px;
     }
 
-    .subtotal-separator {
-      border-bottom: 1px solid #000;
-    }
-
-    .subtotal-separator-thick {
-      border-bottom: 1px solid #000;
-    }
-
     /* Remove gap between pinned right column */
     .ag-pinned-right-cols-container,
     .ag-pinned-right-header {
@@ -1594,7 +1598,6 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         if (params.data.isHeader) classes.push('font-semibold bg-gray-50');
         if (!params.data.isSystem && params.data.type === 'additionalPay') classes.push('adjustment-row');
         if (params.data.component === 'Total Comp.') classes.push('row-total');
-        if (params.data.component.includes('Holdback')) classes.push('subtotal-separator-thick');
         return classes.join(' ');
       },
     },
@@ -1609,7 +1612,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         if (params.data.isHeader) classes.push('font-semibold bg-gray-50');
         if (params.value < 0) classes.push('text-red-600');
         if (params.data.component === 'Total Comp.') classes.push('font-semibold');
-        if (params.data.component.includes('Holdback')) classes.push('subtotal-separator-thick');
+        if (params.data.component === 'Holdback (5%)') classes.push('border-b-2 border-gray-900');
         return classes.join(' ');
       },
       cellStyle: { textAlign: 'right' },
@@ -1631,7 +1634,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         if (params.data.isHeader) classes.push('font-semibold bg-gray-50');
         if (params.value < 0) classes.push('text-red-600');
         if (params.data.component === 'Total Comp.') classes.push('font-semibold');
-        if (params.data.component.includes('Holdback')) classes.push('subtotal-separator-thick');
+        if (params.data.component === 'Holdback (5%)') classes.push('border-b-2 border-gray-900');
         return classes.join(' ');
       },
       valueFormatter: (params: any) => {
