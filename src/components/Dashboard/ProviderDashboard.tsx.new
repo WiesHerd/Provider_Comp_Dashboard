@@ -1,0 +1,61 @@
+export default function ProviderDashboard({ provider }: ProviderDashboardProps) {
+  const handleRemoveTargetAdjustment = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this target adjustment? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await deleteTargetAdjustment(id);
+      if (response.success) {
+        setTargetAdjustments(prev => prev.filter(adj => adj.id !== id));
+        toast({
+          title: "Success",
+          description: "Target adjustment deleted successfully",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to delete target adjustment",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting target adjustment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete target adjustment",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleOpenCompChangeModal = () => {
+    setIsCompChangeModalOpen(true);
+  };
+
+  const handleEditAdditionalPay = (additionalPay: AdditionalPay & MonthlyValues) => {
+    setSelectedAdditionalPay(additionalPay);
+    setIsAdditionalPayModalOpen(true);
+  };
+
+  const handleRemoveAdditionalPay = async (id: string) => {
+    try {
+      const response = await deleteAdditionalPay(id);
+      if (response.success) {
+        setAdditionalPayments(prev => prev.filter(item => item.id !== id));
+        toast({
+          title: "Success",
+          description: "Additional pay removed successfully",
+          variant: "default"
+        } as const);
+      }
+    } catch (error) {
+      console.error('Error removing additional pay:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove additional pay",
+        variant: "destructive"
+      } as const);
+    }
+  };
+} 

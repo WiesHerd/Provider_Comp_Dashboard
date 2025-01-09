@@ -47,8 +47,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createWRVUAdjustment, deleteWRVUAdjustment } from '@/services/wrvu-adjustment';
 import { createTargetAdjustment, deleteTargetAdjustment } from '@/services/target-adjustment';
+import { createAdditionalPay, deleteAdditionalPay, updateAdditionalPay } from '@/services/additional-pay';
 import { useToast } from '@/components/ui/use-toast';
 import type { WRVUAdjustment, TargetAdjustment } from '@/types';
+import type { AdditionalPay, AdditionalPayFormData, MonthlyValues } from '@/types/additional-pay';
+import AdditionalPayModal from '@/components/AdditionalPay/AdditionalPayModal';
 
 interface Provider {
   id: string;
@@ -592,12 +595,14 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   const [adjustmentType, setAdjustmentType] = useState<'wrvu' | 'target' | 'additionalPay'>('wrvu');
   const [adjustments, setAdjustments] = useState<any[]>([]);
   const [targetAdjustments, setTargetAdjustments] = useState<any[]>([]);
-  const [additionalPayments, setAdditionalPayments] = useState<any[]>([]);
+  const [additionalPayments, setAdditionalPayments] = useState<(AdditionalPay & MonthlyValues)[]>([]);
   const [compensationHistory, setCompensationHistory] = useState<CompensationChange[]>([]);
   const [isCompChangeModalOpen, setIsCompChangeModalOpen] = useState(false);
   const [editingChangeId, setEditingChangeId] = useState<string | null>(null);
   const [editingPayment, setEditingPayment] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isAdditionalPayModalOpen, setIsAdditionalPayModalOpen] = useState(false);
+  const [selectedAdditionalPay, setSelectedAdditionalPay] = useState<(AdditionalPay & Partial<MonthlyValues>) | undefined>(undefined);
 
   const [annualSalary, setAnnualSalary] = useState(provider.baseSalary);
   const [fte, setFte] = useState(provider.fte);
@@ -1279,20 +1284,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     }
   };
 
-  const handleEditAdditionalPay = (payment: any) => {
-    console.log('Raw payment data:', payment);
-    
-    // Pass the payment data directly without transformation
-    setEditingPayment(payment);
-    setAdjustmentType('additionalPay');
-    setIsEditing(true);
-    setIsAdjustmentModalOpen(true);
-  };
-
-  const handleRemoveAdditionalPay = (name: string) => {
-    setAdditionalPayments(prev => prev.filter(p => p.name !== name));
-  };
-
+  
   const handleOpenCompChangeModal = () => {
     setIsCompChangeModalOpen(true);
   };
@@ -1541,14 +1533,14 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
               <span className="text-gray-900 adjustment-cell">{params.value}</span>
               <div className="flex gap-2 row-actions">
                 <button 
-                  onClick={() => handleEditAdditionalPay(params.data)} 
+                  onClick={() => handleEditAdditionalPay(params.data as AdditionalPay & MonthlyValues)} 
                   className="text-gray-400 hover:text-blue-600 transition-colors"
                   title="Edit additional pay"
                 >
                   <PencilIcon className="h-4 w-4" />
                 </button>
                 <button 
-                  onClick={() => handleRemoveAdditionalPay(params.data.component)} 
+                  onClick={() => handleRemoveAdditionalPay(params.data.id)} 
                   className="text-gray-400 hover:text-red-600 transition-colors"
                   title="Delete additional pay"
                 >
@@ -1732,6 +1724,15 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
             setTargetAdjustments(targetData.data);
           }
         }
+
+        // Fetch additional pay with current year
+        const additionalPayResponse = await fetch(`/api/additional-pay?providerId=${provider.id}&year=${currentYear}`);
+        if (additionalPayResponse.ok) {
+          const additionalPayData = await additionalPayResponse.json();
+          if (additionalPayData.success) {
+            setAdditionalPayments(additionalPayData.data);
+          }
+        }
       } catch (error) {
         console.error('Error fetching adjustments:', error);
       }
@@ -1892,6 +1893,80 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       saveMetricsAndAnalytics(provider, rowData, compensationData);
     }
   }, [baseMonthlyData, adjustments, targetAdjustments, additionalPayments, compensationHistory]);
+
+  const handleAddAdditionalPay = async (data: AdditionalPayFormData) => {
+    try {
+      const response = await createAdditionalPay(data);
+      if (response.success && response.data) {
+        setAdditionalPayments(prev => [...prev, response.data as AdditionalPay & MonthlyValues]);
+        setIsAdditionalPayModalOpen(false);
+        toast({
+          title: "Success",
+          description: "Additional pay added successfully",
+          variant: "default"
+        } as const);
+      }
+    } catch (error) {
+      console.error('Error adding additional pay:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add additional pay",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEditAdditionalPay = (additionalPay: AdditionalPay & MonthlyValues) => {
+    setSelectedAdditionalPay(additionalPay);
+    setIsAdditionalPayModalOpen(true);
+  };
+
+  const handleUpdateAdditionalPay = async (data: AdditionalPayFormData) => {
+    if (!selectedAdditionalPay?.id) return;
+
+    try {
+      const response = await updateAdditionalPay(selectedAdditionalPay.id, data);
+      if (response.success && response.data) {
+        setAdditionalPayments(prev => 
+          prev.map(item => item.id === selectedAdditionalPay.id ? (response.data as AdditionalPay & MonthlyValues) : item)
+        );
+        setIsAdditionalPayModalOpen(false);
+        toast({
+          title: "Success",
+          description: "Additional pay updated successfully",
+          variant: "default"
+        } as const);
+      }
+    } catch (error) {
+      console.error('Error updating additional pay:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update additional pay",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleRemoveAdditionalPay = async (id: string) => {
+    try {
+      const response = await deleteAdditionalPay(id);
+      if (response.success) {
+        setAdditionalPayments(prev => prev.filter(item => item.id !== id));
+        toast({
+          title: "Success",
+          description: "Additional pay removed successfully",
+          variant: "default"
+        } as const);
+      }
+    } catch (error) {
+      console.error('Error removing additional pay:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove additional pay",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <>
@@ -2140,7 +2215,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
                       <div className="p-6">
                         <div className="flex justify-between items-center mb-6">
                           <button 
-                            onClick={() => handleOpenAdjustmentModal('additionalPay')} 
+                            onClick={() => setIsAdditionalPayModalOpen(true)} 
                             className="inline-flex items-center px-6 py-2.5 bg-blue-600 rounded-full text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition-all duration-200"
                           >
                             <PlusIcon className="h-4 w-4 mr-2" />
@@ -2409,6 +2484,17 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         conversionFactor={getConversionFactor()}
         onSave={handleCompensationChange}
         editingData={editingChangeId ? compensationHistory.find(c => c.id === editingChangeId) : undefined}
+      />
+
+      <AdditionalPayModal
+        isOpen={isAdditionalPayModalOpen}
+        onClose={() => {
+          setIsAdditionalPayModalOpen(false);
+          setSelectedAdditionalPay(undefined);
+        }}
+        onSubmit={selectedAdditionalPay ? handleUpdateAdditionalPay : handleAddAdditionalPay}
+        providerId={provider.id}
+        initialData={selectedAdditionalPay}
       />
     </>
   );
