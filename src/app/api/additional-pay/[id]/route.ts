@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { AdditionalPayFormData } from '@/types/additional-pay';
+import { AdditionalPayFormData, MonthlyValues } from '@/types/additional-pay';
 
 export async function DELETE(
   request: Request,
@@ -48,84 +48,109 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log('Updating additional pay with ID:', params.id);
     const data: AdditionalPayFormData = await request.json();
-    console.log('Received additional pay update data:', JSON.stringify(data, null, 2));
+    console.log('Received update data:', JSON.stringify(data, null, 2));
 
-    // Get the existing adjustment
-    const existingAdjustment = await prisma.additionalPay.findUnique({
-      where: { id: params.id }
+    // Extract the base ID (remove the _1, _2, etc. suffix)
+    const baseId = params.id.split('_')[0];
+    console.log('Base ID:', baseId);
+
+    // Check if any adjustment exists with this base ID
+    const existingAdjustment = await prisma.additionalPay.findFirst({
+      where: {
+        id: {
+          startsWith: baseId
+        }
+      }
     });
 
     if (!existingAdjustment) {
+      console.log('Additional pay not found:', baseId);
       return NextResponse.json(
         { success: false, error: 'Additional pay not found' },
         { status: 404 }
       );
     }
 
-    // Delete all records with the same name, provider, and year
+    // Validate required fields
+    if (!data.name?.trim()) {
+      return NextResponse.json(
+        { success: false, error: 'Name is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!data.providerId) {
+      return NextResponse.json(
+        { success: false, error: 'Provider ID is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!data.year || typeof data.year !== 'number') {
+      return NextResponse.json(
+        { success: false, error: 'Valid year is required' },
+        { status: 400 }
+      );
+    }
+
+    // Delete all existing records with this base ID
     await prisma.additionalPay.deleteMany({
       where: {
-        name: existingAdjustment.name,
-        providerId: existingAdjustment.providerId,
-        year: existingAdjustment.year
+        id: {
+          startsWith: baseId
+        }
       }
     });
 
-    // Create new records for each non-zero month
-    const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    // Create new records for each month
+    const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'] as const;
     const adjustmentPromises = monthNames.map(async (monthName, index) => {
-      const amount = Number(data.monthlyValues?.[monthName] ?? 0);
-      if (amount === 0) return null;
-
+      const amount = parseFloat(String(data.monthlyValues[monthName])) || 0;
       return prisma.additionalPay.create({
         data: {
+          id: `${baseId}_${index + 1}`,
           name: data.name.trim(),
           description: data.description?.trim() ?? '',
           year: Number(data.year),
           month: index + 1,
           amount,
-          providerId: String(data.providerId)
+          providerId: String(data.providerId),
+          updatedAt: new Date()
         }
       });
     });
 
     const createdAdjustments = await Promise.all(adjustmentPromises);
-    const validAdjustments = createdAdjustments.filter((adj): adj is NonNullable<typeof adj> => adj !== null);
+    console.log('Created adjustments:', createdAdjustments);
 
-    if (validAdjustments.length === 0) {
-      return NextResponse.json(
-        { success: false, error: 'No adjustments were created' },
-        { status: 400 }
-      );
-    }
-
-    // Convert the array of monthly records back to the expected format
-    const monthlyValues = monthNames.reduce((acc, month, index) => {
-      const adjustment = validAdjustments.find(adj => adj.month === index + 1);
-      acc[month] = adjustment?.amount ?? 0;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const firstAdjustment = validAdjustments[0];
+    // Create response object with all monthly values
     const response = {
-      success: true,
-      data: {
-        id: firstAdjustment.id,
-        name: firstAdjustment.name,
-        description: firstAdjustment.description,
-        year: firstAdjustment.year,
-        providerId: firstAdjustment.providerId,
-        ...monthlyValues
-      }
+      id: baseId,
+      name: data.name.trim(),
+      description: data.description?.trim() ?? '',
+      year: data.year,
+      providerId: data.providerId,
+      type: 'additionalPay',
+      ...monthNames.reduce((acc, month) => ({
+        ...acc,
+        [month]: parseFloat(String(data.monthlyValues[month])) || 0
+      }), {})
     };
 
-    console.log('Sending response:', JSON.stringify(response, null, 2));
-    return NextResponse.json(response);
+    console.log('Successfully updated additional pay:', response);
+    return NextResponse.json({ 
+      success: true, 
+      data: response 
+    });
   } catch (error) {
     console.error('Error updating additional pay:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update additional pay' },
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Failed to update additional pay'
+      },
       { status: 500 }
     );
   }

@@ -21,6 +21,7 @@
     "@radix-ui/react-toast": "^1.2.4",
     "@tanstack/react-table": "^8.20.5",
     "@tremor/react": "^3.18.4",
+    "@types/uuid": "^10.0.0",
     "ag-grid-community": "^32.3.3",
     "ag-grid-react": "^32.3.3",
     "bootstrap": "^5.3.3",
@@ -45,6 +46,7 @@
     "react-number-format": "^5.4.2",
     "recharts": "^2.13.3",
     "tailwind-merge": "^2.6.0",
+    "uuid": "^11.0.5",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

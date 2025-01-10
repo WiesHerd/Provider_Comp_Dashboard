@@ -47,7 +47,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createWRVUAdjustment, deleteWRVUAdjustment } from '@/services/wrvu-adjustment';
 import { createTargetAdjustment, deleteTargetAdjustment } from '@/services/target-adjustment';
-import { createAdditionalPay, deleteAdditionalPay, updateAdditionalPay } from '@/services/additional-pay';
+import { getAdditionalPay, createAdditionalPay, updateAdditionalPay, deleteAdditionalPay } from '@/services/additional-pay';
 import { useToast } from '@/components/ui/use-toast';
 import type { WRVUAdjustment, TargetAdjustment } from '@/types';
 import type { AdditionalPay, AdditionalPayFormData, MonthlyValues } from '@/types/additional-pay';
@@ -566,6 +566,32 @@ const NoDataMessage = ({ message }: { message: string }) => (
   </div>
 );
 
+// Add these interfaces after the existing interfaces
+
+interface MetricRow {
+  component: string;
+  values?: number[];
+  [key: string]: any;
+}
+
+interface CompensationRow {
+  component: string;
+  isSystem?: boolean;
+  isHeader?: boolean;
+  ytd?: number | string;
+  [monthKey: string]: any;
+}
+
+interface MonthlyMetric {
+  month: number;
+  targetWRVUs: number;
+  cumulativeTarget: number;
+  actualWRVUs: number;
+  cumulativeWRVUs: number;
+  baseSalary: number;
+  totalCompensation: number;
+}
+
 export default function ProviderDashboard({ provider }: ProviderDashboardProps) {
   const router = useRouter();
   const [providers, setProviders] = useState<any[]>([]);
@@ -598,7 +624,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   const [adjustmentType, setAdjustmentType] = useState<'wrvu' | 'target' | 'additionalPay'>('wrvu');
   const [adjustments, setAdjustments] = useState<any[]>([]);
   const [targetAdjustments, setTargetAdjustments] = useState<any[]>([]);
-  const [additionalPayments, setAdditionalPayments] = useState<(AdditionalPay & MonthlyValues)[]>([]);
+  const [additionalPayments, setAdditionalPayments] = useState<Array<AdditionalPay & MonthlyValues>>([]);
   const [compensationHistory, setCompensationHistory] = useState<CompensationChange[]>([]);
   const [isCompChangeModalOpen, setIsCompChangeModalOpen] = useState(false);
   const [editingChangeId, setEditingChangeId] = useState<string | null>(null);
@@ -1795,6 +1821,28 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     fetchAdjustments();
   }, [provider.id]);
 
+  // Add initialization effect for additional payments
+  useEffect(() => {
+    const fetchAdditionalPayments = async () => {
+      try {
+        const currentYear = new Date().getFullYear();
+        const response = await getAdditionalPay(provider.id, currentYear);
+        if (response.success && Array.isArray(response.data)) {
+          setAdditionalPayments(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching additional payments:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load additional payments",
+          variant: "destructive"
+        } as const);
+      }
+    };
+
+    fetchAdditionalPayments();
+  }, [provider.id]);
+
   // Add the action buttons section above the table
   <div className="flex items-center justify-between mb-4">
     <div className="flex gap-2">
@@ -1858,114 +1906,97 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
   };
 
-  const saveMetricsAndAnalytics = async (provider: Provider, rowData: any[], compensationData: any[]) => {
+  // Update the saveMetricsAndAnalytics function
+  const saveMetricsAndAnalytics = async (provider: Provider, rowData: MetricRow[], compensationData: CompensationRow[]) => {
     try {
-      const currentDate = new Date();
-      const currentYear = currentDate.getFullYear();
-      const currentMonthStr = months[currentDate.getMonth()].toLowerCase();
-      const currentMonth = currentDate.getMonth() + 1; // 1-based month number
+      const currentYear = 2024;
+      let cumulativeTarget = 0;
+      let cumulativeWRVUs = 0;
 
-      // Get the Total Target row which contains all monthly targets
-      const totalTarget = rowData.find(row => row.metric === 'Total Target');
-      if (!totalTarget) {
-        console.error('Total Target row not found');
-        return;
+      // Get the total compensation data first
+      const totalCompRow = compensationData.find(row => row.component === 'Total Comp.');
+      if (!totalCompRow) {
+        throw new Error('Total compensation data not found');
       }
 
-      // Get the Total wRVUs row which contains actual wRVUs
-      const totalWRVUs = rowData.find(row => row.metric === 'Total wRVUs');
-      if (!totalWRVUs) {
-        console.error('Total wRVUs row not found');
-        return;
-      }
-
-      // Prepare monthly targets data
-      const monthlyTargets = months.map((month, index) => {
-        const monthKey = month.toLowerCase();
+      // Calculate monthly targets and actuals
+      const monthlyTargets = months.map((_, index) => {
         const monthNumber = index + 1;
+        const monthKey = months[index].toLowerCase();
         
-        // Calculate cumulative target up to this month
-        const cumulativeTarget = months
-          .slice(0, index + 1)
-          .reduce((sum, m) => sum + (Number(totalTarget[m.toLowerCase()]) || 0), 0);
+        // Get actual wRVUs for the month
+        const actualRow = rowData.find(row => row.metric === 'Total wRVUs');
+        const actualWRVUs = actualRow?.[monthKey] ? parseFloat(String(actualRow[monthKey])) : 0;
+        cumulativeWRVUs += actualWRVUs;
 
-        // Get actual wRVUs for this month
-        const actualWRVUs = Number(totalWRVUs[monthKey] || 0);
+        // Get target for the month
+        const totalTarget = rowData.find(row => row.metric === 'Total Target');
+        const monthlyTarget = totalTarget?.[monthKey] ? parseFloat(String(totalTarget[monthKey])) : 0;
+        cumulativeTarget += monthlyTarget;
 
-        // Calculate cumulative wRVUs up to this month
-        const cumulativeWRVUs = months
-          .slice(0, index + 1)
-          .reduce((sum, m) => sum + (Number(totalWRVUs[m.toLowerCase()]) || 0), 0);
+        // Get total compensation for the month
+        const monthlyTotalComp = totalCompRow[monthKey] ? parseFloat(String(totalCompRow[monthKey])) : 0;
+        const baseSalaryRow = compensationData.find(row => row.component === 'Base Salary');
+        const monthlyBaseSalary = baseSalaryRow?.[monthKey] ? parseFloat(String(baseSalaryRow[monthKey])) : 0;
+
+        // Calculate YTD compensation up to this month
+        const ytdCompensation = months
+          .slice(0, monthNumber)
+          .reduce((sum, m) => sum + (parseFloat(String(totalCompRow[m.toLowerCase()])) || 0), 0);
+
+        // Calculate wRVU percentile using clinical FTE
+        const { percentile: wrvuPercentile } = calculateWRVUPercentile(
+          cumulativeWRVUs,
+          monthNumber,
+          provider.clinicalFte,
+          marketData || []
+        );
+
+        // Calculate comp percentile using total FTE and annualized compensation
+        const annualizedCompensation = monthNumber > 0 ? (ytdCompensation / monthNumber) * 12 : 0;
+        const { percentile: compPercentile } = calculateTotalCompPercentile(
+          annualizedCompensation,
+          marketData || []
+        );
 
         return {
           month: monthNumber,
-          targetWRVUs: Number(totalTarget[monthKey] || 0),
-          cumulativeTarget: Number(cumulativeTarget),
-          actualWRVUs: Number(actualWRVUs),
-          cumulativeWRVUs: Number(cumulativeWRVUs)
+          targetWRVUs: monthlyTarget,
+          cumulativeTarget,
+          actualWRVUs,
+          cumulativeWRVUs,
+          baseSalary: monthlyBaseSalary,
+          totalCompensation: monthlyTotalComp,
+          wrvuPercentile,
+          compPercentile
         };
       });
 
-      // Get the total compensation row
-      const totalComp = compensationData.find(row => row.component === 'Total Comp.');
-      const baseSalaryRow = compensationData.find(row => row.component === 'Base Salary');
-
-      // Sync metrics to ProviderMetrics table
-      const promises = monthlyTargets.map(async (target) => {
-        try {
-          const monthKey = months[target.month - 1].toLowerCase();
-          const baseSalary = Number(baseSalaryRow?.[monthKey] || 0);
-          const totalCompensation = Number(totalComp?.[monthKey] || 0);
-
-          return await prisma.providerMetrics.upsert({
-            where: {
-              providerId_year_month: {
-                providerId: provider.id,
-                year: currentYear,
-                month: target.month
-              }
-            },
-            update: {
-              targetWRVUs: target.targetWRVUs,
-              cumulativeTarget: target.cumulativeTarget,
-              actualWRVUs: target.actualWRVUs,
-              cumulativeWRVUs: target.cumulativeWRVUs,
-              baseSalary: baseSalary,
-              totalCompensation: totalCompensation
-            },
-            create: {
-              providerId: provider.id,
-              year: currentYear,
-              month: target.month,
-              targetWRVUs: target.targetWRVUs,
-              cumulativeTarget: target.cumulativeTarget,
-              actualWRVUs: target.actualWRVUs,
-              cumulativeWRVUs: target.cumulativeWRVUs,
-              baseSalary: baseSalary,
-              totalCompensation: totalCompensation,
-              rawMonthlyWRVUs: target.actualWRVUs,
-              incentivesEarned: 0,
-              holdbackAmount: 0,
-              wrvuPercentile: 0,
-              compPercentile: 0,
-              planProgress: 0,
-              monthsCompleted: target.month
-            }
-          });
-        } catch (error) {
-          console.error(`Error updating metrics for month ${target.month}:`, error);
-          return null;
-        }
+      // Call the API to sync metrics
+      const response = await fetch('/api/metrics/sync-provider-metrics', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          providerId: provider.id,
+          year: currentYear,
+          metrics: monthlyTargets
+        }),
       });
 
-      await Promise.all(promises);
-      console.log('Successfully updated metrics for all months');
+      if (!response.ok) {
+        throw new Error('Failed to sync metrics');
+      }
+
+      const result = await response.json();
+      console.log('Successfully updated metrics:', result);
 
     } catch (error) {
       console.error('Error in saveMetricsAndAnalytics:', error);
       throw error;
     }
-  };
+  }
 
   // Add sync points to key data changes
   useEffect(() => {
@@ -2004,28 +2035,31 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   };
 
   const handleUpdateAdditionalPay = async (data: AdditionalPayFormData) => {
-    if (!selectedAdditionalPay?.id) return;
-
     try {
-      const response = await updateAdditionalPay(selectedAdditionalPay.id, data);
-      if (response.success && response.data) {
-        setAdditionalPayments(prev => 
-          prev.map(item => item.id === selectedAdditionalPay.id ? (response.data as AdditionalPay & MonthlyValues) : item)
-        );
-        setIsAdditionalPayModalOpen(false);
-        toast({
-          title: "Success",
-          description: "Additional pay updated successfully",
-          variant: "default"
-        } as const);
+      if (!selectedAdditionalPay?.id) {
+        console.error('No selected additional pay ID');
+        return;
       }
+
+      console.log('Updating additional pay:', { id: selectedAdditionalPay.id, data });
+      const updatedPay = await updateAdditionalPay(selectedAdditionalPay.id, data);
+      console.log('Update successful:', updatedPay);
+
+      // If we get here, the update was successful even if updatedPay is empty
+      // Refresh the data to get the latest state
+      const year = new Date().getFullYear();
+      const response = await getAdditionalPay(provider.id, year);
+      if (response.success && Array.isArray(response.data)) {
+        setAdditionalPayments(response.data);
+      }
+
+      // Close the modal and clear selection
+      setIsAdditionalPayModalOpen(false);
+      setSelectedAdditionalPay(undefined);
     } catch (error) {
-      console.error('Error updating additional pay:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update additional pay",
-        variant: "destructive"
-      });
+      console.error('Failed to update additional pay:', error);
+      // Show error message to user
+      alert(error instanceof Error ? error.message : 'Failed to update additional pay. Please try again.');
     }
   };
 
