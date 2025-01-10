@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         compPercentile: Number(data.compPercentile) || 0,
         incentivesEarned: Number(data.incentivesEarned) || 0,
         holdbackAmount: Number(data.holdbackAmount) || 0,
-        planProgress: Number(data.planProgress) || 0,
+        planProgress: Number(data.cumulativeTarget) > 0 ? (Number(data.cumulativeWRVUs) / Number(data.cumulativeTarget)) * 100 : 0,
         monthsCompleted: Number(data.monthsCompleted) || 0
       },
       create: {
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
         compPercentile: Number(data.compPercentile) || 0,
         incentivesEarned: Number(data.incentivesEarned) || 0,
         holdbackAmount: Number(data.holdbackAmount) || 0,
-        planProgress: Number(data.planProgress) || 0,
+        planProgress: Number(data.cumulativeTarget) > 0 ? (Number(data.cumulativeWRVUs) / Number(data.cumulativeTarget)) * 100 : 0,
         monthsCompleted: Number(data.monthsCompleted) || 0
       }
     });

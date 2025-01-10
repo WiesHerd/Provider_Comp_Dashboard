@@ -212,7 +212,7 @@ model ProviderAnalytics {
 }
 
 model AdditionalPay {
-  id          String   @id
+  id          String   @id @default(cuid())
   name        String
   description String?
   providerId  String

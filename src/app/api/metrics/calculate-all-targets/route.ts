@@ -40,16 +40,12 @@ function calculateMonthlyTarget(annualSalary: number, conversionFactor: number, 
     fte
   });
   
-  // Calculate clinical portion of salary based on FTE
-  const clinicalSalary = annualSalary * fte;
-  console.log('Clinical salary portion:', clinicalSalary);
-  
   // Calculate annual target wRVUs
-  const annualTarget = clinicalSalary / conversionFactor;
+  const annualTarget = (annualSalary / conversionFactor);
   console.log('Annual target wRVUs:', annualTarget);
   
   // Calculate monthly target
-  const monthlyTarget = annualTarget / 12;
+  const monthlyTarget = (annualTarget / 12) * fte;
   console.log('Final monthly target:', monthlyTarget);
   
   return monthlyTarget;
@@ -159,21 +155,28 @@ export async function POST() {
           // Calculate target with adjustments
           const monthlyTargetWithAdjustments = baseMonthlyTarget + monthlyAdjustments;
 
-          // Calculate cumulative target
-          const cumulativeTarget = months
-            .slice(0, monthIndex + 1)
-            .reduce((sum, _, i) => {
-              const monthAdjustments = provider.targetAdjustments
-                .filter(adj => adj.month === i + 1)
-                .reduce((adjSum, adj) => adjSum + Number(adj.value || 0), 0);
-              return sum + baseMonthlyTarget + monthAdjustments;
-            }, 0);
+          // Calculate cumulative target including all adjustments up to this month
+          const cumulativeTarget = (baseMonthlyTarget * month) + 
+            provider.targetAdjustments
+              .filter(adj => adj.month <= month)
+              .reduce((sum, adj) => sum + Number(adj.value || 0), 0);
 
           console.log(`Month ${month} calculations:`, {
             baseMonthlyTarget,
             monthlyAdjustments,
             monthlyTargetWithAdjustments,
             cumulativeTarget
+          });
+
+          // Get existing metrics for this provider and month
+          const existingMetrics = await prisma.providerMetrics.findUnique({
+            where: {
+              providerId_year_month: {
+                providerId: provider.id,
+                year: currentYear,
+                month: month
+              }
+            }
           });
 
           // Update or create metrics record
@@ -188,7 +191,9 @@ export async function POST() {
             update: {
               targetWRVUs: monthlyTargetWithAdjustments,
               cumulativeTarget: cumulativeTarget,
-              baseSalary: provider.baseSalary / 12
+              baseSalary: provider.baseSalary || 0,
+              totalCompensation: provider.baseSalary / 12 || 0,
+              planProgress: cumulativeTarget > 0 ? ((existingMetrics?.cumulativeWRVUs || 0) / cumulativeTarget) * 100 : 0
             },
             create: {
               providerId: provider.id,
@@ -199,8 +204,8 @@ export async function POST() {
               actualWRVUs: 0,
               rawMonthlyWRVUs: 0,
               cumulativeWRVUs: 0,
-              baseSalary: provider.baseSalary / 12,
-              totalCompensation: 0,
+              baseSalary: provider.baseSalary || 0,
+              totalCompensation: provider.baseSalary / 12 || 0,
               incentivesEarned: 0,
               holdbackAmount: 0,
               wrvuPercentile: 0,

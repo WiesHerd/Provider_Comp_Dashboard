@@ -127,7 +127,8 @@ export async function POST() {
               holdbackAmount: 0,
               wrvuPercentile: 0,
               compPercentile: 0,
-              planProgress: 0,
+              planProgress: ((monthlyTarget * currentMonth) + cumulativeTargetAdjustments) > 0 ? 
+                ((cumulativeWRVUs + cumulativeAdjustments) / ((monthlyTarget * currentMonth) + cumulativeTargetAdjustments)) * 100 : 0,
               monthsCompleted: currentMonth
             },
             update: {
@@ -137,7 +138,9 @@ export async function POST() {
               targetWRVUs: monthlyTarget + currentMonthTargetAdjustments,
               cumulativeTarget: (monthlyTarget * currentMonth) + cumulativeTargetAdjustments,
               baseSalary: provider.baseSalary || 0,
-              totalCompensation: provider.baseSalary / 12 || 0
+              totalCompensation: provider.baseSalary / 12 || 0,
+              planProgress: ((monthlyTarget * currentMonth) + cumulativeTargetAdjustments) > 0 ? 
+                ((cumulativeWRVUs + cumulativeAdjustments) / ((monthlyTarget * currentMonth) + cumulativeTargetAdjustments)) * 100 : 0
             }
           });
 

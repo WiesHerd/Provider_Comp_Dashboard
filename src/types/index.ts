@@ -119,4 +119,27 @@ export interface WRVUData {
   oct?: number;
   nov?: number;
   dec?: number;
+}
+
+export interface MonthlyValues {
+  jan: number;
+  feb: number;
+  mar: number;
+  apr: number;
+  may: number;
+  jun: number;
+  jul: number;
+  aug: number;
+  sep: number;
+  oct: number;
+  nov: number;
+  dec: number;
+}
+
+export interface AdditionalPayFormData {
+  name: string;
+  description?: string;
+  providerId: string;
+  year: number;
+  monthlyValues: MonthlyValues;
 } 

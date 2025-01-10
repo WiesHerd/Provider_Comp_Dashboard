@@ -140,7 +140,10 @@ export async function POST(request: Request) {
       // Calculate total actual wRVUs and months completed
       const monthsCompleted = metrics.length;
       const totalActualWRVUs = metrics.reduce((sum, m) => sum + (m.actualWRVUs || 0), 0);
-      const totalCompensation = metrics[metrics.length - 1]?.totalCompensation || 0;
+      
+      // Calculate annualized total compensation
+      const totalCompensation = metrics.reduce((sum, m) => sum + (m.totalCompensation || 0), 0);
+      const annualizedCompensation = monthsCompleted > 0 ? (totalCompensation / monthsCompleted) * 12 : 0;
 
       // Calculate percentiles
       const wrvuPercentile = calculateWRVUPercentile(
@@ -152,7 +155,7 @@ export async function POST(request: Request) {
       );
 
       const compPercentile = calculateTotalCompPercentile(
-        totalCompensation,
+        annualizedCompensation,
         marketData,
         provider.specialty,
         provider.fte

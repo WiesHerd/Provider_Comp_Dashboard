@@ -114,7 +114,14 @@ export default function AdditionalPayModal({
   };
 
   const handleMonthlyValueChange = (month: keyof MonthlyValues, value: string) => {
-    const numericValue = value === '' ? 0 : Number(value);
+    // Convert empty string to 0, otherwise parse as float
+    const numericValue = value === '' ? 0 : parseFloat(value);
+    
+    // Ensure the value is a valid number
+    if (isNaN(numericValue)) {
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       monthlyValues: {
@@ -180,6 +187,8 @@ export default function AdditionalPayModal({
                     <label className="w-20">{month.label}</label>
                     <input
                       type="number"
+                      step="0.01"
+                      min="0"
                       value={formData.monthlyValues[month.key as keyof MonthlyValues] || ''}
                       onChange={(e) => handleMonthlyValueChange(month.key as keyof MonthlyValues, e.target.value)}
                       className="w-full p-2 border rounded"

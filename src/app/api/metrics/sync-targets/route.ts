@@ -25,6 +25,17 @@ export async function POST(request: Request) {
 
     // Update metrics for each month
     const updates = await Promise.all(monthlyTargets.map(async (target) => {
+      // Get existing metrics to calculate plan progress
+      const existingMetrics = await prisma.providerMetrics.findUnique({
+        where: {
+          providerId_year_month: {
+            providerId,
+            year,
+            month: target.month
+          }
+        }
+      });
+
       return prisma.providerMetrics.upsert({
         where: {
           providerId_year_month: {
@@ -54,7 +65,8 @@ export async function POST(request: Request) {
         },
         update: {
           targetWRVUs: target.targetWRVUs,
-          cumulativeTarget: target.cumulativeTarget
+          cumulativeTarget: target.cumulativeTarget,
+          planProgress: target.cumulativeTarget > 0 ? (existingMetrics?.cumulativeWRVUs || 0) / target.cumulativeTarget * 100 : 0
         }
       });
     }));
