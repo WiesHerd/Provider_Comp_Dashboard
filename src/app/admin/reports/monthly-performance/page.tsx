@@ -27,6 +27,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loader2, Users, TrendingUp, Target, DollarSign, Activity, ChevronDown } from 'lucide-react';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils';
+import { useToast } from '@/components/ui/use-toast';
 
 interface FilterState {
   year: number;
@@ -43,8 +44,9 @@ interface FilterState {
 }
 
 export default function MonthlyPerformanceReport() {
+  const { toast } = useToast();
   const [filters, setFilters] = useState<FilterState>({
-    year: new Date().getFullYear(),
+    year: 2024,
     month: new Date().getMonth() + 1,
     specialty: 'all',
     department: 'all',
@@ -151,9 +153,47 @@ export default function MonthlyPerformanceReport() {
     setPage(1); // Reset to first page when filters change
   };
 
+  const handleRecalculate = async () => {
+    try {
+      const response = await fetch('/api/metrics/trigger-calculation', {
+        method: 'POST'
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to recalculate metrics');
+      }
+      
+      const result = await response.json();
+      console.log('Recalculation result:', result);
+      
+      toast({
+        title: "Success",
+        description: result.message || "Metrics recalculated successfully",
+      });
+      
+      // Refresh the data
+      fetchData();
+    } catch (error) {
+      console.error('Error recalculating metrics:', error);
+      toast({
+        title: "Error",
+        description: "Failed to recalculate metrics",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <h1 className="text-2xl font-bold">Monthly Provider Performance Summary</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Monthly Provider Performance Summary</h1>
+        <Button 
+          onClick={handleRecalculate}
+          className="bg-blue-600 text-white hover:bg-blue-700"
+        >
+          Recalculate Metrics
+        </Button>
+      </div>
 
       {/* Summary Cards */}
       {summary && (
@@ -366,7 +406,9 @@ export default function MonthlyPerformanceReport() {
                       <TableHead>Specialty</TableHead>
                       <TableHead>Department</TableHead>
                       <TableHead className="text-right">Monthly WRVUs</TableHead>
+                      <TableHead className="text-right">Monthly Target</TableHead>
                       <TableHead className="text-right">YTD WRVUs</TableHead>
+                      <TableHead className="text-right">YTD Target</TableHead>
                       <TableHead className="text-right">Plan Progress</TableHead>
                       <TableHead className="text-right">WRVU Percentile</TableHead>
                       <TableHead className="text-right">Base Salary</TableHead>
@@ -375,25 +417,27 @@ export default function MonthlyPerformanceReport() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {data.map((row) => (
-                      <TableRow key={row.id}>
+                    {data.map((provider) => (
+                      <TableRow key={provider.id}>
                         <TableCell>
                           <a 
-                            href={`/provider/${row.employeeId}`}
+                            href={`/provider/${provider.employeeId}`}
                             className="text-blue-600 hover:text-blue-800 hover:underline"
                           >
-                            {row.name}
+                            {provider.name}
                           </a>
                         </TableCell>
-                        <TableCell>{row.specialty}</TableCell>
-                        <TableCell>{row.department}</TableCell>
-                        <TableCell className="text-right">{row.monthlyWRVUs ? formatNumber(row.monthlyWRVUs) : '-'}</TableCell>
-                        <TableCell className="text-right">{row.ytdWRVUs ? formatNumber(row.ytdWRVUs) : '-'}</TableCell>
-                        <TableCell className="text-right">{formatPercent(row.planProgress)}</TableCell>
-                        <TableCell className="text-right">{formatPercent(row.wrvuPercentile)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(row.baseSalary)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(row.totalCompensation)}</TableCell>
-                        <TableCell className="text-right">{formatPercent(row.compPercentile)}</TableCell>
+                        <TableCell>{provider.specialty}</TableCell>
+                        <TableCell>{provider.department}</TableCell>
+                        <TableCell className="text-right">{provider.monthlyWRVUs ? formatNumber(provider.monthlyWRVUs) : '-'}</TableCell>
+                        <TableCell className="text-right">{provider.targetWRVUs ? formatNumber(provider.targetWRVUs) : '-'}</TableCell>
+                        <TableCell className="text-right">{provider.ytdWRVUs ? formatNumber(provider.ytdWRVUs) : '-'}</TableCell>
+                        <TableCell className="text-right">{provider.ytdTargetWRVUs ? formatNumber(provider.ytdTargetWRVUs) : '-'}</TableCell>
+                        <TableCell className="text-right">{formatPercent(provider.planProgress)}</TableCell>
+                        <TableCell className="text-right">{formatPercent(provider.wrvuPercentile)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(provider.baseSalary)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(provider.totalCompensation)}</TableCell>
+                        <TableCell className="text-right">{formatPercent(provider.compPercentile)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

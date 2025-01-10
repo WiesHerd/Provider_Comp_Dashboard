@@ -13,47 +13,41 @@ export async function GET(request: Request) {
 
     // Required filters
     const { searchParams } = new URL(request.url);
-    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
+    const year = parseInt(searchParams.get('year') || '2024'); // Default to 2024
     const month = parseInt(searchParams.get('month') || (new Date().getMonth() + 1).toString());
     
     console.log('API Route - Fetching data for:', { year, month });
 
-    // Get providers with their wRVU data
+    // Get providers with their metrics data
     const providers = await prisma.provider.findMany({
       where: {
         status: 'Active'
       },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        employeeId: true,
-        specialty: true,
-        department: true,
-        clinicalFte: true,
-        wrvuData: {
+      include: {
+        metrics: {
           where: {
-            year,
-            month: {
-              lte: month // Get all months up to and including the selected month
-            }
+            year: 2024, // Hardcode to 2024 since that's where our data is
+            month: month // Use the requested month
           }
         }
       }
     });
 
     console.log('API Route - Found providers:', providers.length);
-    // Log sample wRVU data for debugging
+    
+    // Detailed logging
     if (providers.length > 0) {
-      console.log('Sample wRVU data for first provider:', providers[0].wrvuData);
+      const firstProvider = providers[0];
+      console.log('First provider details:', {
+        id: firstProvider.id,
+        name: `${firstProvider.firstName} ${firstProvider.lastName}`,
+        metrics: firstProvider.metrics
+      });
     }
 
     const formattedData = providers.map(provider => {
-      // Find the exact month's data
-      const monthlyWRVUs = provider.wrvuData.find(d => d.month === month)?.value || 0;
-      // Sum all months up to and including selected month
-      const ytdWRVUs = provider.wrvuData.reduce((sum, data) => sum + (data.value || 0), 0);
-
+      const currentMetrics = provider.metrics[0] || null;
+      
       return {
         id: provider.id,
         employeeId: provider.employeeId,
@@ -61,13 +55,15 @@ export async function GET(request: Request) {
         specialty: provider.specialty,
         department: provider.department,
         clinicalFte: provider.clinicalFte,
-        monthlyWRVUs: Number(monthlyWRVUs),
-        ytdWRVUs: Number(ytdWRVUs),
-        planProgress: 0,
-        wrvuPercentile: 0,
-        baseSalary: 0,
-        totalCompensation: 0,
-        compPercentile: 0
+        monthlyWRVUs: currentMetrics?.actualWRVUs || 0,
+        targetWRVUs: currentMetrics?.targetWRVUs || 0,
+        ytdWRVUs: currentMetrics?.cumulativeWRVUs || 0,
+        ytdTargetWRVUs: currentMetrics?.cumulativeTarget || 0,
+        planProgress: currentMetrics?.planProgress || 0,
+        wrvuPercentile: currentMetrics?.wrvuPercentile || 0,
+        baseSalary: currentMetrics?.baseSalary || 0,
+        totalCompensation: currentMetrics?.totalCompensation || 0,
+        compPercentile: currentMetrics?.compPercentile || 0
       };
     });
 
@@ -75,10 +71,10 @@ export async function GET(request: Request) {
       data: formattedData,
       summary: {
         totalProviders: providers.length,
-        averageWRVUPercentile: 0,
-        averagePlanProgress: 0,
+        averageWRVUPercentile: formattedData.reduce((sum, p) => sum + p.wrvuPercentile, 0) / providers.length,
+        averagePlanProgress: formattedData.reduce((sum, p) => sum + p.planProgress, 0) / providers.length,
         totalWRVUs: formattedData.reduce((sum, p) => sum + p.monthlyWRVUs, 0),
-        totalCompensation: 0
+        totalCompensation: formattedData.reduce((sum, p) => sum + p.totalCompensation, 0)
       },
       pagination: {
         currentPage: 1,

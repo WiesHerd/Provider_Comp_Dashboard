@@ -38,7 +38,7 @@ export async function POST() {
     // Use 2024 since that's where our data is
     const currentYear = 2024;
     
-    // Calculate metrics for each month up to current month
+    // Calculate metrics for each month
     const allResults: any[] = [];
     for (let currentMonth = 1; currentMonth <= 12; currentMonth++) {
       console.log(`\nCalculating metrics for ${currentYear}-${currentMonth}`);
@@ -78,7 +78,7 @@ export async function POST() {
 
           // Calculate target wRVUs
           const annualTarget = provider.targetWRVUs || 0;
-          const monthlyTarget = annualTarget / 12;
+          const monthlyTarget = (annualTarget / 12) * provider.clinicalFte;
 
           // Get current month's target adjustments
           const currentMonthTargetAdjustments = (provider.targetAdjustments || [])
@@ -90,6 +90,23 @@ export async function POST() {
             .filter(adj => adj.year === currentYear && adj.month <= currentMonth)
             .reduce((sum, adj) => sum + (adj.value || 0), 0);
 
+          // Calculate cumulative target (prorated by month and clinical FTE)
+          const cumulativeTarget = ((monthlyTarget * currentMonth) + cumulativeTargetAdjustments) * provider.clinicalFte;
+
+          console.log('Target Calculations:', {
+            provider: `${provider.firstName} ${provider.lastName}`,
+            annualTarget,
+            monthlyTarget,
+            clinicalFte: provider.clinicalFte,
+            currentMonthTargetAdjustments,
+            cumulativeTargetAdjustments,
+            cumulativeTarget
+          });
+
+          // Calculate base salary and total compensation
+          const baseSalary = provider.baseSalary || 0;
+          const monthlyBaseSalary = baseSalary / 12;
+
           console.log('WRVU Calculations:', {
             provider: `${provider.firstName} ${provider.lastName}`,
             month: currentMonth,
@@ -100,7 +117,8 @@ export async function POST() {
             monthlyTarget,
             currentMonthTargetAdjustments,
             cumulativeTargetAdjustments,
-            baseSalary: provider.baseSalary
+            baseSalary,
+            monthlyBaseSalary
           });
 
           // Store metrics in database
@@ -120,14 +138,14 @@ export async function POST() {
               rawMonthlyWRVUs: actualWRVUs,
               cumulativeWRVUs: cumulativeWRVUs + cumulativeAdjustments,
               targetWRVUs: monthlyTarget + currentMonthTargetAdjustments,
-              cumulativeTarget: (monthlyTarget * currentMonth) + cumulativeTargetAdjustments,
-              baseSalary: provider.baseSalary || 0,
-              totalCompensation: provider.baseSalary / 12 || 0,
+              cumulativeTarget: cumulativeTarget,
+              baseSalary: baseSalary,
+              totalCompensation: monthlyBaseSalary,
               incentivesEarned: 0,
               holdbackAmount: 0,
               wrvuPercentile: 0,
               compPercentile: 0,
-              planProgress: 0,
+              planProgress: cumulativeTarget > 0 ? ((cumulativeWRVUs + cumulativeAdjustments) / cumulativeTarget) * 100 : 0,
               monthsCompleted: currentMonth
             },
             update: {
@@ -135,9 +153,10 @@ export async function POST() {
               rawMonthlyWRVUs: actualWRVUs,
               cumulativeWRVUs: cumulativeWRVUs + cumulativeAdjustments,
               targetWRVUs: monthlyTarget + currentMonthTargetAdjustments,
-              cumulativeTarget: (monthlyTarget * currentMonth) + cumulativeTargetAdjustments,
-              baseSalary: provider.baseSalary || 0,
-              totalCompensation: provider.baseSalary / 12 || 0
+              cumulativeTarget: cumulativeTarget,
+              baseSalary: baseSalary,
+              totalCompensation: monthlyBaseSalary,
+              planProgress: cumulativeTarget > 0 ? ((cumulativeWRVUs + cumulativeAdjustments) / cumulativeTarget) * 100 : 0
             }
           });
 

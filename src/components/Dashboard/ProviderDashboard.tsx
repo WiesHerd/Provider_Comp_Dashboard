@@ -52,6 +52,9 @@ import { useToast } from '@/components/ui/use-toast';
 import type { WRVUAdjustment, TargetAdjustment } from '@/types';
 import type { AdditionalPay, AdditionalPayFormData, MonthlyValues } from '@/types/additional-pay';
 import AdditionalPayModal from '@/components/AdditionalPay/AdditionalPayModal';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 interface Provider {
   id: string;
@@ -935,71 +938,71 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         isSystem: true,
         ...monthlySalaries,
         ytd: Object.values(monthlySalaries).reduce((sum: number, val) => sum + (Number(val) || 0), 0),
-      },
-      {
-        component: 'Productivity Incentives',
-        isSystem: true,
-        isHeader: true,
-        ...months.reduce((acc, month) => ({ ...acc, [month.toLowerCase()]: '' }), {}),
-        ytd: ''
-      },
-      {
-        component: 'Incentives',
-        isSystem: true,
-        ...months.reduce((acc, month) => ({
-          ...acc,
-          [month.toLowerCase()]: getMonthlyIncentive(month) || 0,
-        }), {}),
-        ytd: months.reduce((sum, month) => sum + (getMonthlyIncentive(month) || 0), 0)
-      },
-      {
-        component: `Holdback (${holdbackPercentage}%)`,
-        isSystem: true,
-        ...months.reduce((acc, month) => ({
-          ...acc,
-          [month.toLowerCase()]: -1 * (monthlySalaries[month.toLowerCase()] || 0) * (holdbackPercentage / 100),
-        }), {}),
-        ytd: -1 * Object.values(monthlySalaries).reduce((sum, val) => sum + (Number(val) || 0), 0) * (holdbackPercentage / 100)
-      },
-      {
-        component: 'Net Incentives',
-        isSystem: true,
-        ...months.reduce((acc, month) => {
-          const monthKey = month.toLowerCase();
-          const incentive = getMonthlyIncentive(month) || 0;
-          const holdback = -1 * (monthlySalaries[monthKey] || 0) * (holdbackPercentage / 100);
-          return {
-            ...acc,
-            [monthKey]: incentive + holdback
-          };
-        }, {}),
-        ytd: months.reduce((sum, month) => {
-          const monthKey = month.toLowerCase();
-          const incentive = getMonthlyIncentive(month) || 0;
-          const holdback = -1 * (monthlySalaries[monthKey] || 0) * (holdbackPercentage / 100);
-          return sum + incentive + holdback;
-        }, 0)
       }
     ];
 
-    // Calculate YTD Incentives row
-    const incentivesRow = baseData.find(row => row.component === 'Incentives');
-    const ytdIncentivesRow = {
-      component: 'YTD Incentives',
-      isSystem: true,
-      isHeader: false,
-      ...months.reduce((acc, month, index) => {
-        const monthKey = month.toLowerCase();
-        const cumulative = months
-          .slice(0, index + 1)
-          .reduce((sum, m) => sum + (Number(incentivesRow?.[m.toLowerCase()]) || 0), 0);
-        return { ...acc, [monthKey]: cumulative };
-      }, {}),
-      ytd: incentivesRow?.ytd || 0
-    };
-
-    // Add YTD Incentives row to baseData
-    baseData.push(ytdIncentivesRow);
+    // Only add incentive-related rows if the provider's compensation model is not "Base Pay"
+    if (provider.compensationModel.toLowerCase() !== 'base pay') {
+      baseData.push(
+        {
+          component: 'Productivity Incentives',
+          isSystem: true,
+          isHeader: true,
+          ...months.reduce((acc, month) => ({ ...acc, [month.toLowerCase()]: '' }), {}),
+          ytd: ''
+        },
+        {
+          component: 'Incentives',
+          isSystem: true,
+          ...months.reduce((acc, month) => ({
+            ...acc,
+            [month.toLowerCase()]: getMonthlyIncentive(month) || 0,
+          }), {}),
+          ytd: months.reduce((sum, month) => sum + (getMonthlyIncentive(month) || 0), 0)
+        },
+        {
+          component: `Holdback (${holdbackPercentage}%)`,
+          isSystem: true,
+          ...months.reduce((acc, month) => ({
+            ...acc,
+            [month.toLowerCase()]: -1 * (monthlySalaries[month.toLowerCase()] || 0) * (holdbackPercentage / 100),
+          }), {}),
+          ytd: -1 * Object.values(monthlySalaries).reduce((sum, val) => sum + (Number(val) || 0), 0) * (holdbackPercentage / 100)
+        },
+        {
+          component: 'Net Incentives',
+          isSystem: true,
+          ...months.reduce((acc, month) => {
+            const monthKey = month.toLowerCase();
+            const incentive = getMonthlyIncentive(month) || 0;
+            const holdback = -1 * (monthlySalaries[monthKey] || 0) * (holdbackPercentage / 100);
+            return {
+              ...acc,
+              [monthKey]: incentive + holdback
+            };
+          }, {}),
+          ytd: months.reduce((sum, month) => {
+            const monthKey = month.toLowerCase();
+            const incentive = getMonthlyIncentive(month) || 0;
+            const holdback = -1 * (monthlySalaries[monthKey] || 0) * (holdbackPercentage / 100);
+            return sum + incentive + holdback;
+          }, 0)
+        },
+        {
+          component: 'YTD Incentives',
+          isSystem: true,
+          isHeader: false,
+          ...months.reduce((acc, month, index) => {
+            const monthKey = month.toLowerCase();
+            const cumulative = months
+              .slice(0, index + 1)
+              .reduce((sum, m) => sum + (getMonthlyIncentive(m) || 0), 0);
+            return { ...acc, [monthKey]: cumulative };
+          }, {}),
+          ytd: months.reduce((sum, month) => sum + (getMonthlyIncentive(month) || 0), 0)
+        }
+      );
+    }
 
     // Add "Other Compensation" header if there are additional payments
     if (additionalPayments.length > 0) {
@@ -1026,8 +1029,12 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     const totals = months.reduce((acc, month) => {
       const monthKey = month.toLowerCase();
       const baseSalary = baseData.find(row => row.component === 'Base Salary')?.[monthKey] || 0;
-      const incentives = baseData.find(row => row.component === 'Incentives')?.[monthKey] || 0;
-      const holdback = baseData.find(row => row.component.includes('Holdback'))?.[monthKey] || 0;
+      const incentives = provider.compensationModel.toLowerCase() !== 'base pay' 
+        ? (baseData.find(row => row.component === 'Incentives')?.[monthKey] || 0)
+        : 0;
+      const holdback = provider.compensationModel.toLowerCase() !== 'base pay'
+        ? (baseData.find(row => row.component.includes('Holdback'))?.[monthKey] || 0)
+        : 0;
       const additionalPays = baseData
         .filter(row => !row.isSystem)
         .reduce((sum, row) => sum + (Number(row[monthKey]) || 0), 0);
@@ -1037,8 +1044,12 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     }, {});
 
     const baseSalaryYTD = baseData.find(row => row.component === 'Base Salary')?.ytd || 0;
-    const incentivesYTD = baseData.find(row => row.component === 'Incentives')?.ytd || 0;
-    const holdbackYTD = baseData.find(row => row.component.includes('Holdback'))?.ytd || 0;
+    const incentivesYTD = provider.compensationModel.toLowerCase() !== 'base pay'
+      ? (baseData.find(row => row.component === 'Incentives')?.ytd || 0)
+      : 0;
+    const holdbackYTD = provider.compensationModel.toLowerCase() !== 'base pay'
+      ? (baseData.find(row => row.component.includes('Holdback'))?.ytd || 0)
+      : 0;
     const additionalPaysYTD = baseData
       .filter(row => !row.isSystem)
       .reduce((sum, row) => sum + (Number(row.ytd) || 0), 0);
@@ -1852,79 +1863,107 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       const currentDate = new Date();
       const currentYear = currentDate.getFullYear();
       const currentMonthStr = months[currentDate.getMonth()].toLowerCase();
-      const currentMonth = monthToNumber[currentMonthStr];
+      const currentMonth = currentDate.getMonth() + 1; // 1-based month number
 
-      // Calculate YTD values
-      const totalWRVUs = rowData.find(row => row.metric === 'Total wRVUs');
+      // Get the Total Target row which contains all monthly targets
       const totalTarget = rowData.find(row => row.metric === 'Total Target');
+      if (!totalTarget) {
+        console.error('Total Target row not found');
+        return;
+      }
+
+      // Get the Total wRVUs row which contains actual wRVUs
+      const totalWRVUs = rowData.find(row => row.metric === 'Total wRVUs');
+      if (!totalWRVUs) {
+        console.error('Total wRVUs row not found');
+        return;
+      }
+
+      // Prepare monthly targets data
+      const monthlyTargets = months.map((month, index) => {
+        const monthKey = month.toLowerCase();
+        const monthNumber = index + 1;
+        
+        // Calculate cumulative target up to this month
+        const cumulativeTarget = months
+          .slice(0, index + 1)
+          .reduce((sum, m) => sum + (Number(totalTarget[m.toLowerCase()]) || 0), 0);
+
+        // Get actual wRVUs for this month
+        const actualWRVUs = Number(totalWRVUs[monthKey] || 0);
+
+        // Calculate cumulative wRVUs up to this month
+        const cumulativeWRVUs = months
+          .slice(0, index + 1)
+          .reduce((sum, m) => sum + (Number(totalWRVUs[m.toLowerCase()]) || 0), 0);
+
+        return {
+          month: monthNumber,
+          targetWRVUs: Number(totalTarget[monthKey] || 0),
+          cumulativeTarget: Number(cumulativeTarget),
+          actualWRVUs: Number(actualWRVUs),
+          cumulativeWRVUs: Number(cumulativeWRVUs)
+        };
+      });
+
+      // Get the total compensation row
       const totalComp = compensationData.find(row => row.component === 'Total Comp.');
-      const incentives = compensationData.find(row => row.component === 'Incentives');
-      const holdback = compensationData.find(row => row.component.includes('Holdback'));
+      const baseSalaryRow = compensationData.find(row => row.component === 'Base Salary');
 
-      // Prepare metrics data with complete information
-      const metricsData = {
-        providerId: provider.id,
-        year: currentYear,
-        month: currentMonth,
-        actualWRVUs: totalWRVUs?.[currentMonthStr] || 0,
-        rawMonthlyWRVUs: baseMonthlyData[currentMonthStr] || 0,
-        cumulativeWRVUs: totalWRVUs?.ytd || 0,
-        targetWRVUs: totalTarget?.[currentMonthStr] || 0,
-        cumulativeTarget: totalTarget?.ytd || 0,
-        baseSalary: provider.baseSalary,
-        totalCompensation: totalComp?.[currentMonthStr] || 0,
-        incentivesEarned: incentives?.[currentMonthStr] || 0,
-        holdbackAmount: Math.abs(holdback?.[currentMonthStr] || 0),
-        wrvuPercentile: calculateWRVUPercentile(totalWRVUs?.ytd || 0, months.length, provider.fte, marketData).percentile,
-        compPercentile: calculateTotalCompPercentile(totalComp?.ytd || 0, marketData).percentile,
-        planProgress: calculatePlanYearProgress(rowData).percentage,
-        monthsCompleted: currentMonth
-      };
+      // Sync metrics to ProviderMetrics table
+      const promises = monthlyTargets.map(async (target) => {
+        try {
+          const monthKey = months[target.month - 1].toLowerCase();
+          const baseSalary = Number(baseSalaryRow?.[monthKey] || 0);
+          const totalCompensation = Number(totalComp?.[monthKey] || 0);
 
-      // Prepare analytics data with complete information
-      const analyticsData = {
-        providerId: provider.id,
-        year: currentYear,
-        month: currentMonth,
-        ytdProgress: calculateYTDTargetProgress(rowData).percentage,
-        ytdTargetProgress: (ytdWRVUs / (provider.fte * 12)) * 100,
-        incentivePercentage: ((incentives?.ytd || 0) / provider.baseSalary) * 100,
-        clinicalUtilization: (provider.clinicalFte / provider.fte) * 100
-      };
-
-      console.log('Syncing metrics data:', metricsData);
-      console.log('Syncing analytics data:', analyticsData);
-
-      // Store metrics
-      const metricsResponse = await fetch('/api/provider-metrics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(metricsData)
+          return await prisma.providerMetrics.upsert({
+            where: {
+              providerId_year_month: {
+                providerId: provider.id,
+                year: currentYear,
+                month: target.month
+              }
+            },
+            update: {
+              targetWRVUs: target.targetWRVUs,
+              cumulativeTarget: target.cumulativeTarget,
+              actualWRVUs: target.actualWRVUs,
+              cumulativeWRVUs: target.cumulativeWRVUs,
+              baseSalary: baseSalary,
+              totalCompensation: totalCompensation
+            },
+            create: {
+              providerId: provider.id,
+              year: currentYear,
+              month: target.month,
+              targetWRVUs: target.targetWRVUs,
+              cumulativeTarget: target.cumulativeTarget,
+              actualWRVUs: target.actualWRVUs,
+              cumulativeWRVUs: target.cumulativeWRVUs,
+              baseSalary: baseSalary,
+              totalCompensation: totalCompensation,
+              rawMonthlyWRVUs: target.actualWRVUs,
+              incentivesEarned: 0,
+              holdbackAmount: 0,
+              wrvuPercentile: 0,
+              compPercentile: 0,
+              planProgress: 0,
+              monthsCompleted: target.month
+            }
+          });
+        } catch (error) {
+          console.error(`Error updating metrics for month ${target.month}:`, error);
+          return null;
+        }
       });
 
-      if (!metricsResponse.ok) {
-        throw new Error('Failed to sync metrics data');
-      }
+      await Promise.all(promises);
+      console.log('Successfully updated metrics for all months');
 
-      // Store analytics
-      const analyticsResponse = await fetch('/api/provider-analytics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(analyticsData)
-      });
-
-      if (!analyticsResponse.ok) {
-        throw new Error('Failed to sync analytics data');
-      }
-
-      console.log('Successfully synced metrics and analytics');
     } catch (error) {
-      console.error('Error saving metrics and analytics:', error);
-      toast({
-        title: "Error",
-        description: "Failed to sync provider data",
-        variant: "destructive"
-      });
+      console.error('Error in saveMetricsAndAnalytics:', error);
+      throw error;
     }
   };
 
