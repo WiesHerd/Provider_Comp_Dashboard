@@ -199,10 +199,13 @@ function getMonthlySalaries(
   return { monthlySalaries, monthlyDetails };
 }
 
-function calculateMonthlyTarget(annualSalary: number, conversionFactor: number, fte: number = 1.0) {
-  const annualTarget = annualSalary / conversionFactor;
-  const monthlyTarget = annualTarget / 12;
-  return Object.fromEntries(months.map(m => [m.toLowerCase(), monthlyTarget]));
+function calculateMonthlyTarget(salaries: Record<string, number>, conversionFactor: number) {
+  const result: Record<string, number> = {};
+  months.forEach(m => {
+    const monthKey = m.toLowerCase();
+    result[monthKey] = conversionFactor > 0 ? Number(salaries[monthKey] || 0) / conversionFactor : 0;
+  });
+  return result;
 }
 
 function calculateTotalWRVUs(baseData: any, adjustments: any[]) {
@@ -877,10 +880,14 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     [annualSalary, fte, compensationHistory]
   );
 
-  const targetMonthlyData = useMemo(
-    () => calculateMonthlyTarget(annualSalary, getConversionFactor(), fte),
-    [annualSalary, marketData, provider.specialty, fte]
-  );
+  const targetMonthlyData = useMemo(() => {
+    const salariesRecord = months.reduce((acc, month) => {
+      acc[month.toLowerCase()] = Number(monthlySalaries[month.toLowerCase()] || 0);
+      return acc;
+    }, {} as Record<string, number>);
+    
+    return calculateMonthlyTarget(salariesRecord, getConversionFactor());
+  }, [monthlySalaries, getConversionFactor]);
 
   const totalWRVUs = useMemo(() => {
     if (isLoading) return Object.fromEntries(months.map((m) => [m.toLowerCase(), 0]));
@@ -978,7 +985,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
           ytd: ''
         },
         {
-          component: 'Incentives',
+          component: 'wRVU Incentives',
           isSystem: true,
           ...months.reduce((acc, month) => ({
             ...acc,
@@ -989,11 +996,16 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         {
           component: `Holdback (${holdbackPercentage}%)`,
           isSystem: true,
-          ...months.reduce((acc, month) => ({
-            ...acc,
-            [month.toLowerCase()]: -1 * (monthlySalaries[month.toLowerCase()] || 0) * (holdbackPercentage / 100),
-          }), {}),
-          ytd: -1 * Object.values(monthlySalaries).reduce((sum, val) => sum + (Number(val) || 0), 0) * (holdbackPercentage / 100)
+          ...months.reduce((acc, month) => {
+            const monthKey = month.toLowerCase();
+            const incentive = getMonthlyIncentive(month) || 0;
+            const holdback = incentive > 0 ? -1 * incentive * (holdbackPercentage / 100) : 0;
+            return { ...acc, [monthKey]: holdback };
+          }, {}),
+          ytd: -1 * months.reduce((sum, month) => {
+            const incentive = getMonthlyIncentive(month) || 0;
+            return sum + (incentive > 0 ? incentive * (holdbackPercentage / 100) : 0);
+          }, 0)
         },
         {
           component: 'Net Incentives',
@@ -1001,31 +1013,17 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
           ...months.reduce((acc, month) => {
             const monthKey = month.toLowerCase();
             const incentive = getMonthlyIncentive(month) || 0;
-            const holdback = -1 * (monthlySalaries[monthKey] || 0) * (holdbackPercentage / 100);
+            const holdback = incentive > 0 ? -1 * incentive * (holdbackPercentage / 100) : 0;
             return {
               ...acc,
               [monthKey]: incentive + holdback
             };
           }, {}),
           ytd: months.reduce((sum, month) => {
-            const monthKey = month.toLowerCase();
             const incentive = getMonthlyIncentive(month) || 0;
-            const holdback = -1 * (monthlySalaries[monthKey] || 0) * (holdbackPercentage / 100);
+            const holdback = incentive > 0 ? -1 * incentive * (holdbackPercentage / 100) : 0;
             return sum + incentive + holdback;
           }, 0)
-        },
-        {
-          component: 'YTD Incentives',
-          isSystem: true,
-          isHeader: false,
-          ...months.reduce((acc, month, index) => {
-            const monthKey = month.toLowerCase();
-            const cumulative = months
-              .slice(0, index + 1)
-              .reduce((sum, m) => sum + (getMonthlyIncentive(m) || 0), 0);
-            return { ...acc, [monthKey]: cumulative };
-          }, {}),
-          ytd: months.reduce((sum, month) => sum + (getMonthlyIncentive(month) || 0), 0)
         }
       );
     }
@@ -1635,6 +1633,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         if (params.data.isHeader) classes.push('font-semibold bg-gray-50');
         if (!params.data.isSystem && params.data.type === 'additionalPay') classes.push('adjustment-row');
         if (params.data.component === 'Total Comp.') classes.push('row-total');
+        if (params.data.component.includes('Holdback')) classes.push('border-b-2 border-gray-900');
         return classes.join(' ');
       },
     },
@@ -1649,7 +1648,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         if (params.data.isHeader) classes.push('font-semibold bg-gray-50');
         if (params.value < 0) classes.push('text-red-600');
         if (params.data.component === 'Total Comp.') classes.push('font-semibold');
-        if (params.data.component === 'Holdback (5%)') classes.push('border-b-2 border-gray-900');
+        if (params.data.component.includes('Holdback')) classes.push('border-b-2 border-gray-900');
         return classes.join(' ');
       },
       cellStyle: { textAlign: 'right' },
@@ -1671,7 +1670,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         if (params.data.isHeader) classes.push('font-semibold bg-gray-50');
         if (params.value < 0) classes.push('text-red-600');
         if (params.data.component === 'Total Comp.') classes.push('font-semibold');
-        if (params.data.component === 'Holdback (5%)') classes.push('border-b-2 border-gray-900');
+        if (params.data.component.includes('Holdback')) classes.push('border-b-2 border-gray-900');
         return classes.join(' ');
       },
       valueFormatter: (params: any) => {
@@ -1843,6 +1842,22 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     fetchAdditionalPayments();
   }, [provider.id]);
 
+  useEffect(() => {
+    const fetchCompensationChanges = async () => {
+      try {
+        const response = await fetch(`/api/providers/${provider.id}/compensation-changes`);
+        if (response.ok) {
+          const changes = await response.json();
+          setCompensationHistory(changes);
+        }
+      } catch (error) {
+        console.error('Error fetching compensation changes:', error);
+      }
+    };
+
+    fetchCompensationChanges();
+  }, [provider.id]);
+
   // Add the action buttons section above the table
   <div className="flex items-center justify-between mb-4">
     <div className="flex gap-2">
@@ -1909,14 +1924,24 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   // Update the saveMetricsAndAnalytics function
   const saveMetricsAndAnalytics = async (provider: Provider, rowData: MetricRow[], compensationData: CompensationRow[]) => {
     try {
-      const currentYear = 2024;
+      if (!provider || !rowData || !compensationData) {
+        console.warn('Missing required data for metrics sync');
+        return;
+      }
+
+      const currentYear = new Date().getFullYear();
       let cumulativeTarget = 0;
       let cumulativeWRVUs = 0;
 
       // Get the total compensation data first
       const totalCompRow = compensationData.find(row => row.component === 'Total Comp.');
-      if (!totalCompRow) {
-        throw new Error('Total compensation data not found');
+      const baseSalaryRow = compensationData.find(row => row.component === 'Base Salary');
+      const actualRow = rowData.find(row => row.metric === 'Total wRVUs');
+      const totalTarget = rowData.find(row => row.metric === 'Total Target');
+
+      if (!totalCompRow || !baseSalaryRow || !actualRow || !totalTarget) {
+        console.warn('Missing required rows for metrics sync');
+        return;
       }
 
       // Calculate monthly targets and actuals
@@ -1925,30 +1950,27 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         const monthKey = months[index].toLowerCase();
         
         // Get actual wRVUs for the month
-        const actualRow = rowData.find(row => row.metric === 'Total wRVUs');
-        const actualWRVUs = actualRow?.[monthKey] ? parseFloat(String(actualRow[monthKey])) : 0;
+        const actualWRVUs = actualRow[monthKey] ? Number(actualRow[monthKey]) : 0;
         cumulativeWRVUs += actualWRVUs;
 
         // Get target for the month
-        const totalTarget = rowData.find(row => row.metric === 'Total Target');
-        const monthlyTarget = totalTarget?.[monthKey] ? parseFloat(String(totalTarget[monthKey])) : 0;
+        const monthlyTarget = totalTarget[monthKey] ? Number(totalTarget[monthKey]) : 0;
         cumulativeTarget += monthlyTarget;
 
         // Get total compensation for the month
-        const monthlyTotalComp = totalCompRow[monthKey] ? parseFloat(String(totalCompRow[monthKey])) : 0;
-        const baseSalaryRow = compensationData.find(row => row.component === 'Base Salary');
-        const monthlyBaseSalary = baseSalaryRow?.[monthKey] ? parseFloat(String(baseSalaryRow[monthKey])) : 0;
+        const monthlyTotalComp = totalCompRow[monthKey] ? Number(totalCompRow[monthKey]) : 0;
+        const monthlyBaseSalary = baseSalaryRow[monthKey] ? Number(baseSalaryRow[monthKey]) : 0;
 
         // Calculate YTD compensation up to this month
         const ytdCompensation = months
           .slice(0, monthNumber)
-          .reduce((sum, m) => sum + (parseFloat(String(totalCompRow[m.toLowerCase()])) || 0), 0);
+          .reduce((sum, m) => sum + (Number(totalCompRow[m.toLowerCase()]) || 0), 0);
 
         // Calculate wRVU percentile using clinical FTE
         const { percentile: wrvuPercentile } = calculateWRVUPercentile(
           cumulativeWRVUs,
           monthNumber,
-          provider.clinicalFte,
+          provider.clinicalFte || provider.fte,
           marketData || []
         );
 
@@ -1959,6 +1981,9 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
           marketData || []
         );
 
+        // Calculate plan progress
+        const planProgress = monthlyTarget > 0 ? (actualWRVUs / monthlyTarget) * 100 : 0;
+
         return {
           month: monthNumber,
           targetWRVUs: monthlyTarget,
@@ -1968,7 +1993,8 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
           baseSalary: monthlyBaseSalary,
           totalCompensation: monthlyTotalComp,
           wrvuPercentile,
-          compPercentile
+          compPercentile,
+          planProgress
         };
       });
 
@@ -1986,17 +2012,19 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       });
 
       if (!response.ok) {
-        throw new Error('Failed to sync metrics');
+        const errorData = await response.json();
+        console.warn('Failed to sync metrics:', errorData);
+        return;
       }
 
       const result = await response.json();
       console.log('Successfully updated metrics:', result);
 
     } catch (error) {
-      console.error('Error in saveMetricsAndAnalytics:', error);
-      throw error;
+      console.warn('Error in saveMetricsAndAnalytics:', error);
+      // Don't throw the error, just log it to prevent UI disruption
     }
-  }
+  };
 
   // Add sync points to key data changes
   useEffect(() => {
@@ -2180,7 +2208,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
                 </div>
                 <p className="mt-3 text-xl font-semibold text-gray-900">
                   {formatCurrency(Math.abs(getCompensationData()
-                    .find(row => row.component === 'Holdback (20%)')?.ytd || 0))}
+                    .find(row => row.component === `Holdback (${holdbackPercentage}%)`)?.ytd || 0))}
                 </p>
               </div>
             </div>

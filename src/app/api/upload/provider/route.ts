@@ -29,7 +29,10 @@ function parseExcelDate(value: string | number | Date): Date {
   
   if (typeof value === 'number') {
     // Excel date serial number (days since 1900-01-01)
-    const date = new Date(Math.round((value - 25569) * 86400 * 1000));
+    // Excel's epoch starts at January 0, 1900, which is December 31, 1899
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+    const millisecondsPerDay = 24 * 60 * 60 * 1000;
+    const date = new Date(excelEpoch.getTime() + (value * millisecondsPerDay));
     if (!isNaN(date.getTime())) {
       return date;
     }
@@ -50,7 +53,7 @@ function parseExcelDate(value: string | number | Date): Date {
       if (year < 100) {
         year += year < 50 ? 2000 : 1900;
       }
-      const date = new Date(year, month, day);
+      const date = new Date(Date.UTC(year, month, day));
       if (!isNaN(date.getTime())) {
         return date;
       }
@@ -73,8 +76,8 @@ function cleanNumber(value: string | number | null | undefined, fieldName: strin
   if (typeof value === 'number') {
     numValue = value;
   } else {
-    // Remove currency symbols and commas
-    const cleanStr = value.toString().replace(/[$,]/g, '').trim();
+    // Remove currency symbols, commas, and spaces
+    const cleanStr = value.toString().replace(/[$,\s]/g, '').trim();
     
     // Handle percentage format (e.g., "50%")
     if (cleanStr.endsWith('%')) {
@@ -130,10 +133,9 @@ export async function POST(request: Request) {
     try {
       workbook = XLSX.read(bytes, { 
         type: 'array',
-        cellDates: true,
-        cellNF: false,
-        cellText: false,
-        dateNF: 'mm/dd/yyyy'
+        cellDates: false,  // Get raw date values
+        raw: true,         // Get raw values
+        dateNF: 'yyyy-mm-dd'  // Date format string
       });
     } catch (e) {
       console.error('Error reading file:', e);
@@ -188,15 +190,15 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // Parse hire date with better error handling
+        // Parse hire date properly
         let hireDate: Date;
         try {
           console.log(`Raw hire date for ${employeeId}:`, row['Hire Date']);
           hireDate = parseExcelDate(row['Hire Date']);
           console.log(`Parsed hire date for ${employeeId}:`, hireDate.toISOString());
         } catch (dateError) {
-          errors.push(`Invalid hire date for ${employeeId}: ${row['Hire Date']}`);
           console.error(`Date parsing error for ${employeeId}:`, dateError);
+          errors.push(`Invalid hire date for ${employeeId}: ${row['Hire Date']}`);
           continue;
         }
 

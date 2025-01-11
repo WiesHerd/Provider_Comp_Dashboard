@@ -26,7 +26,7 @@ export async function GET(request: Request) {
       include: {
         metrics: {
           where: {
-            year: 2024, // Hardcode to 2024 since that's where our data is
+            year: year, // Use the year from query params
             month: month // Use the requested month
           }
         }

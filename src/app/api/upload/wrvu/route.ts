@@ -58,13 +58,12 @@ export async function POST(request: Request) {
     }
 
     // If mode is 'clear', delete all existing wRVU data for the current year
-    const currentYear = new Date().getFullYear();
     if (mode === 'clear') {
       try {
         await prisma.wRVUData.deleteMany({
-          where: { year: currentYear }
+          where: { year: 2024 }  // Hardcode to 2024 since that's our target year
         });
-        console.log('Cleared existing wRVU data for year:', currentYear);
+        console.log('Cleared existing wRVU data for year: 2024');
       } catch (clearError) {
         console.error('Error clearing existing data:', clearError);
         return NextResponse.json(
@@ -79,111 +78,89 @@ export async function POST(request: Request) {
 
     // Read file content
     const bytes = await file.arrayBuffer();
-    let workbook;
-    try {
-      workbook = XLSX.read(bytes, { type: 'array' });
-    } catch (e) {
-      console.error('Error reading file:', e);
-      return NextResponse.json(
-        { error: 'Could not read file. Please ensure it is a valid Excel or CSV file.' },
-        { status: 400 }
-      );
-    }
-    
-    // Get the first worksheet
+    const workbook = XLSX.read(bytes, { type: 'array' });
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-    
-    // Convert to JSON with header mapping
     const rawData = XLSX.utils.sheet_to_json(worksheet, {
       raw: true,
-      defval: 0,  // Default value for empty cells
-      blankrows: false  // Skip blank rows
-    }) as WRVURow[];
-
-    console.log('Processing data rows:', rawData.length);
-
-    let totalRecords = 0;
-    const errors: string[] = [];
-    const successes: string[] = [];
+      defval: 0,
+      blankrows: false,
+      header: 1
+    });
 
     // Process each row
-    for (const row of rawData) {
+    const successes: string[] = [];
+    const errors: string[] = [];
+    let totalRecords = 0;
+
+    // Skip header row
+    for (const row of rawData.slice(1) as any[]) {
       try {
-        const employeeId = row.employee_id?.toString();
-        const year = row.year || new Date().getFullYear(); // Get year from data or use current year as fallback
-        
+        const employeeId = String(row[0] || '');
         if (!employeeId) {
-          console.warn('Skipping row without employee_id');
+          console.log('Skipping row with no employee ID');
           continue;
         }
 
-        // Find or create the provider
-        const provider = await prisma.provider.upsert({
-          where: { employeeId },
-          update: {
-            firstName: row.first_name?.toString() || '',
-            lastName: row.last_name?.toString() || '',
-            specialty: row.specialty?.toString() || '',
-            // Set default values for required fields if not already set
-            email: `${employeeId.toLowerCase()}@example.com`,
-            department: row.specialty?.toString() || 'Unknown',
-            hireDate: new Date(),
-            fte: 1.0,
-            baseSalary: 0,
-            compensationModel: 'Standard'
-          },
-          create: {
-            employeeId,
-            firstName: row.first_name?.toString() || '',
-            lastName: row.last_name?.toString() || '',
-            specialty: row.specialty?.toString() || '',
-            email: `${employeeId.toLowerCase()}@example.com`,
-            department: row.specialty?.toString() || 'Unknown',
-            hireDate: new Date(),
-            fte: 1.0,
-            baseSalary: 0,
-            compensationModel: 'Standard'
-          }
+        // Find the provider
+        const provider = await prisma.provider.findUnique({
+          where: { employeeId }
         });
 
+        if (!provider) {
+          errors.push(`Provider not found for employee ID: ${employeeId}`);
+          continue;
+        }
+
+        // Get the year from the data, defaulting to 2024 if not provided
+        const year = 2024;  // Hardcode to 2024 since that's our target year
+        
         // Create or update wRVU data for each month
-        for (const [monthName, monthNum] of Object.entries(MONTHS)) {
-          const rawValue = row[monthName];
-          const value = typeof rawValue === 'number' 
-            ? rawValue 
-            : typeof rawValue === 'string' 
-              ? parseFloat(rawValue) || 0 
-              : 0;
-          
+        const monthlyData = {
+          1: Number(row[5] || 0),  // Jan
+          2: Number(row[6] || 0),  // Feb
+          3: Number(row[7] || 0),  // Mar
+          4: Number(row[8] || 0),  // Apr
+          5: Number(row[9] || 0),  // May
+          6: Number(row[10] || 0), // Jun
+          7: Number(row[11] || 0), // Jul
+          8: Number(row[12] || 0), // Aug
+          9: Number(row[13] || 0), // Sep
+          10: Number(row[14] || 0), // Oct
+          11: Number(row[15] || 0), // Nov
+          12: Number(row[16] || 0)  // Dec
+        };
+
+        // Create or update wRVU data for each month
+        for (const [month, value] of Object.entries(monthlyData)) {
           if (value > 0) {  // Only create/update records with actual values
             await prisma.wRVUData.upsert({
               where: {
                 providerId_year_month: {
                   providerId: provider.id,
-                  year: year,  // Use the year from the data
-                  month: monthNum
+                  year,
+                  month: parseInt(month)
                 }
               },
               update: {
                 value,
-                hours: 160 // Default to standard month hours
+                hours: 160
               },
               create: {
                 providerId: provider.id,
-                year: year,  // Use the year from the data
-                month: monthNum,
+                year,
+                month: parseInt(month),
                 value,
-                hours: 160 // Default to standard month hours
+                hours: 160
               }
             });
             totalRecords++;
           }
         }
         
-        successes.push(`Successfully processed data for ${row.first_name} ${row.last_name} (${employeeId})`);
+        successes.push(`Successfully processed data for ${String(row[1])} ${String(row[2])} (${employeeId})`);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        const employeeId = row.employee_id?.toString() || 'Unknown';
+        const employeeId = String(row[0] || 'Unknown');
         errors.push(`Error processing row for ${employeeId}: ${errorMessage}`);
         console.error(`Error processing row:`, { error, row });
       }

@@ -13,6 +13,14 @@ export async function POST(request: Request) {
       );
     }
 
+    // Get existing metrics to preserve actual wRVU data
+    const existingMetrics = await prisma.providerMetrics.findMany({
+      where: {
+        providerId,
+        year
+      }
+    });
+
     const promises = metrics.map(async (metric) => {
       const {
         month,
@@ -26,6 +34,21 @@ export async function POST(request: Request) {
         compPercentile
       } = metric;
 
+      // Find existing metric for this month to preserve actual wRVU data
+      const existingMetric = existingMetrics.find(m => m.month === month);
+
+      const commonData = {
+        targetWRVUs,
+        cumulativeTarget,
+        actualWRVUs: existingMetric?.actualWRVUs ?? actualWRVUs,
+        cumulativeWRVUs: existingMetric?.cumulativeWRVUs ?? cumulativeWRVUs,
+        baseSalary,
+        totalCompensation,
+        wrvuPercentile: existingMetric?.wrvuPercentile ?? wrvuPercentile,
+        compPercentile: existingMetric?.compPercentile ?? compPercentile,
+        planProgress: cumulativeTarget > 0 ? ((existingMetric?.cumulativeWRVUs ?? cumulativeWRVUs) / cumulativeTarget) * 100 : 0
+      };
+
       return prisma.providerMetrics.upsert({
         where: {
           providerId_year_month: {
@@ -34,33 +57,15 @@ export async function POST(request: Request) {
             month
           }
         },
-        update: {
-          targetWRVUs,
-          cumulativeTarget,
-          actualWRVUs,
-          cumulativeWRVUs,
-          baseSalary,
-          totalCompensation,
-          wrvuPercentile,
-          compPercentile,
-          planProgress: cumulativeTarget > 0 ? (cumulativeWRVUs / cumulativeTarget) * 100 : 0
-        },
+        update: commonData,
         create: {
+          ...commonData,
           providerId,
           year,
           month,
-          targetWRVUs,
-          cumulativeTarget,
-          actualWRVUs,
-          cumulativeWRVUs,
-          baseSalary,
-          totalCompensation,
-          wrvuPercentile,
-          compPercentile,
-          rawMonthlyWRVUs: actualWRVUs,
-          incentivesEarned: 0,
-          holdbackAmount: 0,
-          planProgress: 0,
+          rawMonthlyWRVUs: existingMetric?.rawMonthlyWRVUs ?? actualWRVUs,
+          incentivesEarned: existingMetric?.incentivesEarned ?? 0,
+          holdbackAmount: existingMetric?.holdbackAmount ?? 0,
           monthsCompleted: month
         }
       });

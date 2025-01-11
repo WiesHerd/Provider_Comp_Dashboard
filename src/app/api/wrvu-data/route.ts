@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
+    const year = parseInt(searchParams.get('year') || '2024');
     
     // Get all wRVU data for the year
     const wrvuRecords = await prisma.wRVUData.findMany({

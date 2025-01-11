@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/providers/[providerId]/compensation-changes - Get compensation changes for a provider
@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: { providerId: string } }
 ) {
   try {
-    const providerId = params.providerId;
+    const providerId = await params.providerId;
     const changes = await prisma.compensationChange.findMany({
       where: { providerId },
       orderBy: { effectiveDate: 'desc' }
@@ -28,7 +28,7 @@ export async function POST(
   { params }: { params: { providerId: string } }
 ) {
   try {
-    const providerId = params.providerId;
+    const providerId = await params.providerId;
     const data = await request.json();
     console.log('Received compensation change data:', data);
 
@@ -40,6 +40,7 @@ export async function POST(
       );
     }
 
+    // Create the compensation change
     const change = await prisma.compensationChange.create({
       data: {
         providerId,
@@ -53,6 +54,49 @@ export async function POST(
         reason: data.reason
       }
     });
+
+    // Update the provider's current values
+    await prisma.provider.update({
+      where: { id: providerId },
+      data: {
+        baseSalary: data.newSalary,
+        clinicalFte: data.newFTE,
+        targetWRVUs: (data.newSalary / data.newConversionFactor) * data.newFTE
+      }
+    });
+
+    // Trigger metrics recalculation using relative URL
+    try {
+      const currentYear = new Date().getFullYear();
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/metrics/sync-provider-metrics`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          providerId,
+          year: currentYear,
+          metrics: Array.from({ length: 12 }, (_, i) => ({
+            month: i + 1,
+            targetWRVUs: (data.newSalary / data.newConversionFactor) * data.newFTE / 12,
+            cumulativeTarget: ((data.newSalary / data.newConversionFactor) * data.newFTE / 12) * (i + 1),
+            actualWRVUs: 0,
+            cumulativeWRVUs: 0,
+            baseSalary: data.newSalary,
+            totalCompensation: data.newSalary / 12,
+            wrvuPercentile: 0,
+            compPercentile: 0
+          }))
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to sync metrics');
+      }
+    } catch (recalcError) {
+      console.warn('Failed to trigger metrics recalculation:', recalcError);
+      // Continue since the main compensation change was successful
+    }
 
     console.log('Created compensation change:', change);
     return NextResponse.json(change);

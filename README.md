@@ -39,3 +39,26 @@ A comprehensive dashboard for tracking and managing provider compensation, wRVU 
 1. Market data matching for specialties needs exact string matches
 2. Cumulative calculations need verification when adjustments are made mid-year
 3. Performance optimization needed for large provider datasets
+
+#### Date Handling and Data Upload Issues
+- Fixed recurring issues with provider data uploads and date handling
+  - Issue 1: Excel dates were being incorrectly parsed, causing hire dates to default to current date
+    - Root cause: Excel stores dates as serial numbers (days since 1900-01-01)
+    - Solution: Implemented proper Excel date parsing using UTC and correct epoch (December 30, 1899)
+    - File: `src/app/api/upload/provider/route.ts`
+  
+  - Issue 2: Base salaries and FTE values were not being properly extracted from Excel
+    - Root cause: Excel's number formatting was interfering with value extraction
+    - Solution: Updated XLSX read options to get raw values and improved number cleaning function
+    - Added better validation and error handling for numeric fields
+
+  - Issue 3: Prisma type conflicts with null dates
+    - Root cause: Prisma schema requires non-null DateTime for hireDate
+    - Solution: Proper validation and error handling for required date fields before database operations
+
+### Best Practices for Data Uploads
+1. Always validate date fields before processing
+2. Use raw values from Excel to avoid formatting issues
+3. Implement proper error handling with descriptive messages
+4. Log raw and parsed values for debugging
+5. Validate data types match Prisma schema requirements

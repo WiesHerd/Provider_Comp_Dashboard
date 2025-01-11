@@ -27,11 +27,12 @@ export async function GET() {
       });
     }
 
+    // Return the providers directly without modifying dates
     return NextResponse.json(providers);
   } catch (error) {
     console.error('Error fetching providers:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch providers', details: error.message },
+      { error: 'Failed to fetch providers', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
