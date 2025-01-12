@@ -697,11 +697,17 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     const fetchProviders = async () => {
       try {
         const response = await fetch('/api/providers');
-        if (!response.ok) throw new Error('Failed to fetch providers');
-        const { providers: providersList } = await response.json();
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to fetch providers: ${response.status} ${response.statusText}. ${errorText}`);
+        }
+        const data = await response.json();
+        // Handle both array and object responses
+        const providersList = Array.isArray(data) ? data : data.providers || [];
         setProviders(providersList);
       } catch (error) {
-        console.error('Error fetching providers:', error);
+        console.error('Error in fetchProviders:', error);
+        setProviders([]); // Set empty array on error
       }
     };
 

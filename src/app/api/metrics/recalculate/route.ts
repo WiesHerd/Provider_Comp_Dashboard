@@ -119,24 +119,24 @@ export async function POST() {
               month: month,
               actualWRVUs: monthlyWRVUs + monthlyAdjustments,
               rawMonthlyWRVUs: monthlyWRVUs,
-              cumulativeWRVUs: cumulativeWRVUs + cumulativeAdjustments,
+              ytdWRVUs: cumulativeWRVUs + cumulativeAdjustments,
               targetWRVUs: monthlyTarget + monthlyTargetAdjustments,
-              cumulativeTarget: cumulativeTarget,
+              ytdTargetWRVUs: cumulativeTarget,
               baseSalary: provider.baseSalary || 0,
               totalCompensation: (provider.baseSalary || 0) / 12,
-              incentivesEarned: 0, // To be calculated based on compensation model
-              holdbackAmount: 0, // To be calculated based on compensation model
+              incentivesEarned: 0,
+              holdbackAmount: 0,
               wrvuPercentile: wrvuPercentile,
-              compPercentile: 0, // To be calculated based on market data
+              compPercentile: 0,
               planProgress: planProgress,
               monthsCompleted: month
             },
             update: {
               actualWRVUs: monthlyWRVUs + monthlyAdjustments,
               rawMonthlyWRVUs: monthlyWRVUs,
-              cumulativeWRVUs: cumulativeWRVUs + cumulativeAdjustments,
+              ytdWRVUs: cumulativeWRVUs + cumulativeAdjustments,
               targetWRVUs: monthlyTarget + monthlyTargetAdjustments,
-              cumulativeTarget: cumulativeTarget,
+              ytdTargetWRVUs: cumulativeTarget,
               baseSalary: provider.baseSalary || 0,
               totalCompensation: (provider.baseSalary || 0) / 12,
               wrvuPercentile: wrvuPercentile,

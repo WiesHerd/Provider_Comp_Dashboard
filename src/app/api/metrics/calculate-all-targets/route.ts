@@ -190,20 +190,21 @@ export async function POST() {
             },
             update: {
               targetWRVUs: monthlyTargetWithAdjustments,
-              cumulativeTarget: cumulativeTarget,
+              ytdTarget: cumulativeTarget,
               baseSalary: provider.baseSalary || 0,
               totalCompensation: provider.baseSalary / 12 || 0,
-              planProgress: cumulativeTarget > 0 ? ((existingMetrics?.cumulativeWRVUs || 0) / cumulativeTarget) * 100 : 0
+              planProgress: cumulativeTarget > 0 ? ((existingMetrics?.ytdWRVUs || 0) / cumulativeTarget) * 100 : 0,
+              ytdWRVUs: existingMetrics?.ytdWRVUs || 0
             },
             create: {
               providerId: provider.id,
               year: currentYear,
               month: month,
               targetWRVUs: monthlyTargetWithAdjustments,
-              cumulativeTarget: cumulativeTarget,
+              ytdTarget: cumulativeTarget,
               actualWRVUs: 0,
               rawMonthlyWRVUs: 0,
-              cumulativeWRVUs: 0,
+              ytdWRVUs: 0,
               baseSalary: provider.baseSalary || 0,
               totalCompensation: provider.baseSalary / 12 || 0,
               incentivesEarned: 0,

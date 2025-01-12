@@ -55,15 +55,15 @@ function calculateTotalCompPercentile(totalComp: number, marketData: any, specia
   return 0;
 }
 
-function calculateWRVUPercentile(actualWRVUs: number, monthsCompleted: number, fte: number, marketData: any, specialty: string): number {
+function calculateWRVUPercentile(ytdWRVUs: number, monthsCompleted: number, fte: number, marketData: any, specialty: string): number {
   if (!marketData || !marketData.length) return 0;
   
   const matchingMarket = marketData.find((data: any) => data.specialty === specialty);
   if (!matchingMarket) return 0;
 
-  // Annualize wRVUs
+  // Annualize YTD wRVUs
   const annualizedWRVUs = monthsCompleted > 0 
-    ? (actualWRVUs / monthsCompleted) * 12 
+    ? (ytdWRVUs / monthsCompleted) * 12 
     : 0;
 
   // Adjust for FTE

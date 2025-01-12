@@ -34,6 +34,7 @@ model Provider {
   compensationChanges CompensationChange[]
   analytics           ProviderAnalytics[]
   metrics             ProviderMetrics[]
+  settings            ProviderSettings?
   targetAdjustments   TargetAdjustment[]
   wrvuAdjustments     WRVUAdjustment[]
   wrvuData            WRVUData[]
@@ -175,9 +176,9 @@ model ProviderMetrics {
   month             Int
   actualWRVUs       Float
   rawMonthlyWRVUs   Float
-  cumulativeWRVUs   Float
+  ytdWRVUs          Float
+  ytdTargetWRVUs    Float
   targetWRVUs       Float
-  cumulativeTarget  Float
   baseSalary        Float
   totalCompensation Float
   incentivesEarned  Float
@@ -226,4 +227,13 @@ model AdditionalPay {
   @@index([month])
   @@index([year])
   @@index([providerId])
+}
+
+model ProviderSettings {
+  id              String   @id @default(cuid())
+  providerId      String   @unique
+  holdbackPercent Float    @default(20)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  provider        Provider @relation(fields: [providerId], references: [id])
 }
