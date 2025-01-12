@@ -82,6 +82,7 @@ export async function GET(request: Request) {
 
       return {
         id: provider.id,
+        employeeId: provider.employeeId,
         name: `${provider.firstName} ${provider.lastName}`,
         specialty: provider.specialty,
         department: provider.department,

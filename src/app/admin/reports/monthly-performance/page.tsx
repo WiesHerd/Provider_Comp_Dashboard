@@ -30,6 +30,7 @@ import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { Switch } from "../../../../components/ui/switch";
 import { DualRangeSlider } from "../../../../components/ui/dual-range-slider";
+import Link from 'next/link';
 
 function classNames(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ');
@@ -505,12 +506,12 @@ export default function MonthlyPerformanceReport() {
                     {data.map((provider) => (
                       <TableRow key={provider.id}>
                         <TableCell>
-                          <a 
+                          <Link
                             href={`/provider/${provider.employeeId}`}
                             className="text-blue-600 hover:text-blue-800 hover:underline"
                           >
                             {provider.name}
-                          </a>
+                          </Link>
                         </TableCell>
                         <TableCell>{provider.specialty}</TableCell>
                         <TableCell>{provider.department}</TableCell>
