@@ -25,9 +25,7 @@ export async function POST(request: Request) {
       const {
         month,
         targetWRVUs,
-        cumulativeTarget,
         actualWRVUs,
-        cumulativeWRVUs,
         baseSalary,
         totalCompensation,
         wrvuPercentile,
@@ -37,16 +35,21 @@ export async function POST(request: Request) {
       // Find existing metric for this month to preserve actual wRVU data
       const existingMetric = existingMetrics.find(m => m.month === month);
 
+      // Calculate YTD values
+      const ytdMetrics = existingMetrics.filter(m => m.month <= month);
+      const ytdWRVUs = ytdMetrics.reduce((sum, m) => sum + (m.actualWRVUs || 0), 0) + (actualWRVUs || 0);
+      const ytdTargetWRVUs = ytdMetrics.reduce((sum, m) => sum + (m.targetWRVUs || 0), 0) + (targetWRVUs || 0);
+
       const commonData = {
         targetWRVUs,
-        cumulativeTarget,
         actualWRVUs: existingMetric?.actualWRVUs ?? actualWRVUs,
-        cumulativeWRVUs: existingMetric?.cumulativeWRVUs ?? cumulativeWRVUs,
         baseSalary,
         totalCompensation,
         wrvuPercentile: existingMetric?.wrvuPercentile ?? wrvuPercentile,
         compPercentile: existingMetric?.compPercentile ?? compPercentile,
-        planProgress: cumulativeTarget > 0 ? ((existingMetric?.cumulativeWRVUs ?? cumulativeWRVUs) / cumulativeTarget) * 100 : 0
+        ytdWRVUs,
+        ytdTargetWRVUs,
+        planProgress: ytdTargetWRVUs > 0 ? (ytdWRVUs / ytdTargetWRVUs) * 100 : 0
       };
 
       return prisma.providerMetrics.upsert({

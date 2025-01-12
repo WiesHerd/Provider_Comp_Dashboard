@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { Provider, ProviderMetrics } from '@prisma/client';
+import { Provider } from '@prisma/client';
 
 interface ProviderWithMetricsResponse extends Provider {
   actualWRVUs: number;
   rawMonthlyWRVUs: number;
-  cumulativeWRVUs: number;
+  ytdWRVUs: number;
   targetWRVUs: number;
-  cumulativeTarget: number;
+  ytdTargetWRVUs: number;
   totalCompensation: number;
   incentivesEarned: number;
   holdbackAmount: number;
@@ -45,22 +45,7 @@ export async function GET(request: Request) {
     // Optimized single query with all necessary data
     const providers = await prisma.provider.findMany({
       where,
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
-        specialty: true,
-        department: true,
-        status: true,
-        hireDate: true,
-        fte: true,
-        clinicalFte: true,
-        nonClinicalFte: true,
-        baseSalary: true,
-        clinicalSalary: true,
-        nonClinicalSalary: true,
-        compensationModel: true,
+      include: {
         metrics: {
           where: {
             year: currentYear,
@@ -69,9 +54,9 @@ export async function GET(request: Request) {
           select: {
             actualWRVUs: true,
             rawMonthlyWRVUs: true,
-            cumulativeWRVUs: true,
+            ytdWRVUs: true,
             targetWRVUs: true,
-            cumulativeTarget: true,
+            ytdTargetWRVUs: true,
             totalCompensation: true,
             incentivesEarned: true,
             holdbackAmount: true,
@@ -94,13 +79,13 @@ export async function GET(request: Request) {
     });
 
     // Process providers in memory (more efficient than additional queries)
-    const processedProviders = providers.map(provider => {
+    const processedProviders: ProviderWithMetricsResponse[] = providers.map(provider => {
       const metrics = provider.metrics[0] || {
         actualWRVUs: 0,
         rawMonthlyWRVUs: 0,
-        cumulativeWRVUs: 0,
+        ytdWRVUs: 0,
         targetWRVUs: 0,
-        cumulativeTarget: 0,
+        ytdTargetWRVUs: 0,
         totalCompensation: 0,
         incentivesEarned: 0,
         holdbackAmount: 0,
@@ -116,22 +101,23 @@ export async function GET(request: Request) {
         return sum;
       }, 0);
 
-      const targetWRVUs = (isYTD ? metrics.cumulativeTarget : metrics.targetWRVUs) + targetAdjustmentsTotal;
-      const actualWRVUs = isYTD ? metrics.cumulativeWRVUs : metrics.actualWRVUs;
+      const targetWRVUs = metrics.targetWRVUs + (isYTD ? 0 : targetAdjustmentsTotal);
+      const ytdTargetWRVUs = metrics.ytdTargetWRVUs + targetAdjustmentsTotal;
+      const actualWRVUs = isYTD ? metrics.ytdWRVUs : metrics.actualWRVUs;
 
       return {
         ...provider,
         actualWRVUs,
         rawMonthlyWRVUs: metrics.rawMonthlyWRVUs,
-        cumulativeWRVUs: metrics.cumulativeWRVUs,
+        ytdWRVUs: metrics.ytdWRVUs,
         targetWRVUs,
-        cumulativeTarget: metrics.cumulativeTarget || targetWRVUs,
+        ytdTargetWRVUs,
         totalCompensation: metrics.totalCompensation,
         incentivesEarned: metrics.incentivesEarned,
         holdbackAmount: metrics.holdbackAmount,
         wrvuPercentile: metrics.wrvuPercentile,
         compPercentile: metrics.compPercentile,
-        planProgress: targetWRVUs > 0 ? (actualWRVUs / targetWRVUs) * 100 : 0,
+        planProgress: ytdTargetWRVUs > 0 ? (metrics.ytdWRVUs / ytdTargetWRVUs) * 100 : 0,
         monthsCompleted: metrics.monthsCompleted
       };
     });
