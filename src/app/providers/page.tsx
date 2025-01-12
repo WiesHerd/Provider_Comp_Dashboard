@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { FiltersPanel } from '@/components/Filters/FiltersPanel';
 
 interface Provider {
   id: string;
@@ -28,14 +29,24 @@ interface Provider {
 
 const ProvidersPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [showMissingBenchmarks, setShowMissingBenchmarks] = useState(false);
-  const [showMissingWRVUs, setShowMissingWRVUs] = useState(false);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [filteredProviders, setFilteredProviders] = useState<Provider[]>([]);
+  
+  // Filter states
+  const [showMissingBenchmarks, setShowMissingBenchmarks] = useState(false);
+  const [showMissingWRVUs, setShowMissingWRVUs] = useState(false);
+  const [showNonClinicalFTE, setShowNonClinicalFTE] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
+  const [selectedYear, setSelectedYear] = useState('2024');
+  const [selectedMonth, setSelectedMonth] = useState('January');
   const [selectedSpecialty, setSelectedSpecialty] = useState('All Specialties');
   const [selectedDepartment, setSelectedDepartment] = useState('All Departments');
-  const [fteRange, setFteRange] = useState([0, 1]);
-  const [salaryRange, setSalaryRange] = useState([0, 1000000]);
+  const [fteRange, setFteRange] = useState<[number, number]>([0, 1]);
+  const [salaryRange, setSalaryRange] = useState<[number, number]>([0, 2000000]);
+
+  // Derived states
+  const specialties = Array.from(new Set(providers.map(p => p.specialty))).sort();
+  const departments = Array.from(new Set(providers.map(p => p.department))).sort();
 
   useEffect(() => {
     const fetchProviders = async () => {
@@ -45,7 +56,7 @@ const ProvidersPage: React.FC = () => {
         if (!response.ok) throw new Error('Failed to fetch providers');
         const data = await response.json();
         setProviders(data);
-        setFilteredProviders(data); // Initialize filtered providers with all providers
+        setFilteredProviders(data);
       } catch (error) {
         console.error('Error fetching providers:', error);
       } finally {
@@ -84,9 +95,27 @@ const ProvidersPage: React.FC = () => {
     if (showMissingWRVUs) {
       filtered = filtered.filter(p => !p.hasWRVUs);
     }
+
+    if (!showInactive) {
+      filtered = filtered.filter(p => p.status === 'Active');
+    }
+
+    if (!showNonClinicalFTE) {
+      filtered = filtered.filter(p => p.clinicalFte > 0);
+    }
     
     setFilteredProviders(filtered);
-  }, [providers, selectedSpecialty, selectedDepartment, fteRange, salaryRange, showMissingBenchmarks, showMissingWRVUs]);
+  }, [
+    providers,
+    selectedSpecialty,
+    selectedDepartment,
+    fteRange,
+    salaryRange,
+    showMissingBenchmarks,
+    showMissingWRVUs,
+    showInactive,
+    showNonClinicalFTE
+  ]);
 
   useEffect(() => {
     filterProviders();
@@ -125,29 +154,32 @@ const ProvidersPage: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="flex items-center gap-6 mt-4 mb-6">
-        <label className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            checked={showMissingBenchmarks}
-            onChange={(e) => setShowMissingBenchmarks(e.target.checked)}
-            className="form-checkbox"
-          />
-          <span>Show Missing Benchmarks Only ({(providers || []).filter(p => !p.hasBenchmarks).length})</span>
-        </label>
-        
-        <label className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            checked={showMissingWRVUs}
-            onChange={(e) => setShowMissingWRVUs(e.target.checked)}
-            className="form-checkbox"
-          />
-          <span>Show Missing wRVUs Only ({(providers || []).filter(p => !p.hasWRVUs).length})</span>
-        </label>
-      </div>
+      <FiltersPanel
+        showMissingBenchmarks={showMissingBenchmarks}
+        setShowMissingBenchmarks={setShowMissingBenchmarks}
+        showMissingWRVUs={showMissingWRVUs}
+        setShowMissingWRVUs={setShowMissingWRVUs}
+        showNonClinicalFTE={showNonClinicalFTE}
+        setShowNonClinicalFTE={setShowNonClinicalFTE}
+        showInactive={showInactive}
+        setShowInactive={setShowInactive}
+        selectedYear={selectedYear}
+        setSelectedYear={setSelectedYear}
+        selectedMonth={selectedMonth}
+        setSelectedMonth={setSelectedMonth}
+        selectedSpecialty={selectedSpecialty}
+        setSelectedSpecialty={setSelectedSpecialty}
+        selectedDepartment={selectedDepartment}
+        setSelectedDepartment={setSelectedDepartment}
+        fteRange={fteRange}
+        setFteRange={setFteRange}
+        salaryRange={salaryRange}
+        setSalaryRange={setSalaryRange}
+        specialties={specialties}
+        departments={departments}
+      />
 
-      <div className="mt-4 overflow-x-auto shadow-md rounded-lg">
+      <div className="mt-6 overflow-x-auto shadow-md rounded-lg">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>

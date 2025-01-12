@@ -25,9 +25,15 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, Users, TrendingUp, Target, DollarSign, Activity, ChevronDown } from 'lucide-react';
+import { Loader2, Users, TrendingUp, Target, DollarSign, Activity, ChevronDown, Filter, X } from 'lucide-react';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
+import { Switch } from "../../../../components/ui/switch";
+import { DualRangeSlider } from "../../../../components/ui/dual-range-slider";
+
+function classNames(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(' ');
+}
 
 interface FilterState {
   year: number;
@@ -41,6 +47,12 @@ interface FilterState {
   compPercentileMax: string;
   planProgressMin: string;
   planProgressMax: string;
+  missingBenchmarks: boolean;
+  missingWRVUs: boolean;
+  nonClinicalOnly: boolean;
+  inactiveOnly: boolean;
+  fteRange: [number, number];
+  baseSalaryRange: [number, number];
 }
 
 export default function MonthlyPerformanceReport() {
@@ -56,7 +68,13 @@ export default function MonthlyPerformanceReport() {
     compPercentileMin: '',
     compPercentileMax: '',
     planProgressMin: '',
-    planProgressMax: ''
+    planProgressMax: '',
+    missingBenchmarks: false,
+    missingWRVUs: false,
+    nonClinicalOnly: false,
+    inactiveOnly: false,
+    fteRange: [0, 1],
+    baseSalaryRange: [0, 2000000]
   });
 
   const [loading, setLoading] = useState(true);
@@ -66,7 +84,25 @@ export default function MonthlyPerformanceReport() {
   const [totalPages, setTotalPages] = useState(1);
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
-  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
+  const [isFiltersVisible, setIsFiltersVisible] = useState(false);
+
+  // Calculate active filter count
+  const getActiveFilterCount = () => {
+    let count = 0;
+    if (filters.specialty !== 'all') count++;
+    if (filters.department !== 'all') count++;
+    if (filters.fteRange[0] !== 0 || filters.fteRange[1] !== 1.0) count++;
+    if (filters.baseSalaryRange[0] !== 0 || filters.baseSalaryRange[1] !== 2000000) count++;
+    if (filters.month !== new Date().getMonth() + 1) count++;
+    if (filters.year !== new Date().getFullYear()) count++;
+    if (filters.missingBenchmarks) count++;
+    if (filters.missingWRVUs) count++;
+    if (filters.nonClinicalOnly) count++;
+    if (filters.inactiveOnly) count++;
+    return count;
+  };
+
+  const activeFilterCount = getActiveFilterCount();
 
   // Fetch specialties and departments for filters
   useEffect(() => {
@@ -153,34 +189,65 @@ export default function MonthlyPerformanceReport() {
     setPage(1); // Reset to first page when filters change
   };
 
+  const handleRangeChange = (key: 'fteRange' | 'baseSalaryRange', value: [number, number]) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setPage(1);
+  };
+
   const handleRecalculate = async () => {
     try {
-      const response = await fetch('/api/metrics/trigger-calculation', {
-        method: 'POST'
+      setLoading(true);
+      const response = await fetch('/api/metrics/recalculate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
       if (!response.ok) {
-        throw new Error('Failed to recalculate metrics');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to recalculate metrics');
       }
-      
-      const result = await response.json();
-      console.log('Recalculation result:', result);
       
       toast({
         title: "Success",
-        description: result.message || "Metrics recalculated successfully",
+        description: "Metrics recalculated successfully",
       });
       
       // Refresh the data
-      fetchData();
+      await fetchData();
     } catch (error) {
       console.error('Error recalculating metrics:', error);
       toast({
         title: "Error",
-        description: "Failed to recalculate metrics",
+        description: error instanceof Error ? error.message : "Failed to recalculate metrics. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      year: new Date().getFullYear(),
+      month: new Date().getMonth() + 1,
+      specialty: 'all',
+      department: 'all',
+      status: 'Active',
+      wrvuPercentileMin: '',
+      wrvuPercentileMax: '',
+      compPercentileMin: '',
+      compPercentileMax: '',
+      planProgressMin: '',
+      planProgressMax: '',
+      missingBenchmarks: false,
+      missingWRVUs: false,
+      nonClinicalOnly: false,
+      inactiveOnly: false,
+      fteRange: [0, 1.0] as [number, number],
+      baseSalaryRange: [0, 2000000] as [number, number]
+    });
   };
 
   return (
@@ -259,126 +326,144 @@ export default function MonthlyPerformanceReport() {
       <Card>
         <CardHeader 
           className="cursor-pointer hover:bg-gray-50 transition-colors"
-          onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+          onClick={() => setIsFiltersVisible(!isFiltersVisible)}
         >
           <div className="flex items-center justify-between">
-            <CardTitle>Filters</CardTitle>
-            <ChevronDown className={`h-5 w-5 text-gray-500 transition-transform ${isFiltersExpanded ? 'rotate-180' : ''}`} />
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-gray-500" />
+              <span className="text-sm text-gray-700">Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-xs">
+                  {activeFilterCount}
+                </span>
+              )}
+              <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${isFiltersVisible ? 'rotate-180' : ''}`} />
+            </div>
+            {activeFilterCount > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleResetFilters();
+                }}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
         </CardHeader>
-        {isFiltersExpanded && (
+        {isFiltersVisible && (
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Date Filters */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Year</label>
-                <Select
-                  value={filters.year.toString()}
-                  onValueChange={(value) => handleFilterChange('year', parseInt(value))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="2024">2024</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-8">
+              {/* Date, Specialty, and Department Filters */}
+              <div className="grid grid-cols-4 gap-6">
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-gray-700">Year</label>
+                  <Select
+                    value={filters.year.toString()}
+                    onValueChange={(value) => handleFilterChange('year', parseInt(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Year" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2024">2024</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Month</label>
-                <Select
-                  value={filters.month.toString()}
-                  onValueChange={(value) => handleFilterChange('month', parseInt(value))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Month" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                      <SelectItem key={month} value={month.toString()}>
-                        {new Date(2000, month - 1).toLocaleString('default', { month: 'long' })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-gray-700">Month</label>
+                  <Select
+                    value={filters.month.toString()}
+                    onValueChange={(value) => handleFilterChange('month', parseInt(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                        <SelectItem key={month} value={month.toString()}>
+                          {new Date(2000, month - 1).toLocaleString('default', { month: 'long' })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Provider Filters */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Specialty</label>
-                <Select
-                  value={filters.specialty}
-                  onValueChange={(value) => handleFilterChange('specialty', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Specialties" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Specialties</SelectItem>
-                    {specialties.map((specialty) => (
-                      <SelectItem key={specialty} value={specialty}>
-                        {specialty}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-gray-700">Specialty</label>
+                  <Select
+                    value={filters.specialty}
+                    onValueChange={(value) => handleFilterChange('specialty', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Specialties" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Specialties</SelectItem>
+                      {specialties.map((specialty) => (
+                        <SelectItem key={specialty} value={specialty}>
+                          {specialty}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Department</label>
-                <Select
-                  value={filters.department}
-                  onValueChange={(value) => handleFilterChange('department', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Departments" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Departments</SelectItem>
-                    {departments.map((department) => (
-                      <SelectItem key={department} value={department}>
-                        {department}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Performance Filters */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium">WRVU Percentile Range</label>
-                <div className="flex space-x-2">
-                  <Input
-                    type="number"
-                    placeholder="Min"
-                    value={filters.wrvuPercentileMin}
-                    onChange={(e) => handleFilterChange('wrvuPercentileMin', e.target.value)}
-                  />
-                  <Input
-                    type="number"
-                    placeholder="Max"
-                    value={filters.wrvuPercentileMax}
-                    onChange={(e) => handleFilterChange('wrvuPercentileMax', e.target.value)}
-                  />
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-gray-700">Department</label>
+                  <Select
+                    value={filters.department}
+                    onValueChange={(value) => handleFilterChange('department', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Departments" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      {departments.map((department) => (
+                        <SelectItem key={department} value={department}>
+                          {department}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Compensation Percentile Range</label>
-                <div className="flex space-x-2">
-                  <Input
-                    type="number"
-                    placeholder="Min"
-                    value={filters.compPercentileMin}
-                    onChange={(e) => handleFilterChange('compPercentileMin', e.target.value)}
+              {/* Range Sliders */}
+              <div className="grid grid-cols-2 gap-6">
+                {/* FTE Range */}
+                <div className="p-4 border rounded-lg bg-white space-y-4">
+                  <label className="block text-sm font-medium text-gray-700">FTE Range</label>
+                  <DualRangeSlider
+                    min={0}
+                    max={2}
+                    step={0.1}
+                    value={filters.fteRange as [number, number]}
+                    onChange={(value: [number, number]) => handleRangeChange('fteRange', value)}
                   />
-                  <Input
-                    type="number"
-                    placeholder="Max"
-                    value={filters.compPercentileMax}
-                    onChange={(e) => handleFilterChange('compPercentileMax', e.target.value)}
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>{filters.fteRange[0].toFixed(1)}</span>
+                    <span>{filters.fteRange[1].toFixed(1)}</span>
+                  </div>
+                </div>
+
+                {/* Base Salary Range */}
+                <div className="p-4 border rounded-lg bg-white space-y-4">
+                  <label className="block text-sm font-medium text-gray-700">Base Salary Range</label>
+                  <DualRangeSlider
+                    min={0}
+                    max={1000000}
+                    step={10000}
+                    value={filters.baseSalaryRange as [number, number]}
+                    onChange={(value: [number, number]) => handleRangeChange('baseSalaryRange', value)}
                   />
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>${filters.baseSalaryRange[0].toLocaleString()}</span>
+                    <span>${filters.baseSalaryRange[1].toLocaleString()}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -387,7 +472,7 @@ export default function MonthlyPerformanceReport() {
       </Card>
 
       {/* Data Table */}
-      <Card>
+      <Card className="border rounded-xl overflow-hidden">
         <CardHeader>
           <CardTitle>Provider Performance Details</CardTitle>
         </CardHeader>
@@ -399,7 +484,7 @@ export default function MonthlyPerformanceReport() {
           ) : (
             <>
               <div className="overflow-x-auto">
-                <Table>
+                <Table className="border rounded-xl">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Provider</TableHead>
