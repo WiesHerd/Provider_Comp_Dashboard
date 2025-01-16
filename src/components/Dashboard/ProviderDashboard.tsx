@@ -1385,7 +1385,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     reason?: string;
   }) => {
     try {
-      const response = await fetch(`/api/providers/${provider.id}/compensation-changes`, {
+      const response = await fetch(`/api/providers/${provider.employeeId}/compensation-changes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1393,7 +1393,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         body: JSON.stringify({
           ...data,
           providerId: provider.id,
-          newConversionFactor: data.newConversionFactor, // Explicitly use newConversionFactor
+          newConversionFactor: data.newConversionFactor,
         }),
       });
 

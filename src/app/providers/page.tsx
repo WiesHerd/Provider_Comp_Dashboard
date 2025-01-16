@@ -27,10 +27,24 @@ interface Provider {
   hasWRVUs?: boolean;
 }
 
+interface PaginatedResponse {
+  providers: Provider[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
 const ProvidersPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 3;
   const [providers, setProviders] = useState<Provider[]>([]);
   const [filteredProviders, setFilteredProviders] = useState<Provider[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 10;
   
   // Filter states
   const [showMissingBenchmarks, setShowMissingBenchmarks] = useState(false);
@@ -51,75 +65,70 @@ const ProvidersPage: React.FC = () => {
   useEffect(() => {
     const fetchProviders = async () => {
       setIsLoading(true);
+      setError(null);
+      
       try {
-        const response = await fetch('/api/providers');
-        if (!response.ok) throw new Error('Failed to fetch providers');
-        const data = await response.json();
-        setProviders(data);
-        setFilteredProviders(data);
+        const queryParams = new URLSearchParams({
+          page: currentPage.toString(),
+          limit: itemsPerPage.toString(),
+          specialty: selectedSpecialty !== 'All Specialties' ? selectedSpecialty : '',
+          department: selectedDepartment !== 'All Departments' ? selectedDepartment : '',
+          status: !showInactive ? 'Active' : '',
+          minFte: fteRange[0].toString(),
+          maxFte: fteRange[1].toString(),
+          minSalary: salaryRange[0].toString(),
+          maxSalary: salaryRange[1].toString(),
+          showMissingBenchmarks: showMissingBenchmarks.toString(),
+          showMissingWRVUs: showMissingWRVUs.toString(),
+          showNonClinicalFTE: showNonClinicalFTE.toString()
+        });
+
+        const response = await fetch(`/api/providers?${queryParams}`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to fetch providers: ${response.status}`);
+        }
+        
+        const data: PaginatedResponse = await response.json();
+        setProviders(data.providers);
+        setFilteredProviders(data.providers);
+        setTotalPages(data.totalPages);
+        setTotalItems(data.total);
+        setRetryCount(0); // Reset retry count on success
       } catch (error) {
         console.error('Error fetching providers:', error);
+        const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+        setError(errorMessage);
+        
+        // Implement retry logic
+        if (retryCount < maxRetries) {
+          setRetryCount(prev => prev + 1);
+          setTimeout(() => {
+            fetchProviders();
+          }, Math.min(1000 * Math.pow(2, retryCount), 8000)); // Exponential backoff
+        }
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchProviders();
-  }, []);
-
-  const filterProviders = useCallback(() => {
-    if (!providers) return;
-    
-    let filtered = [...providers];
-    
-    if (selectedSpecialty !== 'All Specialties') {
-      filtered = filtered.filter(p => p.specialty === selectedSpecialty);
-    }
-    
-    if (selectedDepartment !== 'All Departments') {
-      filtered = filtered.filter(p => p.department === selectedDepartment);
-    }
-    
-    filtered = filtered.filter(p => 
-      p.fte >= fteRange[0] && p.fte <= fteRange[1]
-    );
-    
-    filtered = filtered.filter(p => 
-      p.baseSalary >= salaryRange[0] && p.baseSalary <= salaryRange[1]
-    );
-    
-    if (showMissingBenchmarks) {
-      filtered = filtered.filter(p => !p.hasBenchmarks);
-    }
-    
-    if (showMissingWRVUs) {
-      filtered = filtered.filter(p => !p.hasWRVUs);
-    }
-
-    if (!showInactive) {
-      filtered = filtered.filter(p => p.status === 'Active');
-    }
-
-    if (!showNonClinicalFTE) {
-      filtered = filtered.filter(p => p.clinicalFte > 0);
-    }
-    
-    setFilteredProviders(filtered);
   }, [
-    providers,
+    currentPage,
     selectedSpecialty,
     selectedDepartment,
+    showInactive,
     fteRange,
     salaryRange,
     showMissingBenchmarks,
     showMissingWRVUs,
-    showInactive,
-    showNonClinicalFTE
+    showNonClinicalFTE,
+    retryCount
   ]);
 
-  useEffect(() => {
-    filterProviders();
-  }, [filterProviders]);
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
 
   const formatDate = (date: Date | string | undefined) => {
     if (!date) return '-';
@@ -147,6 +156,36 @@ const ProvidersPage: React.FC = () => {
       <div className="p-6">
         <div className="flex items-center justify-center h-64">
           <div className="text-gray-500">Loading providers...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error loading providers</h3>
+              <div className="mt-2 text-sm text-red-700">{error}</div>
+              {retryCount < maxRetries && (
+                <div className="mt-2">
+                  <button
+                    onClick={() => setRetryCount(prev => prev + 1)}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -231,6 +270,71 @@ const ProvidersPage: React.FC = () => {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="mt-4 flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+        <div className="flex flex-1 justify-between sm:hidden">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Previous
+          </button>
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Next
+          </button>
+        </div>
+        <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-gray-700">
+              Showing <span className="font-medium">{((currentPage - 1) * itemsPerPage) + 1}</span> to{' '}
+              <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalItems)}</span> of{' '}
+              <span className="font-medium">{totalItems}</span> results
+            </p>
+          </div>
+          <div>
+            <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+              >
+                <span className="sr-only">Previous</span>
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clipRule="evenodd" />
+                </svg>
+              </button>
+              {[...Array(totalPages)].map((_, idx) => (
+                <button
+                  key={idx + 1}
+                  onClick={() => handlePageChange(idx + 1)}
+                  className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                    currentPage === idx + 1
+                      ? 'z-10 bg-indigo-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600'
+                      : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-offset-0'
+                  }`}
+                >
+                  {idx + 1}
+                </button>
+              ))}
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+              >
+                <span className="sr-only">Next</span>
+                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path fillRule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </nav>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -28,9 +28,21 @@ export async function POST(
   { params }: { params: { providerId: string } }
 ) {
   try {
-    const providerId = await params.providerId;
+    const providerId = params.providerId;
     const data = await request.json();
     console.log('Received compensation change data:', data);
+
+    // First, get the provider using employeeId
+    const provider = await prisma.provider.findUnique({
+      where: { employeeId: providerId }
+    });
+
+    if (!provider) {
+      return NextResponse.json(
+        { error: 'Provider not found' },
+        { status: 404 }
+      );
+    }
 
     // Validate required fields
     if (!data.effectiveDate || !data.newSalary || !data.newFTE || !data.previousConversionFactor || !data.newConversionFactor) {
@@ -43,7 +55,7 @@ export async function POST(
     // Create the compensation change
     const change = await prisma.compensationChange.create({
       data: {
-        providerId,
+        providerId: provider.id,
         effectiveDate: new Date(data.effectiveDate),
         previousSalary: data.previousSalary,
         newSalary: data.newSalary,
@@ -57,7 +69,7 @@ export async function POST(
 
     // Update the provider's current values
     await prisma.provider.update({
-      where: { id: providerId },
+      where: { id: provider.id },
       data: {
         baseSalary: data.newSalary,
         clinicalFte: data.newFTE,

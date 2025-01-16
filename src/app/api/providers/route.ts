@@ -1,133 +1,175 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
-import { Provider } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
-interface ProviderWithMetricsResponse extends Provider {
-  actualWRVUs: number;
-  rawMonthlyWRVUs: number;
-  ytdWRVUs: number;
-  targetWRVUs: number;
-  ytdTargetWRVUs: number;
-  totalCompensation: number;
-  incentivesEarned: number;
-  holdbackAmount: number;
-  wrvuPercentile: number;
-  compPercentile: number;
-  planProgress: number;
-  monthsCompleted: number;
-}
+const prisma = new PrismaClient();
+
+// Validation functions
+const validateQueryParams = (params: {
+  page: number;
+  limit: number;
+  minFte: number;
+  maxFte: number;
+  minSalary: number;
+  maxSalary: number;
+}) => {
+  const errors = [];
+  
+  if (params.page < 1) errors.push('Page must be greater than 0');
+  if (params.limit < 1 || params.limit > 100) errors.push('Limit must be between 1 and 100');
+  if (params.minFte < 0 || params.minFte > 1) errors.push('Min FTE must be between 0 and 1');
+  if (params.maxFte < 0 || params.maxFte > 1) errors.push('Max FTE must be between 0 and 1');
+  if (params.minFte > params.maxFte) errors.push('Min FTE cannot be greater than Max FTE');
+  if (params.minSalary < 0) errors.push('Min Salary cannot be negative');
+  if (params.minSalary > params.maxSalary) errors.push('Min Salary cannot be greater than Max Salary');
+
+  return errors;
+};
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const specialty = searchParams.get('specialty');
-    const department = searchParams.get('department');
-    const month = searchParams.get('month');
-    const year = searchParams.get('year');
-    const refresh = searchParams.get('refresh') === 'true';
+    
+    // Parse and validate query parameters
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const specialty = searchParams.get('specialty') || '';
+    const department = searchParams.get('department') || '';
+    const status = searchParams.get('status') || '';
+    const minFte = parseFloat(searchParams.get('minFte') || '0');
+    const maxFte = parseFloat(searchParams.get('maxFte') || '1');
+    const minSalary = parseFloat(searchParams.get('minSalary') || '0');
+    const maxSalary = parseFloat(searchParams.get('maxSalary') || '2000000');
+    const showMissingBenchmarks = searchParams.get('showMissingBenchmarks') === 'true';
+    const showMissingWRVUs = searchParams.get('showMissingWRVUs') === 'true';
+    const showNonClinicalFTE = searchParams.get('showNonClinicalFTE') === 'true';
 
-    const currentYear = year ? parseInt(year) : new Date().getFullYear();
-    const currentMonth = month ? parseInt(month) : new Date().getMonth() + 1;
-    const isYTD = month === 'YTD';
+    // Validate parameters
+    const validationErrors = validateQueryParams({
+      page,
+      limit,
+      minFte,
+      maxFte,
+      minSalary,
+      maxSalary
+    });
 
-    // Build where clause for provider filtering
-    const where: any = {
-      status: 'Active',
-      ...(specialty && { specialty }),
-      ...(department && { department })
-    };
-
-    // Refresh metrics if requested
-    if (refresh) {
-      await fetch('http://localhost:3000/api/metrics/calculate-all', { method: 'POST' });
+    if (validationErrors.length > 0) {
+      return NextResponse.json(
+        { error: 'Invalid parameters', details: validationErrors },
+        { status: 400 }
+      );
     }
 
-    // Optimized single query with all necessary data
-    const providers = await prisma.provider.findMany({
-      where,
-      include: {
-        metrics: {
-          where: {
-            year: currentYear,
-            month: currentMonth
-          },
-          select: {
-            actualWRVUs: true,
-            rawMonthlyWRVUs: true,
-            ytdWRVUs: true,
-            targetWRVUs: true,
-            ytdTargetWRVUs: true,
-            totalCompensation: true,
-            incentivesEarned: true,
-            holdbackAmount: true,
-            wrvuPercentile: true,
-            compPercentile: true,
-            monthsCompleted: true
-          }
+    // Build where clause based on filters
+    const where: any = {
+      fte: {
+        gte: minFte,
+        lte: maxFte,
+      },
+      baseSalary: {
+        gte: minSalary,
+        lte: maxSalary,
+      },
+    };
+
+    if (specialty) {
+      where.specialty = specialty;
+    }
+
+    if (department) {
+      where.department = department;
+    }
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (!showNonClinicalFTE) {
+      where.clinicalFte = {
+        gt: 0
+      };
+    }
+
+    // Count total matching records
+    const [total, providers] = await Promise.all([
+      prisma.provider.count({ where }),
+      prisma.provider.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: {
+          lastName: 'asc'
         },
-        targetAdjustments: {
-          where: {
-            year: currentYear,
-            ...(isYTD ? {} : { month: currentMonth })
-          },
-          select: {
-            value: true,
-            month: true
+        include: {
+          metrics: {
+            where: {
+              year: new Date().getFullYear()
+            },
+            take: 1
           }
         }
-      }
+      })
+    ]).catch(error => {
+      console.error('Database query error:', error);
+      throw new Error('Failed to fetch providers from database');
     });
 
-    // Process providers in memory (more efficient than additional queries)
-    const processedProviders: ProviderWithMetricsResponse[] = providers.map(provider => {
-      const metrics = provider.metrics[0] || {
-        actualWRVUs: 0,
-        rawMonthlyWRVUs: 0,
-        ytdWRVUs: 0,
-        targetWRVUs: 0,
-        ytdTargetWRVUs: 0,
-        totalCompensation: 0,
-        incentivesEarned: 0,
-        holdbackAmount: 0,
-        wrvuPercentile: 0,
-        compPercentile: 0,
-        monthsCompleted: currentMonth
-      };
+    const totalPages = Math.ceil(total / limit);
 
-      const targetAdjustmentsTotal = provider.targetAdjustments.reduce((sum, adj) => {
-        if (isYTD || adj.month === currentMonth) {
-          return sum + (adj.value || 0);
-        }
-        return sum;
-      }, 0);
+    // Validate page number against total pages
+    if (page > totalPages && total > 0) {
+      return NextResponse.json(
+        { error: 'Page number exceeds available pages', totalPages },
+        { status: 400 }
+      );
+    }
 
-      const targetWRVUs = metrics.targetWRVUs + (isYTD ? 0 : targetAdjustmentsTotal);
-      const ytdTargetWRVUs = metrics.ytdTargetWRVUs + targetAdjustmentsTotal;
-      const actualWRVUs = isYTD ? metrics.ytdWRVUs : metrics.actualWRVUs;
+    // Add derived fields
+    const providersWithDerivedFields = providers.map(provider => ({
+      ...provider,
+      hasBenchmarks: true, // You'll need to implement the actual logic for this
+      hasWRVUs: provider.metrics.length > 0
+    }));
 
-      return {
-        ...provider,
-        actualWRVUs,
-        rawMonthlyWRVUs: metrics.rawMonthlyWRVUs,
-        ytdWRVUs: metrics.ytdWRVUs,
-        targetWRVUs,
-        ytdTargetWRVUs,
-        totalCompensation: metrics.totalCompensation,
-        incentivesEarned: metrics.incentivesEarned,
-        holdbackAmount: metrics.holdbackAmount,
-        wrvuPercentile: metrics.wrvuPercentile,
-        compPercentile: metrics.compPercentile,
-        planProgress: ytdTargetWRVUs > 0 ? (metrics.ytdWRVUs / ytdTargetWRVUs) * 100 : 0,
-        monthsCompleted: metrics.monthsCompleted
-      };
+    // Filter after fetching if needed
+    let filteredProviders = providersWithDerivedFields;
+    if (showMissingBenchmarks) {
+      filteredProviders = filteredProviders.filter(p => !p.hasBenchmarks);
+    }
+    if (showMissingWRVUs) {
+      filteredProviders = filteredProviders.filter(p => !p.hasWRVUs);
+    }
+
+    return NextResponse.json({
+      providers: filteredProviders,
+      total: filteredProviders.length,
+      page,
+      totalPages: Math.ceil(filteredProviders.length / limit)
     });
 
-    return NextResponse.json(processedProviders);
   } catch (error) {
-    console.error('Error fetching providers:', error);
+    console.error('Error in providers API:', error);
+    
+    // Determine if it's a known error type
+    if (error instanceof Error) {
+      if (error.message.includes('database')) {
+        return NextResponse.json(
+          { error: 'Database error occurred', details: error.message },
+          { status: 503 }
+        );
+      }
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to fetch providers' },
+      { error: 'An unexpected error occurred' },
       { status: 500 }
     );
+  } finally {
+    // Ensure database connection is handled properly
+    await prisma.$disconnect();
   }
 } 

@@ -1,7 +1,14 @@
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { DualRangeSlider } from "../ui/dual-range-slider";
+import React from 'react';
 
-interface FiltersPanelProps {
+export interface FiltersPanelProps {
+  showMissingBenchmarks: boolean;
+  setShowMissingBenchmarks: (value: boolean) => void;
+  showMissingWRVUs: boolean;
+  setShowMissingWRVUs: (value: boolean) => void;
+  showNonClinicalFTE: boolean;
+  setShowNonClinicalFTE: (value: boolean) => void;
+  showInactive: boolean;
+  setShowInactive: (value: boolean) => void;
   selectedYear: string;
   setSelectedYear: (value: string) => void;
   selectedMonth: string;
@@ -18,7 +25,15 @@ interface FiltersPanelProps {
   departments: string[];
 }
 
-export function FiltersPanel({
+export const FiltersPanel: React.FC<FiltersPanelProps> = ({
+  showMissingBenchmarks,
+  setShowMissingBenchmarks,
+  showMissingWRVUs,
+  setShowMissingWRVUs,
+  showNonClinicalFTE,
+  setShowNonClinicalFTE,
+  showInactive,
+  setShowInactive,
   selectedYear,
   setSelectedYear,
   selectedMonth,
@@ -32,91 +47,85 @@ export function FiltersPanel({
   salaryRange,
   setSalaryRange,
   specialties,
-  departments,
-}: FiltersPanelProps) {
-  const years = ["2024", "2023", "2022"];
-  const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ];
-
+  departments
+}) => {
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Time Period Selection */}
-        <div className="space-y-4">
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select Year" />
-            </SelectTrigger>
-            <SelectContent>
-              {years.map(year => (
-                <SelectItem key={year} value={year}>{year}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select Month" />
-            </SelectTrigger>
-            <SelectContent>
-              {months.map(month => (
-                <SelectItem key={month} value={month}>{month}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <div className="bg-white p-4 rounded-lg shadow">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Specialty Filter */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Specialty</label>
+          <select
+            value={selectedSpecialty}
+            onChange={(e) => setSelectedSpecialty(e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          >
+            <option value="All Specialties">All Specialties</option>
+            {specialties.map((specialty) => (
+              <option key={specialty} value={specialty}>
+                {specialty}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Department and Specialty Selection */}
-        <div className="space-y-4">
-          <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select Specialty" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All Specialties">All Specialties</SelectItem>
-              {specialties.map(specialty => (
-                <SelectItem key={specialty} value={specialty}>{specialty}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select Department" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All Departments">All Departments</SelectItem>
-              {departments.map(dept => (
-                <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Department Filter */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Department</label>
+          <select
+            value={selectedDepartment}
+            onChange={(e) => setSelectedDepartment(e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          >
+            <option value="All Departments">All Departments</option>
+            {departments.map((department) => (
+              <option key={department} value={department}>
+                {department}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Range Sliders */}
-        <div className="space-y-6">
-          <div>
-            <label className="text-sm text-gray-600 mb-2 block">FTE Range</label>
-            <DualRangeSlider
-              value={fteRange}
-              onChange={setFteRange}
-              min={0}
-              max={1}
-              step={0.1}
+        {/* Toggle Filters */}
+        <div className="space-y-2">
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={showMissingBenchmarks}
+              onChange={(e) => setShowMissingBenchmarks(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
+            <label className="ml-2 text-sm text-gray-700">Show Missing Benchmarks</label>
           </div>
-          <div>
-            <label className="text-sm text-gray-600 mb-2 block">Base Salary Range</label>
-            <DualRangeSlider
-              value={salaryRange}
-              onChange={setSalaryRange}
-              min={0}
-              max={2000000}
-              step={10000}
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={showMissingWRVUs}
+              onChange={(e) => setShowMissingWRVUs(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
+            <label className="ml-2 text-sm text-gray-700">Show Missing wRVUs</label>
+          </div>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={showNonClinicalFTE}
+              onChange={(e) => setShowNonClinicalFTE(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label className="ml-2 text-sm text-gray-700">Show Non-Clinical FTE</label>
+          </div>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={showInactive}
+              onChange={(e) => setShowInactive(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label className="ml-2 text-sm text-gray-700">Show Inactive</label>
           </div>
         </div>
       </div>
     </div>
   );
-} 
+}; 

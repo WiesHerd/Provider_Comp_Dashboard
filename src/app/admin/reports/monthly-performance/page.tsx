@@ -25,7 +25,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, Users, TrendingUp, Target, DollarSign, Activity, ChevronDown, Filter, X } from 'lucide-react';
+import { Loader2, Users, TrendingUp, Target, DollarSign, Activity, ChevronDown, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { Switch } from "../../../../components/ui/switch";
@@ -86,6 +86,7 @@ export default function MonthlyPerformanceReport() {
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
+  const ITEMS_PER_PAGE = 20;
 
   // Calculate active filter count
   const getActiveFilterCount = () => {
@@ -170,7 +171,7 @@ export default function MonthlyPerformanceReport() {
 
       setData(result.data);
       setSummary(result.summary);
-      setTotalPages(result.pagination.totalPages);
+      setTotalPages(Math.ceil(result.data.length / ITEMS_PER_PAGE));
     } catch (error) {
       console.error('Error fetching report data:', error);
       setData([]);
@@ -440,7 +441,7 @@ export default function MonthlyPerformanceReport() {
                   <label className="block text-sm font-medium text-gray-700">FTE Range</label>
                   <DualRangeSlider
                     min={0}
-                    max={2}
+                    max={1}
                     step={0.1}
                     value={filters.fteRange as [number, number]}
                     onChange={(value: [number, number]) => handleRangeChange('fteRange', value)}
@@ -503,7 +504,9 @@ export default function MonthlyPerformanceReport() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {data.map((provider) => (
+                    {data
+                      .slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
+                      .map((provider) => (
                       <TableRow key={provider.id}>
                         <TableCell>
                           <Link
@@ -531,24 +534,73 @@ export default function MonthlyPerformanceReport() {
               </div>
 
               {/* Pagination */}
-              <div className="flex justify-between items-center mt-4">
-                <Button
-                  variant="outline"
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
-                  Previous
-                </Button>
-                <span>
-                  Page {page} of {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                >
-                  Next
-                </Button>
+              <div className="flex items-center justify-between border-t px-2 py-3 sm:px-6">
+                <div className="flex flex-1 justify-between sm:hidden">
+                  <Button
+                    variant="outline"
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+                <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-gray-700">
+                      Showing{' '}
+                      <span className="font-medium">{((page - 1) * ITEMS_PER_PAGE) + 1}</span>{' '}
+                      to{' '}
+                      <span className="font-medium">
+                        {Math.min(page * ITEMS_PER_PAGE, data.length)}
+                      </span>{' '}
+                      of{' '}
+                      <span className="font-medium">{data.length}</span>{' '}
+                      results
+                    </p>
+                  </div>
+                  <div>
+                    <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                      <Button
+                        variant="outline"
+                        className="relative inline-flex items-center rounded-l-md px-2 py-2 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page === 1}
+                      >
+                        <span className="sr-only">Previous</span>
+                        <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+                      </Button>
+                      {[...Array(Math.min(4, totalPages))].map((_, i) => (
+                        <Button
+                          key={i + 1}
+                          variant={page === i + 1 ? "default" : "outline"}
+                          className={classNames(
+                            "relative inline-flex items-center px-4 py-2 text-sm font-semibold",
+                            page === i + 1 ? "z-10 bg-indigo-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600" : "text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                          )}
+                          onClick={() => setPage(i + 1)}
+                        >
+                          {i + 1}
+                        </Button>
+                      ))}
+                      <Button
+                        variant="outline"
+                        className="relative inline-flex items-center rounded-r-md px-2 py-2 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        disabled={page === totalPages}
+                      >
+                        <span className="sr-only">Next</span>
+                        <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                      </Button>
+                    </nav>
+                  </div>
+                </div>
               </div>
             </>
           )}
