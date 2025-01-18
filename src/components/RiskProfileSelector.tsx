@@ -79,11 +79,27 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
     setIsCustomDialogOpen(false)
   }
 
+  // Get display text for custom profile
+  const getCustomDisplayText = () => {
+    const parts = []
+    if (enabledThresholds.warning) parts.push(customThresholds.warning)
+    if (enabledThresholds.elevated) parts.push(customThresholds.elevated)
+    if (enabledThresholds.critical) parts.push(customThresholds.critical)
+    return parts.length > 0 ? `Custom (${parts.join('/')})` : 'Custom...'
+  }
+
   return (
     <div className={className}>
-      <Select value={selectedProfile} onValueChange={handleProfileChange}>
+      <Select 
+        value={selectedProfile} 
+        onValueChange={handleProfileChange}
+      >
         <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder="Select risk profile" />
+          <SelectValue>
+            {selectedProfile === 'custom' ? getCustomDisplayText() : (
+              defaultProfiles.find(p => p.id === selectedProfile)?.name || 'Select risk profile'
+            )}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {defaultProfiles.map((profile) => (
@@ -91,9 +107,23 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
               {profile.name} ({profile.thresholds.warning}/{profile.thresholds.elevated}/{profile.thresholds.critical})
             </SelectItem>
           ))}
-          <SelectItem value="custom">Custom...</SelectItem>
+          <SelectItem value="custom">
+            {selectedProfile === 'custom' ? getCustomDisplayText() : 'Custom...'}
+          </SelectItem>
         </SelectContent>
       </Select>
+
+      {/* Edit button for custom profile */}
+      {selectedProfile === 'custom' && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="ml-2 h-8 px-2"
+          onClick={() => setIsCustomDialogOpen(true)}
+        >
+          Edit
+        </Button>
+      )}
 
       <Dialog open={isCustomDialogOpen} onOpenChange={setIsCustomDialogOpen}>
         <DialogContent>
