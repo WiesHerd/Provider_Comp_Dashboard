@@ -60,13 +60,12 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
   const [isCustomDialogOpen, setIsCustomDialogOpen] = useState(false)
 
   const handleProfileChange = (value: string) => {
-    setSelectedProfile(value)
-    
     if (value === 'custom') {
       setIsCustomDialogOpen(true)
       return
     }
-
+    setSelectedProfile(value)
+    
     const profile = defaultProfiles.find(p => p.id === value)
     if (profile) {
       onProfileChange(profile.thresholds)
