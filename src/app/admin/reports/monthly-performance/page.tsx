@@ -45,6 +45,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { RiskProfileSelector, type RiskThresholds } from '@/components/RiskProfileSelector'
 
 interface FilterState {
   month: number;
@@ -108,6 +109,11 @@ export default function MonthlyPerformanceReport() {
   const [compModels, setCompModels] = useState<string[]>(['Select All']);
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
   const router = useRouter();
+  const [riskThresholds, setRiskThresholds] = useState<RiskThresholds>({
+    warning: 60,
+    elevated: 70,
+    critical: 80
+  })
 
   // Calculate active filter count
   const getActiveFilterCount = () => {
@@ -675,13 +681,19 @@ export default function MonthlyPerformanceReport() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Provider Performance Details</CardTitle>
-            <div className="w-72">
-              <Input
-                placeholder="Search by provider name..."
-                value={filters.searchQuery}
-                onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
-                className="w-full"
+            <div className="flex items-center gap-4">
+              <RiskProfileSelector 
+                onProfileChange={setRiskThresholds}
+                className="w-[200px]"
               />
+              <div className="w-72">
+                <Input
+                  placeholder="Search by provider name..."
+                  value={filters.searchQuery}
+                  onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
+                  className="w-full"
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -735,12 +747,17 @@ export default function MonthlyPerformanceReport() {
                         <TableCell className="text-right">{formatCurrency(provider.totalCompensation)}</TableCell>
                         <TableCell className={cn(
                           "text-right font-medium",
-                          // Light yellow for 60-70th percentile
-                          provider.compPercentile > 60 && provider.compPercentile <= 70 && "bg-yellow-100 text-yellow-900",
-                          // Deeper yellow/amber for 70-80th percentile
-                          provider.compPercentile > 70 && provider.compPercentile <= 80 && "bg-amber-200 text-amber-900",
-                          // Red for 80-100th percentile
-                          provider.compPercentile > 80 && "bg-red-200 text-red-900"
+                          // Warning level
+                          provider.compPercentile > riskThresholds.warning && 
+                          provider.compPercentile <= riskThresholds.elevated && 
+                          "bg-yellow-100 text-yellow-900",
+                          // Elevated level
+                          provider.compPercentile > riskThresholds.elevated && 
+                          provider.compPercentile <= riskThresholds.critical && 
+                          "bg-amber-200 text-amber-900",
+                          // Critical level
+                          provider.compPercentile > riskThresholds.critical && 
+                          "bg-red-200 text-red-900"
                         )}>
                           {formatPercent(provider.compPercentile)}
                         </TableCell>
