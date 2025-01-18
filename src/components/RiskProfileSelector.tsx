@@ -56,21 +56,17 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
   const [isCustomDialogOpen, setIsCustomDialogOpen] = useState(false)
 
   const handleProfileChange = (value: string) => {
+    setSelectedProfile(value)
+    
     if (value === 'custom') {
       setIsCustomDialogOpen(true)
-      setSelectedProfile('custom')
       return
     }
 
-    setSelectedProfile(value)
     const profile = defaultProfiles.find(p => p.id === value)
     if (profile) {
       onProfileChange(profile.thresholds)
     }
-  }
-
-  const handleCustomClick = () => {
-    setIsCustomDialogOpen(true)
   }
 
   const handleCustomSubmit = () => {
@@ -86,31 +82,35 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
 
   return (
     <div className={className}>
-      <Select 
-        value={selectedProfile} 
-        onValueChange={handleProfileChange}
-      >
-        <SelectTrigger className="w-[200px]">
-          <SelectValue>
-            {selectedProfile === 'custom' ? 'Custom' : (
-              defaultProfiles.find(p => p.id === selectedProfile)?.name || 'Select risk profile'
-            )}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {defaultProfiles.map((profile) => (
-            <SelectItem key={profile.id} value={profile.id}>
-              {profile.name} ({profile.thresholds.warning}/{profile.thresholds.elevated}/{profile.thresholds.critical})
-            </SelectItem>
-          ))}
-          <SelectItem 
-            value="custom"
-            onClick={handleCustomClick}
-          >
-            Custom...
-          </SelectItem>
-        </SelectContent>
-      </Select>
+      <div className="flex gap-2 items-center">
+        <Select 
+          value={selectedProfile} 
+          onValueChange={handleProfileChange}
+        >
+          <SelectTrigger className="w-[200px]">
+            <SelectValue>
+              {defaultProfiles.find(p => p.id === selectedProfile)?.name || 'Select risk profile'}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {defaultProfiles.map((profile) => (
+              <SelectItem key={profile.id} value={profile.id}>
+                {profile.name} ({profile.thresholds.warning}/{profile.thresholds.elevated}/{profile.thresholds.critical})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => {
+            setSelectedProfile('custom')
+            setIsCustomDialogOpen(true)
+          }}
+        >
+          Custom...
+        </Button>
+      </div>
 
       <Dialog open={isCustomDialogOpen} onOpenChange={setIsCustomDialogOpen}>
         <DialogContent>
