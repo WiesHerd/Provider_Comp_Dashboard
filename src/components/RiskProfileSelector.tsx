@@ -82,39 +82,29 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
 
   return (
     <div className={className}>
-      <div className="border rounded-lg p-2 w-[160px]">
-        <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-          Risk Profile
-        </Label>
-        <Select 
-          value={selectedProfile} 
-          onValueChange={handleProfileChange}
-        >
-          <SelectTrigger className="w-full text-sm">
-            <SelectValue placeholder="Select profile" />
-          </SelectTrigger>
-          <SelectContent>
-            {defaultProfiles.map((profile) => (
-              <SelectItem key={profile.id} value={profile.id}>
-                <div className="flex flex-col gap-0.5">
-                  <span className="font-medium text-sm">{profile.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {profile.thresholds.warning}% → {profile.thresholds.elevated}% → {profile.thresholds.critical}%
-                  </span>
-                </div>
-              </SelectItem>
-            ))}
-            <SelectItem value="custom">
+      <Select 
+        value={selectedProfile} 
+        onValueChange={handleProfileChange}
+      >
+        <SelectTrigger className="w-[160px] text-sm">
+          <SelectValue placeholder="Risk Profile" />
+        </SelectTrigger>
+        <SelectContent>
+          {defaultProfiles.map((profile) => (
+            <SelectItem key={profile.id} value={profile.id}>
               <div className="flex flex-col gap-0.5">
-                <span className="font-medium text-sm">Custom...</span>
+                <span className="font-medium text-sm">{profile.name}</span>
                 <span className="text-xs text-muted-foreground">
-                  Define your own thresholds
+                  {profile.thresholds.warning}% → {profile.thresholds.elevated}% → {profile.thresholds.critical}%
                 </span>
               </div>
             </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+          ))}
+          <SelectItem value="custom">
+            <span className="font-medium text-sm">Custom...</span>
+          </SelectItem>
+        </SelectContent>
+      </Select>
 
       <Dialog open={isCustomDialogOpen} onOpenChange={setIsCustomDialogOpen}>
         <DialogContent>
