@@ -668,7 +668,12 @@ export default function MonthlyPerformanceReport() {
                         <TableCell className="text-right">{formatPercent(provider.wrvuPercentile)}</TableCell>
                         <TableCell className="text-right">{formatCurrency(provider.baseSalary)}</TableCell>
                         <TableCell className="text-right">{formatCurrency(provider.totalCompensation)}</TableCell>
-                        <TableCell className="text-right">{formatPercent(provider.compPercentile)}</TableCell>
+                        <TableCell className={cn(
+                          "text-right",
+                          provider.compPercentile > 70 && "bg-yellow-100 text-yellow-900 dark:bg-yellow-900/30 dark:text-yellow-500"
+                        )}>
+                          {formatPercent(provider.compPercentile)}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
