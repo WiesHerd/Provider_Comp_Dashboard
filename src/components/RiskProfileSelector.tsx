@@ -91,14 +91,21 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
         onValueChange={handleProfileChange}
       >
         <SelectTrigger className="w-[160px] text-sm">
-          <SelectValue placeholder="Risk Profile" />
+          <SelectValue>
+            {selectedProfile === 'custom' ? 'Custom...' : 
+             defaultProfiles.find(p => p.id === selectedProfile)?.name}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {defaultProfiles.map((profile) => (
             <SelectItem key={profile.id} value={profile.id}>
               <div className="flex flex-col gap-0.5">
                 <span className="font-medium text-sm">{profile.name}</span>
-                <span className="text-xs text-muted-foreground">{profile.description}</span>
+                <span className="text-xs text-muted-foreground">
+                  Warning at {profile.thresholds.warning}%,{' '}
+                  Elevated at {profile.thresholds.elevated}%,{' '}
+                  Critical at {profile.thresholds.critical}%
+                </span>
               </div>
             </SelectItem>
           ))}
