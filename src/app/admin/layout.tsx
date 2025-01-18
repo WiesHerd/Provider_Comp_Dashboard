@@ -13,38 +13,64 @@ import {
   PresentationChartLineIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
+// Group navigation items by category
 const navigation = [
-  { 
-    name: 'Providers', 
-    href: '/admin/providers', 
-    icon: UsersIcon
+  {
+    category: 'PROVIDER SYSTEM',
+    items: [
+      { 
+        name: 'Main Menu', 
+        href: '/admin', 
+        icon: HomeIcon
+      }
+    ]
   },
   {
-    name: 'Market Data',
-    href: '/admin/market-data',
-    icon: ChartBarSquareIcon
+    category: 'DATA MANAGEMENT',
+    items: [
+      { 
+        name: 'Providers', 
+        href: '/admin/providers', 
+        icon: UsersIcon
+      },
+      {
+        name: 'Market Data',
+        href: '/admin/market-data',
+        icon: ChartBarSquareIcon
+      },
+      {
+        name: 'wRVU Data',
+        href: '/admin/wrvu-data',
+        icon: PresentationChartLineIcon
+      }
+    ]
   },
   {
-    name: 'wRVU Data',
-    href: '/admin/wrvu-data',
-    icon: PresentationChartLineIcon
+    category: 'TOOLS',
+    items: [
+      { 
+        name: 'Upload', 
+        href: '/admin/upload', 
+        icon: CloudArrowUpIcon
+      },
+      { 
+        name: 'Reports', 
+        href: '/admin/reports/select', 
+        icon: ChartBarIcon
+      }
+    ]
   },
-  { 
-    name: 'Upload', 
-    href: '/admin/upload', 
-    icon: CloudArrowUpIcon
-  },
-  { 
-    name: 'Reports', 
-    href: '/admin/reports/select', 
-    icon: ChartBarIcon
-  },
-  { 
-    name: 'Settings', 
-    href: '/admin/settings', 
-    icon: Cog6ToothIcon
+  {
+    category: 'SYSTEM',
+    items: [
+      { 
+        name: 'Settings', 
+        href: '/admin/settings', 
+        icon: Cog6ToothIcon
+      }
+    ]
   }
 ];
 
@@ -55,66 +81,86 @@ export default function AdminLayout({
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 bg-[#1a1c23] transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'} shadow-xl`}>
-        {/* Header */}
-        <div className="flex h-14 items-center px-2">
-          <Link 
-            href="/admin" 
-            className={`
-              flex items-center px-2 py-2 my-1 text-sm font-medium rounded-md w-full
-              transition-colors duration-200
-              ${pathname === '/admin' 
-                ? 'bg-indigo-600 text-white' 
-                : 'text-gray-300 hover:bg-gray-700 hover:text-white'}
-            `}
-          >
-            <HomeIcon className="h-6 w-6 flex-shrink-0" aria-hidden="true" />
-            {!isCollapsed && (
-              <span className="ml-3">Main Menu</span>
-            )}
-          </Link>
-        </div>
-
+      <div className={`fixed inset-y-0 left-0 bg-[#1a1c23] transition-all duration-300 ${
+        isCollapsed ? 'w-16' : 'w-64'
+      } shadow-xl`}>
         {/* Navigation */}
-        <nav className="mt-4 px-2">
-          {navigation.map((item) => {
-            const isActive = pathname?.startsWith(item.href) ?? false;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`
-                  flex items-center px-2 py-2 my-1 text-sm font-medium rounded-md w-full
-                  transition-colors duration-200
-                  ${isActive 
-                    ? 'bg-indigo-600 text-white' 
-                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'}
-                `}
-                title={isCollapsed ? item.name : ''}
-              >
-                <item.icon
-                  className={`
-                    ${isCollapsed ? 'mr-0' : 'mr-3'} h-6 w-6 flex-shrink-0
-                  `}
-                  aria-hidden="true"
-                />
-                {!isCollapsed && (
-                  <span>{item.name}</span>
-                )}
-              </Link>
-            );
-          })}
+        <nav className="h-full py-4 flex flex-col">
+          {navigation.map((group) => (
+            <div key={group.category} className={`space-y-1 px-2 ${
+              group.category === 'PROVIDER SYSTEM' ? 'mb-8' : 'mb-6'
+            }`}>
+              {!isCollapsed && (
+                <h3 className={`px-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider ${
+                  group.category === 'PROVIDER SYSTEM' ? 'mb-4' : 'mb-2'
+                }`}>
+                  {group.category}
+                </h3>
+              )}
+              
+              {group.items.map((item) => {
+                const isActive = item.href === '/admin' 
+                  ? pathname === '/admin'
+                  : pathname.startsWith(item.href);
+
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={`
+                      flex items-center px-3 py-2.5 text-sm font-medium
+                      transition-all duration-200 ease-in-out
+                      group relative
+                      ${isActive 
+                        ? 'bg-indigo-600/90 text-white' 
+                        : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                      }
+                    `}
+                    title={isCollapsed ? item.name : undefined}
+                  >
+                    <item.icon 
+                      className={`
+                        ${isCollapsed ? 'mx-auto' : 'mr-3'} 
+                        h-5 w-5 transition-all duration-200
+                        ${isActive 
+                          ? 'text-white' 
+                          : 'text-gray-400 group-hover:text-white'
+                        }
+                      `}
+                      aria-hidden="true"
+                    />
+                    {!isCollapsed && (
+                      <span className="truncate">{item.name}</span>
+                    )}
+                    
+                    {/* Tooltip for collapsed state */}
+                    {isCollapsed && (
+                      <div className="
+                        absolute left-full ml-3 px-2 py-1
+                        bg-gray-900/90 text-white text-xs
+                        rounded-md opacity-0 group-hover:opacity-100
+                        transition-opacity backdrop-blur-sm
+                        pointer-events-none whitespace-nowrap z-50
+                      ">
+                        {item.name}
+                      </div>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
-        
-        {/* Collapse toggle button */}
+
+        {/* Collapse button */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute bottom-4 -right-3 p-1.5 bg-gray-800 rounded-full text-gray-400 hover:text-white hover:bg-gray-700 transition-colors shadow-lg"
+          className="absolute bottom-4 -right-3 p-1 bg-[#1a1c23] rounded-full border border-gray-600 text-gray-400 hover:text-white"
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? (
             <ChevronRightIcon className="h-4 w-4" />
