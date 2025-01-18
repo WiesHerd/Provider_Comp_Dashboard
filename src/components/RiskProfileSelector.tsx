@@ -19,6 +19,11 @@ export interface RiskProfile {
 
 const defaultProfiles: RiskProfile[] = [
   {
+    id: '75th',
+    name: '75th Percentile',
+    thresholds: { warning: 75, elevated: 75, critical: 75 }
+  },
+  {
     id: 'standard',
     name: 'Standard',
     thresholds: { warning: 60, elevated: 70, critical: 80 }
