@@ -58,9 +58,7 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
   const handleProfileChange = (value: string) => {
     if (value === 'custom') {
       setIsCustomDialogOpen(true)
-      if (selectedProfile !== 'custom') {
-        setSelectedProfile('custom')
-      }
+      setSelectedProfile('custom')
       return
     }
 
@@ -106,8 +104,8 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
             </SelectItem>
           ))}
           <SelectItem 
-            value="custom" 
-            onSelect={handleCustomClick}
+            value="custom"
+            onClick={handleCustomClick}
           >
             Custom...
           </SelectItem>
