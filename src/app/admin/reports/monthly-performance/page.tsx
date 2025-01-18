@@ -501,10 +501,9 @@ export default function MonthlyPerformanceReport() {
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-sm font-medium text-gray-700">Search</label>
+                  <label className="text-sm font-medium text-gray-700">Provider Name Search</label>
                   <Input
-                    type="text"
-                    placeholder="Search providers..."
+                    placeholder="Search by provider name..."
                     value={filters.searchQuery}
                     onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
                     className="w-full"
