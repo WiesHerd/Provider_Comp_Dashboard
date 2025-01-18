@@ -57,26 +57,6 @@ export default function AdminLayout({
   const pathname = usePathname();
   const router = useRouter();
 
-  const getPageTitle = () => {
-    const route = pathname?.split('/').pop();
-    switch (route) {
-      case 'providers':
-        return 'Providers';
-      case 'market-data':
-        return 'Market Data';
-      case 'wrvu-data':
-        return 'wRVU Data';
-      case 'upload':
-        return 'Upload Data';
-      case 'reports':
-        return 'Reports';
-      case 'settings':
-        return 'Settings';
-      default:
-        return 'Dashboard';
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
@@ -86,9 +66,11 @@ export default function AdminLayout({
           <Link 
             href="/admin" 
             className={`
-              flex items-center px-3 py-2 my-1 text-sm rounded-md w-full
-              transition-all duration-200
-              text-gray-400 hover:bg-gray-800 hover:text-white
+              flex items-center px-2 py-2 my-1 text-sm font-medium rounded-md w-full
+              transition-colors duration-200
+              ${pathname === '/admin' 
+                ? 'bg-indigo-600 text-white' 
+                : 'text-gray-300 hover:bg-gray-700 hover:text-white'}
             `}
           >
             <HomeIcon className="h-6 w-6 flex-shrink-0" aria-hidden="true" />
@@ -107,17 +89,17 @@ export default function AdminLayout({
                 key={item.name}
                 href={item.href}
                 className={`
-                  flex items-center px-3 py-2 my-1 text-sm rounded-md
-                  transition-all duration-200
+                  flex items-center px-2 py-2 my-1 text-sm font-medium rounded-md w-full
+                  transition-colors duration-200
                   ${isActive 
-                    ? 'bg-indigo-500 text-white' 
-                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'}
+                    ? 'bg-indigo-600 text-white' 
+                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'}
                 `}
                 title={isCollapsed ? item.name : ''}
               >
                 <item.icon
                   className={`
-                    ${isCollapsed ? 'mr-0' : 'mr-3'} h-5 w-5 flex-shrink-0
+                    ${isCollapsed ? 'mr-0' : 'mr-3'} h-6 w-6 flex-shrink-0
                   `}
                   aria-hidden="true"
                 />
