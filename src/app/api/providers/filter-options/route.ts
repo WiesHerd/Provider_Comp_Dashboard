@@ -19,9 +19,18 @@ export async function GET() {
       orderBy: { department: 'asc' }
     });
 
+    // Get unique compensation models
+    const compModels = await prisma.provider.findMany({
+      where: { status: 'Active' },
+      select: { compensationModel: true },
+      distinct: ['compensationModel'],
+      orderBy: { compensationModel: 'asc' }
+    });
+
     return NextResponse.json({
       specialties: specialties.map(s => s.specialty).filter(Boolean),
-      departments: departments.map(d => d.department).filter(Boolean)
+      departments: departments.map(d => d.department).filter(Boolean),
+      compModels: compModels.map(c => c.compensationModel).filter(Boolean)
     });
   } catch (error) {
     console.error('Error fetching filter options:', error);

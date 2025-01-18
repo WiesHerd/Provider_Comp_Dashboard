@@ -33,13 +33,26 @@ import { DualRangeSlider } from "../../../../components/ui/dual-range-slider";
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { cn } from "@/lib/utils";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 interface FilterState {
-  year: number;
   month: number;
   specialty: string;
   department: string;
   status: string;
+  searchQuery: string;
+  compModel: string;
   wrvuPercentileMin: string;
   wrvuPercentileMax: string;
   compPercentileMin: string;
@@ -54,14 +67,21 @@ interface FilterState {
   baseSalaryRange: [number, number];
 }
 
+// Remove years array and just keep months
+const months = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
 export default function MonthlyPerformanceReport() {
   const { toast } = useToast();
   const [filters, setFilters] = useState<FilterState>({
-    year: 2024,
     month: new Date().getMonth() + 1,
     specialty: 'all',
     department: 'all',
     status: 'Active',
+    searchQuery: '',
+    compModel: 'Select All',
     wrvuPercentileMin: '',
     wrvuPercentileMax: '',
     compPercentileMin: '',
@@ -72,7 +92,7 @@ export default function MonthlyPerformanceReport() {
     missingWRVUs: false,
     nonClinicalOnly: false,
     inactiveOnly: false,
-    fteRange: [0, 1],
+    fteRange: [0, 1.0],
     baseSalaryRange: [0, 2000000]
   });
 
@@ -85,6 +105,7 @@ export default function MonthlyPerformanceReport() {
   const itemsPerPage = 10;
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
+  const [compModels, setCompModels] = useState<string[]>(['Select All']);
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
   const router = useRouter();
 
@@ -96,7 +117,6 @@ export default function MonthlyPerformanceReport() {
     if (filters.fteRange[0] !== 0 || filters.fteRange[1] !== 1.0) count++;
     if (filters.baseSalaryRange[0] !== 0 || filters.baseSalaryRange[1] !== 2000000) count++;
     if (filters.month !== new Date().getMonth() + 1) count++;
-    if (filters.year !== new Date().getFullYear()) count++;
     if (filters.missingBenchmarks) count++;
     if (filters.missingWRVUs) count++;
     if (filters.nonClinicalOnly) count++;
@@ -106,7 +126,7 @@ export default function MonthlyPerformanceReport() {
 
   const activeFilterCount = getActiveFilterCount();
 
-  // Fetch specialties and departments for filters
+  // Fetch specialties, departments, and comp models for filters
   useEffect(() => {
     const fetchFilterOptions = async () => {
       try {
@@ -114,76 +134,154 @@ export default function MonthlyPerformanceReport() {
         const data = await response.json();
         setSpecialties(data.specialties);
         setDepartments(data.departments);
+        // Add 'Select All' to the beginning of the comp models array
+        setCompModels(['Select All', ...data.compModels]);
       } catch (error) {
         console.error('Error fetching filter options:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch filter options. Please try again.",
+          variant: "destructive"
+        });
       }
     };
     fetchFilterOptions();
   }, []);
 
-  // Fetch report data
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const queryParams = new URLSearchParams({
-        year: filters.year.toString(),
-        month: filters.month.toString(),
-        page: currentPage.toString(),
-        limit: itemsPerPage.toString(),
-        ...(filters.specialty !== 'all' && { specialty: filters.specialty }),
-        ...(filters.department !== 'all' && { department: filters.department }),
-        ...(filters.status && { status: filters.status }),
-        ...(filters.wrvuPercentileMin && { wrvuPercentileMin: filters.wrvuPercentileMin }),
-        ...(filters.wrvuPercentileMax && { wrvuPercentileMax: filters.wrvuPercentileMax }),
-        ...(filters.compPercentileMin && { compPercentileMin: filters.compPercentileMin }),
-        ...(filters.compPercentileMax && { compPercentileMax: filters.compPercentileMax }),
-        ...(filters.planProgressMin && { planProgressMin: filters.planProgressMin }),
-        ...(filters.planProgressMax && { planProgressMax: filters.planProgressMax })
-      });
-
-      console.log('Fetching data with params:', queryParams.toString());
-      const response = await fetch(`/api/reports/monthly-performance?${queryParams}`);
+  // Filter and fetch data function
+  const filterData = (data: any[]) => {
+    console.log('Starting filtering with:', { filters, dataLength: data.length });
+    
+    const filtered = data.filter((provider) => {
+      // Search filter - case insensitive search on provider name
+      const searchMatch = !filters.searchQuery || 
+        provider.name?.toLowerCase().includes(filters.searchQuery.toLowerCase());
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error Response:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText
+      // Specialty filter
+      const specialtyMatch = filters.specialty === 'all' || 
+        provider.specialty === filters.specialty;
+      
+      // Department filter
+      const departmentMatch = filters.department === 'all' || 
+        provider.department === filters.department;
+      
+      // Comp Model filter - ensure we check both possible property names
+      const compModelMatch = filters.compModel === 'Select All' || 
+        provider.compensationModel === filters.compModel;
+      
+      // FTE Range filter
+      const fteMatch = (!provider.fte || (
+        provider.fte >= filters.fteRange[0] && 
+        provider.fte <= filters.fteRange[1]
+      ));
+      
+      // Base Salary Range filter
+      const salaryMatch = (!provider.baseSalary || (
+        provider.baseSalary >= filters.baseSalaryRange[0] && 
+        provider.baseSalary <= filters.baseSalaryRange[1]
+      ));
+
+      const matches = searchMatch && specialtyMatch && departmentMatch && compModelMatch && fteMatch && salaryMatch;
+      
+      if (!matches) {
+        console.log('Provider filtered out:', {
+          name: provider.name,
+          searchMatch,
+          specialtyMatch,
+          departmentMatch,
+          compModelMatch,
+          fteMatch,
+          salaryMatch
         });
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
 
-      const responseText = await response.text();
-      console.log('Raw API Response:', responseText);
+      return matches;
+    });
 
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse API response:', parseError);
-        throw new Error('Invalid JSON response from API');
-      }
+    console.log('Filtering complete:', { 
+      originalLength: data.length, 
+      filteredLength: filtered.length 
+    });
 
-      if (!result || !result.data) {
-        console.error('Invalid API response structure:', result);
+    return filtered;
+  };
+
+  // Fetch data when filters or page changes
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/reports/monthly-performance?month=${filters.month}`);
+      if (!response.ok) throw new Error('Failed to fetch data');
+      const rawData = await response.json();
+      
+      console.log('Raw API response:', rawData);
+      
+      if (!rawData || !rawData.data) {
+        console.error('Invalid API response structure:', rawData);
         throw new Error('Invalid API response structure');
       }
 
-      setData(result.data);
-      setSummary(result.summary);
-      setTotalPages(result.pagination.totalPages);
-      setTotalItems(result.pagination.totalItems);
+      // Apply filters to the raw data
+      const filteredData = filterData(rawData.data);
+      console.log('After filtering:', filteredData);
+      
+      const mappedData = filteredData.map(provider => ({
+        ...provider,
+        name: provider.name || provider.providerName,
+        specialty: provider.specialty,
+        department: provider.department,
+        compensationModel: provider.compensationModel || provider.compModel || 'Standard',
+        monthlyWRVUs: provider.monthlyWRVUs || 0,
+        targetWRVUs: provider.targetWRVUs || 0,
+        ytdWRVUs: provider.ytdWRVUs || 0,
+        ytdTargetWRVUs: provider.ytdTargetWRVUs || 0,
+        planProgress: provider.planProgress || 0,
+        wrvuPercentile: provider.wrvuPercentile || 0,
+        baseSalary: provider.baseSalary || 0,
+        totalCompensation: provider.totalCompensation || provider.totalComp || 0,
+        compPercentile: provider.compPercentile || 0
+      }));
+
+      console.log('Final mapped data:', mappedData);
+      
+      // Calculate summary values based on filtered data
+      const calculatedSummary = {
+        totalProviders: mappedData.length,
+        averageWRVUPercentile: mappedData.reduce((sum, provider) => sum + (provider.wrvuPercentile || 0), 0) / (mappedData.length || 1),
+        averagePlanProgress: mappedData.reduce((sum, provider) => sum + (provider.planProgress || 0), 0) / (mappedData.length || 1),
+        totalWRVUs: mappedData.reduce((sum, provider) => sum + (provider.monthlyWRVUs || 0), 0),
+        totalCompensation: mappedData.reduce((sum, provider) => sum + (provider.totalCompensation || 0), 0)
+      };
+      
+      // Update the data state with filtered results
+      setData(mappedData);
+      setSummary(calculatedSummary);
+      
+      // Update pagination based on filtered data
+      setTotalItems(mappedData.length);
+      setTotalPages(Math.ceil(mappedData.length / itemsPerPage));
+      
+      // Reset to first page if current page is out of bounds
+      if (currentPage > Math.ceil(mappedData.length / itemsPerPage)) {
+        setCurrentPage(1);
+      }
     } catch (error) {
-      console.error('Error fetching report data:', error);
+      console.error('Error fetching data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch data. Please try again.",
+        variant: "destructive"
+      });
+      // Set empty states on error
       setData([]);
       setSummary(null);
+      setTotalItems(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
   };
 
-  // Fetch data when filters or page changes
   useEffect(() => {
     fetchData();
   }, [filters, currentPage]);
@@ -234,11 +332,12 @@ export default function MonthlyPerformanceReport() {
 
   const handleResetFilters = () => {
     setFilters({
-      year: new Date().getFullYear(),
       month: new Date().getMonth() + 1,
       specialty: 'all',
       department: 'all',
       status: 'Active',
+      searchQuery: '',
+      compModel: 'Select All',
       wrvuPercentileMin: '',
       wrvuPercentileMax: '',
       compPercentileMin: '',
@@ -249,8 +348,8 @@ export default function MonthlyPerformanceReport() {
       missingWRVUs: false,
       nonClinicalOnly: false,
       inactiveOnly: false,
-      fteRange: [0, 1.0] as [number, number],
-      baseSalaryRange: [0, 2000000] as [number, number]
+      fteRange: [0, 1.0],
+      baseSalaryRange: [0, 2000000]
     });
   };
 
@@ -260,8 +359,8 @@ export default function MonthlyPerformanceReport() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Monthly Provider Performance Summary</h1>
         <Button 
           onClick={handleRecalculate}
@@ -273,7 +372,7 @@ export default function MonthlyPerformanceReport() {
 
       {/* Summary Cards */}
       {summary && (
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-5 gap-4 mb-6">
           <Card className="bg-white shadow hover:shadow-md transition-all">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Providers</CardTitle>
@@ -364,36 +463,21 @@ export default function MonthlyPerformanceReport() {
         {isFiltersVisible && (
           <CardContent>
             <div className="space-y-8">
-              {/* Date, Specialty, and Department Filters */}
-              <div className="grid grid-cols-4 gap-6">
-                <div className="space-y-3">
-                  <label className="text-sm font-medium text-gray-700">Year</label>
-                  <Select
-                    value={filters.year.toString()}
-                    onValueChange={(value) => handleFilterChange('year', parseInt(value))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="2024">2024</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
+              {/* Date, Specialty, Department, and Comp Model Filters */}
+              <div className="grid grid-cols-5 gap-6">
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-gray-700">Month</label>
                   <Select
                     value={filters.month.toString()}
-                    onValueChange={(value) => handleFilterChange('month', parseInt(value))}
+                    onValueChange={(value) => setFilters(prev => ({ ...prev, month: parseInt(value) }))}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Month" />
+                      <SelectValue placeholder="Select month" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                        <SelectItem key={month} value={month.toString()}>
-                          {new Date(2000, month - 1).toLocaleString('default', { month: 'long' })}
+                      {months.map((month, index) => (
+                        <SelectItem key={month} value={(index + 1).toString()}>
+                          {month}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -401,13 +485,24 @@ export default function MonthlyPerformanceReport() {
                 </div>
 
                 <div className="space-y-3">
+                  <label className="text-sm font-medium text-gray-700">Search</label>
+                  <Input
+                    type="text"
+                    placeholder="Search providers..."
+                    value={filters.searchQuery}
+                    onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="space-y-3">
                   <label className="text-sm font-medium text-gray-700">Specialty</label>
                   <Select
                     value={filters.specialty}
-                    onValueChange={(value) => handleFilterChange('specialty', value)}
+                    onValueChange={(value) => setFilters(prev => ({ ...prev, specialty: value }))}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="All Specialties" />
+                      <SelectValue placeholder="Select specialty" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Specialties</SelectItem>
@@ -422,18 +517,58 @@ export default function MonthlyPerformanceReport() {
 
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-gray-700">Department</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between"
+                      >
+                        {filters.department === 'all' ? 'All Departments' : filters.department}
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search departments..." />
+                        <CommandEmpty>No department found.</CommandEmpty>
+                        <CommandGroup className="max-h-[300px] overflow-auto">
+                          <CommandItem
+                            value="all"
+                            onSelect={() => setFilters(prev => ({ ...prev, department: 'all' }))}
+                            className="cursor-pointer"
+                          >
+                            All Departments
+                          </CommandItem>
+                          {departments.map((department) => (
+                            <CommandItem
+                              key={department}
+                              value={department}
+                              onSelect={() => setFilters(prev => ({ ...prev, department }))}
+                              className="cursor-pointer"
+                            >
+                              {department}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-gray-700">Comp Model</label>
                   <Select
-                    value={filters.department}
-                    onValueChange={(value) => handleFilterChange('department', value)}
+                    value={filters.compModel}
+                    onValueChange={(value) => setFilters(prev => ({ ...prev, compModel: value }))}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="All Departments" />
+                      <SelectValue placeholder="Select comp model" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Departments</SelectItem>
-                      {departments.map((department) => (
-                        <SelectItem key={department} value={department}>
-                          {department}
+                      {compModels.map((model) => (
+                        <SelectItem key={model} value={model}>
+                          {model}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -499,6 +634,7 @@ export default function MonthlyPerformanceReport() {
                       <TableHead>Provider</TableHead>
                       <TableHead>Specialty</TableHead>
                       <TableHead>Department</TableHead>
+                      <TableHead>Comp Model</TableHead>
                       <TableHead className="text-right">Monthly WRVUs</TableHead>
                       <TableHead className="text-right">Monthly Target</TableHead>
                       <TableHead className="text-right">YTD WRVUs</TableHead>
@@ -523,6 +659,7 @@ export default function MonthlyPerformanceReport() {
                         </TableCell>
                         <TableCell>{provider.specialty}</TableCell>
                         <TableCell>{provider.department}</TableCell>
+                        <TableCell>{provider.compensationModel}</TableCell>
                         <TableCell className="text-right">{provider.monthlyWRVUs ? formatNumber(provider.monthlyWRVUs) : '-'}</TableCell>
                         <TableCell className="text-right">{provider.targetWRVUs ? formatNumber(provider.targetWRVUs) : '-'}</TableCell>
                         <TableCell className="text-right">{provider.ytdWRVUs ? formatNumber(provider.ytdWRVUs) : '-'}</TableCell>
@@ -578,8 +715,8 @@ export default function MonthlyPerformanceReport() {
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
                         className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                      >
-                        Previous
+                >
+                  Previous
                       </button>
                       {Array.from({ length: Math.min(4, Math.ceil(data.length / itemsPerPage)) }, (_, i) => i + 1).map((page) => (
                         <button
@@ -599,8 +736,8 @@ export default function MonthlyPerformanceReport() {
                         onClick={() => setCurrentPage(p => Math.min(Math.ceil(data.length / itemsPerPage), p + 1))}
                         disabled={currentPage === Math.ceil(data.length / itemsPerPage)}
                         className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                      >
-                        Next
+                >
+                  Next
                       </button>
                     </nav>
                   </div>
