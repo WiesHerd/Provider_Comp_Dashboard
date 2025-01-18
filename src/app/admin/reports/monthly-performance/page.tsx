@@ -734,13 +734,13 @@ export default function MonthlyPerformanceReport() {
                         <TableCell className="text-right">{formatCurrency(provider.baseSalary)}</TableCell>
                         <TableCell className="text-right">{formatCurrency(provider.totalCompensation)}</TableCell>
                         <TableCell className={cn(
-                          "text-right",
+                          "text-right font-medium",
                           // Light yellow for 60-70th percentile
-                          provider.compPercentile > 60 && provider.compPercentile <= 70 && "bg-yellow-50 text-yellow-800",
+                          provider.compPercentile > 60 && provider.compPercentile <= 70 && "bg-yellow-100 text-yellow-900",
                           // Deeper yellow/amber for 70-80th percentile
-                          provider.compPercentile > 70 && provider.compPercentile <= 80 && "bg-amber-100 text-amber-800",
+                          provider.compPercentile > 70 && provider.compPercentile <= 80 && "bg-amber-200 text-amber-900",
                           // Red for 80-100th percentile
-                          provider.compPercentile > 80 && "bg-red-50 text-red-800"
+                          provider.compPercentile > 80 && "bg-red-200 text-red-900"
                         )}>
                           {formatPercent(provider.compPercentile)}
                         </TableCell>
