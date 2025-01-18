@@ -181,7 +181,21 @@ export default function MonthlyPerformanceReport() {
         provider.baseSalary <= filters.baseSalaryRange[1]
       ));
 
-      const matches = searchMatch && specialtyMatch && departmentMatch && compModelMatch && fteMatch && salaryMatch;
+      // Comp Percentile Range filter
+      const compPercentileMatch = (
+        (!filters.compPercentileMin || provider.compPercentile >= parseInt(filters.compPercentileMin)) &&
+        (!filters.compPercentileMax || provider.compPercentile <= parseInt(filters.compPercentileMax))
+      );
+
+      // WRVU Percentile Range filter
+      const wrvuPercentileMatch = (
+        (!filters.wrvuPercentileMin || provider.wrvuPercentile >= parseInt(filters.wrvuPercentileMin)) &&
+        (!filters.wrvuPercentileMax || provider.wrvuPercentile <= parseInt(filters.wrvuPercentileMax))
+      );
+
+      const matches = searchMatch && specialtyMatch && departmentMatch && 
+        compModelMatch && fteMatch && salaryMatch && 
+        compPercentileMatch && wrvuPercentileMatch;
       
       if (!matches) {
         console.log('Provider filtered out:', {
@@ -191,7 +205,9 @@ export default function MonthlyPerformanceReport() {
           departmentMatch,
           compModelMatch,
           fteMatch,
-          salaryMatch
+          salaryMatch,
+          compPercentileMatch,
+          wrvuPercentileMatch
         });
       }
 
@@ -577,7 +593,7 @@ export default function MonthlyPerformanceReport() {
               </div>
 
               {/* Range Sliders */}
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-4 gap-6">
                 {/* FTE Range */}
                 <div className="p-4 border rounded-lg bg-white space-y-4">
                   <label className="block text-sm font-medium text-gray-700">FTE Range</label>
@@ -607,6 +623,56 @@ export default function MonthlyPerformanceReport() {
                   <div className="flex justify-between text-xs text-gray-500">
                     <span>${filters.baseSalaryRange[0].toLocaleString()}</span>
                     <span>${filters.baseSalaryRange[1].toLocaleString()}</span>
+                  </div>
+                </div>
+
+                {/* Comp Percentile Range */}
+                <div className="p-4 border rounded-lg bg-white space-y-4">
+                  <label className="block text-sm font-medium text-gray-700">Comp Percentile Range</label>
+                  <DualRangeSlider
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={[
+                      filters.compPercentileMin ? parseInt(filters.compPercentileMin) : 0,
+                      filters.compPercentileMax ? parseInt(filters.compPercentileMax) : 100
+                    ]}
+                    onChange={(value: [number, number]) => {
+                      setFilters(prev => ({
+                        ...prev,
+                        compPercentileMin: value[0].toString(),
+                        compPercentileMax: value[1].toString()
+                      }));
+                    }}
+                  />
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>{filters.compPercentileMin || '0'}%</span>
+                    <span>{filters.compPercentileMax || '100'}%</span>
+                  </div>
+                </div>
+
+                {/* WRVU Percentile Range */}
+                <div className="p-4 border rounded-lg bg-white space-y-4">
+                  <label className="block text-sm font-medium text-gray-700">WRVU Percentile Range</label>
+                  <DualRangeSlider
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={[
+                      filters.wrvuPercentileMin ? parseInt(filters.wrvuPercentileMin) : 0,
+                      filters.wrvuPercentileMax ? parseInt(filters.wrvuPercentileMax) : 100
+                    ]}
+                    onChange={(value: [number, number]) => {
+                      setFilters(prev => ({
+                        ...prev,
+                        wrvuPercentileMin: value[0].toString(),
+                        wrvuPercentileMax: value[1].toString()
+                      }));
+                    }}
+                  />
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>{filters.wrvuPercentileMin || '0'}%</span>
+                    <span>{filters.wrvuPercentileMax || '100'}%</span>
                   </div>
                 </div>
               </div>
