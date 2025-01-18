@@ -25,16 +25,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, Users, TrendingUp, Target, DollarSign, Activity, ChevronDown, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Users, TrendingUp, Target, DollarSign, Activity, ChevronDown, Filter, X } from 'lucide-react';
 import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { Switch } from "../../../../components/ui/switch";
 import { DualRangeSlider } from "../../../../components/ui/dual-range-slider";
 import Link from 'next/link';
-
-function classNames(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ');
-}
+import { useRouter } from 'next/navigation';
+import { cn } from "@/lib/utils";
 
 interface FilterState {
   year: number;
@@ -81,12 +79,14 @@ export default function MonthlyPerformanceReport() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
-  const [page, setPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 10;
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [departments, setDepartments] = useState<string[]>([]);
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
-  const ITEMS_PER_PAGE = 20;
+  const router = useRouter();
 
   // Calculate active filter count
   const getActiveFilterCount = () => {
@@ -128,7 +128,8 @@ export default function MonthlyPerformanceReport() {
       const queryParams = new URLSearchParams({
         year: filters.year.toString(),
         month: filters.month.toString(),
-        page: page.toString(),
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
         ...(filters.specialty !== 'all' && { specialty: filters.specialty }),
         ...(filters.department !== 'all' && { department: filters.department }),
         ...(filters.status && { status: filters.status }),
@@ -171,7 +172,8 @@ export default function MonthlyPerformanceReport() {
 
       setData(result.data);
       setSummary(result.summary);
-      setTotalPages(Math.ceil(result.data.length / ITEMS_PER_PAGE));
+      setTotalPages(result.pagination.totalPages);
+      setTotalItems(result.pagination.totalItems);
     } catch (error) {
       console.error('Error fetching report data:', error);
       setData([]);
@@ -184,16 +186,16 @@ export default function MonthlyPerformanceReport() {
   // Fetch data when filters or page changes
   useEffect(() => {
     fetchData();
-  }, [filters, page]);
+  }, [filters, currentPage]);
 
   const handleFilterChange = (key: keyof FilterState, value: string | number) => {
     setFilters(prev => ({ ...prev, [key]: value }));
-    setPage(1); // Reset to first page when filters change
+    setCurrentPage(1); // Reset to first page when filters change
   };
 
   const handleRangeChange = (key: 'fteRange' | 'baseSalaryRange', value: [number, number]) => {
     setFilters(prev => ({ ...prev, [key]: value }));
-    setPage(1);
+    setCurrentPage(1);
   };
 
   const handleRecalculate = async () => {
@@ -250,6 +252,11 @@ export default function MonthlyPerformanceReport() {
       fteRange: [0, 1.0] as [number, number],
       baseSalaryRange: [0, 2000000] as [number, number]
     });
+  };
+
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   return (
@@ -441,7 +448,7 @@ export default function MonthlyPerformanceReport() {
                   <label className="block text-sm font-medium text-gray-700">FTE Range</label>
                   <DualRangeSlider
                     min={0}
-                    max={1}
+                    max={2}
                     step={0.1}
                     value={filters.fteRange as [number, number]}
                     onChange={(value: [number, number]) => handleRangeChange('fteRange', value)}
@@ -504,10 +511,8 @@ export default function MonthlyPerformanceReport() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {data
-                      .slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
-                      .map((provider) => (
-                      <TableRow key={provider.id}>
+                    {data.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((provider) => (
+                      <TableRow key={provider.employeeId}>
                         <TableCell>
                           <Link
                             href={`/provider/${provider.employeeId}`}
@@ -534,31 +539,33 @@ export default function MonthlyPerformanceReport() {
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between border-t px-2 py-3 sm:px-6">
+              <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
                 <div className="flex flex-1 justify-between sm:hidden">
-                  <Button
-                    variant="outline"
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page === 1}
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                   >
                     Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(Math.ceil(data.length / itemsPerPage), p + 1))}
+                    disabled={currentPage === Math.ceil(data.length / itemsPerPage)}
+                    className="relative ml-3 inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                   >
                     Next
-                  </Button>
+                  </button>
                 </div>
                 <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm text-gray-700">
                       Showing{' '}
-                      <span className="font-medium">{((page - 1) * ITEMS_PER_PAGE) + 1}</span>{' '}
+                      <span className="font-medium">
+                        {data.length === 0 ? 0 : ((currentPage - 1) * itemsPerPage) + 1}
+                      </span>{' '}
                       to{' '}
                       <span className="font-medium">
-                        {Math.min(page * ITEMS_PER_PAGE, data.length)}
+                        {Math.min(currentPage * itemsPerPage, data.length)}
                       </span>{' '}
                       of{' '}
                       <span className="font-medium">{data.length}</span>{' '}
@@ -567,37 +574,34 @@ export default function MonthlyPerformanceReport() {
                   </div>
                   <div>
                     <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-                      <Button
-                        variant="outline"
-                        className="relative inline-flex items-center rounded-l-md px-2 py-2 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        disabled={page === 1}
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
                       >
-                        <span className="sr-only">Previous</span>
-                        <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-                      </Button>
-                      {[...Array(Math.min(4, totalPages))].map((_, i) => (
-                        <Button
-                          key={i + 1}
-                          variant={page === i + 1 ? "default" : "outline"}
-                          className={classNames(
-                            "relative inline-flex items-center px-4 py-2 text-sm font-semibold",
-                            page === i + 1 ? "z-10 bg-indigo-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600" : "text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                        Previous
+                      </button>
+                      {Array.from({ length: Math.min(4, Math.ceil(data.length / itemsPerPage)) }, (_, i) => i + 1).map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={cn(
+                            'relative inline-flex items-center px-4 py-2 text-sm font-semibold',
+                            page === currentPage
+                              ? 'z-10 bg-blue-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600'
+                              : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
                           )}
-                          onClick={() => setPage(i + 1)}
                         >
-                          {i + 1}
-                        </Button>
+                          {page}
+                        </button>
                       ))}
-                      <Button
-                        variant="outline"
-                        className="relative inline-flex items-center rounded-r-md px-2 py-2 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                        disabled={page === totalPages}
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(Math.ceil(data.length / itemsPerPage), p + 1))}
+                        disabled={currentPage === Math.ceil(data.length / itemsPerPage)}
+                        className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
                       >
-                        <span className="sr-only">Next</span>
-                        <ChevronRight className="h-5 w-5" aria-hidden="true" />
-                      </Button>
+                        Next
+                      </button>
                     </nav>
                   </div>
                 </div>
