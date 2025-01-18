@@ -748,15 +748,15 @@ export default function MonthlyPerformanceReport() {
                         <TableCell className={cn(
                           "text-right font-medium",
                           // Warning level
-                          provider.compPercentile > riskThresholds.warning && 
+                          provider.compPercentile >= riskThresholds.warning && 
                           provider.compPercentile <= riskThresholds.elevated && 
                           "bg-yellow-100 text-yellow-900",
                           // Elevated level
-                          provider.compPercentile > riskThresholds.elevated && 
+                          provider.compPercentile >= riskThresholds.elevated && 
                           provider.compPercentile <= riskThresholds.critical && 
                           "bg-amber-200 text-amber-900",
                           // Critical level
-                          provider.compPercentile > riskThresholds.critical && 
+                          provider.compPercentile >= riskThresholds.critical && 
                           "bg-red-200 text-red-900"
                         )}>
                           {formatPercent(provider.compPercentile)}
