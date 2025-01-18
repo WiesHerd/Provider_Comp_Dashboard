@@ -71,6 +71,10 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
     }
   }
 
+  const handleCustomClick = () => {
+    setIsCustomDialogOpen(true)
+  }
+
   const handleCustomSubmit = () => {
     const thresholds: RiskThresholds = {
       warning: enabledThresholds.warning ? customThresholds.warning : null,
@@ -101,7 +105,12 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
               {profile.name} ({profile.thresholds.warning}/{profile.thresholds.elevated}/{profile.thresholds.critical})
             </SelectItem>
           ))}
-          <SelectItem value="custom">Custom...</SelectItem>
+          <SelectItem 
+            value="custom" 
+            onSelect={handleCustomClick}
+          >
+            Custom...
+          </SelectItem>
         </SelectContent>
       </Select>
 
