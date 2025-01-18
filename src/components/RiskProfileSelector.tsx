@@ -92,12 +92,7 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
         <SelectContent>
           {defaultProfiles.map((profile) => (
             <SelectItem key={profile.id} value={profile.id}>
-              <div className="flex flex-col gap-0.5">
-                <span className="font-medium text-sm">{profile.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {profile.thresholds.warning}% → {profile.thresholds.elevated}% → {profile.thresholds.critical}%
-                </span>
-              </div>
+              <span className="font-medium text-sm">{profile.name}</span>
             </SelectItem>
           ))}
           <SelectItem value="custom">
