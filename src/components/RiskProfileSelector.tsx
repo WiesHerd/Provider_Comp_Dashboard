@@ -15,6 +15,7 @@ export interface RiskThresholds {
 export interface RiskProfile {
   id: string
   name: string
+  description: string
   thresholds: RiskThresholds
 }
 
@@ -22,16 +23,19 @@ const defaultProfiles: RiskProfile[] = [
   {
     id: 'standard',
     name: 'Standard',
+    description: 'Warning at 60%, Elevated at 70%, Critical at 80%',
     thresholds: { warning: 60, elevated: 70, critical: 80 }
   },
   {
     id: 'elevated',
     name: 'Elevated',
+    description: 'Warning at 70%, Elevated at 80%, Critical at 90%',
     thresholds: { warning: 70, elevated: 80, critical: 90 }
   },
   {
     id: 'critical',
     name: 'Critical',
+    description: 'Warning at 80%, Elevated at 90%, Critical at 95%',
     thresholds: { warning: 80, elevated: 90, critical: 95 }
   }
 ]
@@ -92,7 +96,10 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
         <SelectContent>
           {defaultProfiles.map((profile) => (
             <SelectItem key={profile.id} value={profile.id}>
-              <span className="font-medium text-sm">{profile.name}</span>
+              <div className="flex flex-col gap-0.5">
+                <span className="font-medium text-sm">{profile.name}</span>
+                <span className="text-xs text-muted-foreground">{profile.description}</span>
+              </div>
             </SelectItem>
           ))}
           <SelectItem value="custom">
