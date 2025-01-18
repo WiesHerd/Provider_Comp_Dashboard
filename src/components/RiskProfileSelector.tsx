@@ -58,6 +58,9 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
   const handleProfileChange = (value: string) => {
     if (value === 'custom') {
       setIsCustomDialogOpen(true)
+      if (selectedProfile !== 'custom') {
+        setSelectedProfile('custom')
+      }
       return
     }
 
