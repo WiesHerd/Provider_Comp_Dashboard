@@ -82,22 +82,22 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
 
   return (
     <div className={className}>
-      <div className="border rounded-lg p-3 w-[200px]">
-        <Label className="text-xs font-medium text-muted-foreground mb-2 block">
-          Risk Profile Settings
+      <div className="border rounded-lg p-2 w-[160px]">
+        <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+          Risk Profile
         </Label>
         <Select 
           value={selectedProfile} 
           onValueChange={handleProfileChange}
         >
-          <SelectTrigger className="w-full mb-2">
+          <SelectTrigger className="w-full text-sm">
             <SelectValue placeholder="Select profile" />
           </SelectTrigger>
           <SelectContent>
             {defaultProfiles.map((profile) => (
               <SelectItem key={profile.id} value={profile.id}>
                 <div className="flex flex-col gap-0.5">
-                  <span className="font-medium">{profile.name}</span>
+                  <span className="font-medium text-sm">{profile.name}</span>
                   <span className="text-xs text-muted-foreground">
                     {profile.thresholds.warning}% → {profile.thresholds.elevated}% → {profile.thresholds.critical}%
                   </span>
@@ -109,7 +109,7 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
         <Button 
           variant="ghost"
           size="sm"
-          className="w-full justify-start text-muted-foreground hover:text-foreground -mt-1"
+          className="w-full justify-start text-xs text-muted-foreground hover:text-foreground -mt-1"
           onClick={() => {
             setSelectedProfile('custom')
             setIsCustomDialogOpen(true)
