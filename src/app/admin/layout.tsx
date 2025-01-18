@@ -18,7 +18,7 @@ import { usePathname } from 'next/navigation';
 // Group navigation items by category
 const navigation = [
   {
-    category: 'PROVIDER SYSTEM',
+    category: 'COMPENSATION SYSTEM',
     items: [
       { 
         name: 'Main Menu', 
@@ -92,11 +92,11 @@ export default function AdminLayout({
         <nav className="h-full py-4 flex flex-col">
           {navigation.map((group) => (
             <div key={group.category} className={`space-y-1 px-2 ${
-              group.category === 'PROVIDER SYSTEM' ? 'mb-8' : 'mb-6'
+              group.category === 'COMPENSATION SYSTEM' ? 'mb-8' : 'mb-6'
             }`}>
               {!isCollapsed && (
-                <h3 className={`px-2 text-[11px] font-semibold text-gray-400 uppercase tracking-wider ${
-                  group.category === 'PROVIDER SYSTEM' ? 'mb-4' : 'mb-2'
+                <h3 className={`px-2 text-xs font-semibold text-gray-400 uppercase tracking-wider ${
+                  group.category === 'COMPENSATION SYSTEM' ? 'mb-4' : 'mb-2'
                 }`}>
                   {group.category}
                 </h3>
