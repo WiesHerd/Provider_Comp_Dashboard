@@ -82,51 +82,44 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
 
   return (
     <div className={className}>
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-muted-foreground">
+      <div className="space-y-1.5">
+        <Label className="text-sm font-semibold">
           Risk Profile Settings
         </Label>
-        <div className="flex gap-3 items-center">
-          <div className="flex-1">
-            <Select 
-              value={selectedProfile} 
-              onValueChange={handleProfileChange}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Choose a predefined risk profile">
-                  {defaultProfiles.find(p => p.id === selectedProfile)?.name || 'Select risk profile'}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {defaultProfiles.map((profile) => (
-                  <SelectItem key={profile.id} value={profile.id}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{profile.name}</span>
-                      <span className="text-sm text-muted-foreground">
-                        Warning: {profile.thresholds.warning}% / 
-                        Elevated: {profile.thresholds.elevated}% / 
-                        Critical: {profile.thresholds.critical}%
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center">
-            <span className="mx-2 text-muted-foreground">or</span>
-            <Button 
-              variant="secondary"
-              size="default"
-              className="font-medium"
-              onClick={() => {
-                setSelectedProfile('custom')
-                setIsCustomDialogOpen(true)
-              }}
-            >
-              Create Custom Profile
-            </Button>
-          </div>
+        <div className="flex items-center gap-2">
+          <Select 
+            value={selectedProfile} 
+            onValueChange={handleProfileChange}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select profile">
+                {defaultProfiles.find(p => p.id === selectedProfile)?.name || 'Select profile'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {defaultProfiles.map((profile) => (
+                <SelectItem key={profile.id} value={profile.id}>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-medium">{profile.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {profile.thresholds.warning}% → {profile.thresholds.elevated}% → {profile.thresholds.critical}%
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button 
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              setSelectedProfile('custom')
+              setIsCustomDialogOpen(true)
+            }}
+          >
+            + Custom
+          </Button>
         </div>
       </div>
 
