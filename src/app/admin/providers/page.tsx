@@ -741,32 +741,41 @@ export default function ProvidersPage() {
   };
 
   const handleDeleteProviders = async () => {
-    if (!selectedProviders.length) return;
+    if (selectedProviders.length === 0) return;
 
-    if (!confirm(`Are you sure you want to delete ${selectedProviders.length} provider(s)?`)) {
+    if (!confirm(`Are you sure you want to delete ${selectedProviders.length} provider(s)? This action cannot be undone.`)) {
       return;
     }
 
-    try {
-      const response = await fetch('/api/providers', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ids: selectedProviders }),
-      });
+    const deleteProviders = async () => {
+      try {
+        const deletePromises = selectedProviders.map(async (id) => {
+          const provider = providers.find(p => p.id === id);
+          if (!provider) return;
 
-      if (!response.ok) {
-        throw new Error('Failed to delete providers');
+          const response = await fetch(`/api/providers/employee/${provider.employeeId}`, {
+            method: 'DELETE',
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to delete provider ${provider.employeeId}`);
+          }
+        });
+
+        await Promise.all(deletePromises);
+
+        // Remove deleted providers from state
+        setProviders(prevProviders => 
+          prevProviders.filter(provider => !selectedProviders.includes(provider.id))
+        );
+        setSelectedProviders([]);
+      } catch (error) {
+        console.error('Error deleting providers:', error);
+        alert('Failed to delete one or more providers. Please try again.');
       }
+    };
 
-      await fetchProviders(); // Refresh the list
-      setSelectedProviders([]); // Clear selection
-      alert('Providers deleted successfully');
-    } catch (error) {
-      console.error('Error deleting providers:', error);
-      alert('Failed to delete providers. Please try again.');
-    }
+    deleteProviders();
   };
 
   const handleTermination = async () => {
@@ -1190,11 +1199,41 @@ export default function ProvidersPage() {
                     </button>
                     <button
                       onClick={() => {
-                        const provider = providers.find(p => p.id === selectedProviders[0]);
-                        if (provider) {
-                          setSelectedProviderForTermination(provider);
-                          setIsTerminationModalOpen(true);
+                        if (selectedProviders.length === 0) return;
+
+                        if (!confirm(`Are you sure you want to delete ${selectedProviders.length} provider(s)? This action cannot be undone.`)) {
+                          return;
                         }
+
+                        const deleteProviders = async () => {
+                          try {
+                            const deletePromises = selectedProviders.map(async (id) => {
+                              const provider = providers.find(p => p.id === id);
+                              if (!provider) return;
+
+                              const response = await fetch(`/api/providers/employee/${provider.employeeId}`, {
+                                method: 'DELETE',
+                              });
+
+                              if (!response.ok) {
+                                throw new Error(`Failed to delete provider ${provider.employeeId}`);
+                              }
+                            });
+
+                            await Promise.all(deletePromises);
+
+                            // Remove deleted providers from state
+                            setProviders(prevProviders => 
+                              prevProviders.filter(provider => !selectedProviders.includes(provider.id))
+                            );
+                            setSelectedProviders([]);
+                          } catch (error) {
+                            console.error('Error deleting providers:', error);
+                            alert('Failed to delete one or more providers. Please try again.');
+                          }
+                        };
+
+                        deleteProviders();
                       }}
                       className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                     >

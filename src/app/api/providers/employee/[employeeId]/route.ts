@@ -94,4 +94,65 @@ export async function GET(
       { status: 500 }
     );
   }
+}
+
+// DELETE /api/providers/employee/[employeeId] - Delete a provider by employeeId
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: { employeeId: string } }
+) {
+  try {
+    const { employeeId } = params;
+
+    // First find the provider to get their ID
+    const provider = await prisma.provider.findUnique({
+      where: { employeeId }
+    });
+
+    if (!provider) {
+      return NextResponse.json(
+        { error: 'Provider not found' },
+        { status: 404 }
+      );
+    }
+
+    // Delete all related records in the correct order
+    await prisma.$transaction(async (tx) => {
+      // Delete provider settings
+      await tx.providerSettings.deleteMany({
+        where: { providerId: provider.id }
+      });
+
+      // Delete provider analytics
+      await tx.providerAnalytics.deleteMany({
+        where: { providerId: provider.id }
+      });
+
+      // Delete WRVU data and history
+      const wrvuData = await tx.wRVUData.findMany({
+        where: { providerId: provider.id }
+      });
+      for (const wrvu of wrvuData) {
+        await tx.wRVUHistory.deleteMany({
+          where: { wrvuDataId: wrvu.id }
+        });
+      }
+      await tx.wRVUData.deleteMany({
+        where: { providerId: provider.id }
+      });
+
+      // Finally delete the provider
+      await tx.provider.delete({
+        where: { id: provider.id }
+      });
+    });
+
+    return NextResponse.json({ message: 'Provider deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting provider:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete provider' },
+      { status: 500 }
+    );
+  }
 } 
