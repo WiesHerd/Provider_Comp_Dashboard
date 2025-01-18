@@ -4,11 +4,12 @@ import { Button } from './ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
+import { Switch } from './ui/switch'
 
 export interface RiskThresholds {
-  warning: number    // First threshold (e.g., 60)
-  elevated: number   // Second threshold (e.g., 70)
-  critical: number   // Third threshold (e.g., 80)
+  warning: number | null    // First threshold (e.g., 60)
+  elevated: number | null   // Second threshold (e.g., 70)
+  critical: number | null   // Third threshold (e.g., 80)
 }
 
 export interface RiskProfile {
@@ -18,11 +19,6 @@ export interface RiskProfile {
 }
 
 const defaultProfiles: RiskProfile[] = [
-  {
-    id: '75th',
-    name: '75th Percentile',
-    thresholds: { warning: 75, elevated: 75, critical: 75 }
-  },
   {
     id: 'standard',
     name: 'Standard',
@@ -52,6 +48,11 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
     elevated: 70,
     critical: 80
   })
+  const [enabledThresholds, setEnabledThresholds] = useState({
+    warning: true,
+    elevated: true,
+    critical: true
+  })
   const [isCustomDialogOpen, setIsCustomDialogOpen] = useState(false)
 
   const handleProfileChange = (value: string) => {
@@ -68,8 +69,13 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
   }
 
   const handleCustomSubmit = () => {
+    const thresholds: RiskThresholds = {
+      warning: enabledThresholds.warning ? customThresholds.warning : null,
+      elevated: enabledThresholds.elevated ? customThresholds.elevated : null,
+      critical: enabledThresholds.critical ? customThresholds.critical : null
+    }
     setSelectedProfile('custom')
-    onProfileChange(customThresholds)
+    onProfileChange(thresholds)
     setIsCustomDialogOpen(false)
   }
 
@@ -95,46 +101,61 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
             <DialogTitle>Custom Risk Profile</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="warning" className="text-right">
-                Warning at
+            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4">
+              <Label htmlFor="warning-enabled" className="text-right">
+                Warning Level
               </Label>
               <Input
                 id="warning"
                 type="number"
                 min={0}
                 max={100}
-                value={customThresholds.warning}
+                value={customThresholds.warning ?? ''}
                 onChange={(e) => setCustomThresholds(prev => ({ ...prev, warning: Number(e.target.value) }))}
-                className="col-span-3"
+                disabled={!enabledThresholds.warning}
+              />
+              <Switch
+                id="warning-enabled"
+                checked={enabledThresholds.warning}
+                onCheckedChange={(checked) => setEnabledThresholds(prev => ({ ...prev, warning: checked }))}
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="elevated" className="text-right">
-                Elevated at
+            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4">
+              <Label htmlFor="elevated-enabled" className="text-right">
+                Elevated Level
               </Label>
               <Input
                 id="elevated"
                 type="number"
                 min={0}
                 max={100}
-                value={customThresholds.elevated}
+                value={customThresholds.elevated ?? ''}
                 onChange={(e) => setCustomThresholds(prev => ({ ...prev, elevated: Number(e.target.value) }))}
-                className="col-span-3"
+                disabled={!enabledThresholds.elevated}
+              />
+              <Switch
+                id="elevated-enabled"
+                checked={enabledThresholds.elevated}
+                onCheckedChange={(checked) => setEnabledThresholds(prev => ({ ...prev, elevated: checked }))}
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="critical" className="text-right">
-                Critical at
+            <div className="grid grid-cols-[auto_1fr_auto] items-center gap-4">
+              <Label htmlFor="critical-enabled" className="text-right">
+                Critical Level
               </Label>
               <Input
                 id="critical"
                 type="number"
                 min={0}
                 max={100}
-                value={customThresholds.critical}
+                value={customThresholds.critical ?? ''}
                 onChange={(e) => setCustomThresholds(prev => ({ ...prev, critical: Number(e.target.value) }))}
-                className="col-span-3"
+                disabled={!enabledThresholds.critical}
+              />
+              <Switch
+                id="critical-enabled"
+                checked={enabledThresholds.critical}
+                onCheckedChange={(checked) => setEnabledThresholds(prev => ({ ...prev, critical: checked }))}
               />
             </div>
           </div>
