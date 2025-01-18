@@ -1,15 +1,15 @@
 import { useState } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Button } from './ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Switch } from './ui/switch'
 
 export interface RiskThresholds {
-  warning: number | null    // First threshold (e.g., 60)
-  elevated: number | null   // Second threshold (e.g., 70)
-  critical: number | null   // Third threshold (e.g., 80)
+  warning: number | null
+  elevated: number | null
+  critical: number | null
 }
 
 export interface RiskProfile {
@@ -79,15 +79,6 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
     setIsCustomDialogOpen(false)
   }
 
-  // Get display text for custom profile
-  const getCustomDisplayText = () => {
-    const parts = []
-    if (enabledThresholds.warning) parts.push(customThresholds.warning)
-    if (enabledThresholds.elevated) parts.push(customThresholds.elevated)
-    if (enabledThresholds.critical) parts.push(customThresholds.critical)
-    return parts.length > 0 ? `Custom (${parts.join('/')})` : 'Custom...'
-  }
-
   return (
     <div className={className}>
       <Select 
@@ -96,7 +87,7 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
       >
         <SelectTrigger className="w-[200px]">
           <SelectValue>
-            {selectedProfile === 'custom' ? getCustomDisplayText() : (
+            {selectedProfile === 'custom' ? 'Custom' : (
               defaultProfiles.find(p => p.id === selectedProfile)?.name || 'Select risk profile'
             )}
           </SelectValue>
@@ -107,23 +98,9 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
               {profile.name} ({profile.thresholds.warning}/{profile.thresholds.elevated}/{profile.thresholds.critical})
             </SelectItem>
           ))}
-          <SelectItem value="custom">
-            {selectedProfile === 'custom' ? getCustomDisplayText() : 'Custom...'}
-          </SelectItem>
+          <SelectItem value="custom">Custom...</SelectItem>
         </SelectContent>
       </Select>
-
-      {/* Edit button for custom profile */}
-      {selectedProfile === 'custom' && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="ml-2 h-8 px-2"
-          onClick={() => setIsCustomDialogOpen(true)}
-        >
-          Edit
-        </Button>
-      )}
 
       <Dialog open={isCustomDialogOpen} onOpenChange={setIsCustomDialogOpen}>
         <DialogContent>
