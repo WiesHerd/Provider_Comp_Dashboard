@@ -480,7 +480,7 @@ export default function MonthlyPerformanceReport() {
           <CardContent>
             <div className="space-y-8">
               {/* Date, Specialty, Department, and Comp Model Filters */}
-              <div className="grid grid-cols-5 gap-6">
+              <div className="grid grid-cols-4 gap-6">
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-gray-700">Month</label>
                   <Select
@@ -498,16 +498,6 @@ export default function MonthlyPerformanceReport() {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-sm font-medium text-gray-700">Provider Name Search</label>
-                  <Input
-                    placeholder="Search by provider name..."
-                    value={filters.searchQuery}
-                    onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
-                    className="w-full"
-                  />
                 </div>
 
                 <div className="space-y-3">
@@ -683,7 +673,17 @@ export default function MonthlyPerformanceReport() {
       {/* Data Table */}
       <Card className="border rounded-xl overflow-hidden">
         <CardHeader>
-          <CardTitle>Provider Performance Details</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Provider Performance Details</CardTitle>
+            <div className="w-72">
+              <Input
+                placeholder="Search by provider name..."
+                value={filters.searchQuery}
+                onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
+                className="w-full"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
