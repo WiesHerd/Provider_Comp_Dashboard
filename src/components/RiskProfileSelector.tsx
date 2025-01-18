@@ -85,34 +85,39 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
 
   return (
     <div className={className}>
-      <Select 
-        value={selectedProfile} 
-        onValueChange={handleProfileChange}
-      >
-        <SelectTrigger className="w-[160px] text-sm">
-          <SelectValue>
-            {selectedProfile === 'custom' ? 'Custom...' : 
-             defaultProfiles.find(p => p.id === selectedProfile)?.name}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {defaultProfiles.map((profile) => (
-            <SelectItem key={profile.id} value={profile.id}>
-              <div className="flex flex-col gap-0.5">
-                <span className="font-medium text-sm">{profile.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  Warning at {profile.thresholds.warning}%,{' '}
-                  Elevated at {profile.thresholds.elevated}%,{' '}
-                  Critical at {profile.thresholds.critical}%
-                </span>
-              </div>
-            </SelectItem>
-          ))}
-          <SelectItem value="custom">
-            <span className="font-medium text-sm">Custom...</span>
-          </SelectItem>
-        </SelectContent>
-      </Select>
+      <div className="flex items-center gap-2">
+        <Select 
+          value={selectedProfile} 
+          onValueChange={handleProfileChange}
+        >
+          <SelectTrigger className="w-[160px] text-sm">
+            <SelectValue>
+              {defaultProfiles.find(p => p.id === selectedProfile)?.name}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {defaultProfiles.map((profile) => (
+              <SelectItem key={profile.id} value={profile.id}>
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-medium text-sm">{profile.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    Warning at {profile.thresholds.warning}%,{' '}
+                    Elevated at {profile.thresholds.elevated}%,{' '}
+                    Critical at {profile.thresholds.critical}%
+                  </span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => setIsCustomDialogOpen(true)}
+        >
+          Custom...
+        </Button>
+      </div>
 
       <Dialog open={isCustomDialogOpen} onOpenChange={setIsCustomDialogOpen}>
         <DialogContent>
