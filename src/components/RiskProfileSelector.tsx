@@ -104,19 +104,16 @@ export function RiskProfileSelector({ onProfileChange, className }: RiskProfileS
                 </div>
               </SelectItem>
             ))}
+            <SelectItem value="custom">
+              <div className="flex flex-col gap-0.5">
+                <span className="font-medium text-sm">Custom...</span>
+                <span className="text-xs text-muted-foreground">
+                  Define your own thresholds
+                </span>
+              </div>
+            </SelectItem>
           </SelectContent>
         </Select>
-        <Button 
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start text-xs text-muted-foreground hover:text-foreground -mt-1"
-          onClick={() => {
-            setSelectedProfile('custom')
-            setIsCustomDialogOpen(true)
-          }}
-        >
-          + Custom
-        </Button>
       </div>
 
       <Dialog open={isCustomDialogOpen} onOpenChange={setIsCustomDialogOpen}>
