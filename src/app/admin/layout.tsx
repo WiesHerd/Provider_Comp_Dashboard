@@ -10,7 +10,8 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ChartBarSquareIcon,
-  PresentationChartLineIcon
+  PresentationChartLineIcon,
+  BanknotesIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -23,7 +24,7 @@ const navigation = [
       { 
         name: 'Main Menu', 
         href: '/admin', 
-        icon: HomeIcon
+        icon: BanknotesIcon
       }
     ]
   },
@@ -88,86 +89,66 @@ export default function AdminLayout({
       <div className={`fixed inset-y-0 left-0 bg-[#1a1c23] transition-all duration-300 ${
         isCollapsed ? 'w-16' : 'w-64'
       } shadow-xl`}>
-        {/* Navigation */}
-        <nav className="h-full py-4 flex flex-col">
-          {navigation.map((group) => (
-            <div key={group.category} className={`space-y-1 px-2 ${
-              group.category === 'COMPENSATION SYSTEM' ? 'mb-8' : 'mb-6'
-            }`}>
-              {!isCollapsed && (
-                <h3 className={`px-2 text-xs font-semibold text-gray-400 uppercase tracking-wider ${
-                  group.category === 'COMPENSATION SYSTEM' ? 'mb-4' : 'mb-2'
-                }`}>
-                  {group.category}
-                </h3>
-              )}
-              
-              {group.items.map((item) => {
-                const isActive = item.href === '/admin' 
-                  ? pathname === '/admin'
-                  : pathname.startsWith(item.href);
+        <div className="flex flex-col h-full">
+          {/* Navigation */}
+          <nav className="flex-1 px-2 py-4 space-y-6">
+            {navigation.map((section) => (
+              <div key={section.category}>
+                {!isCollapsed && (
+                  <div className="flex items-center px-3 mb-2">
+                    {section.icon && <section.icon className="h-4 w-4 text-gray-400 mr-2" />}
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                      {section.category}
+                    </h3>
+                  </div>
+                )}
+                <div className="mt-2 space-y-1">
+                  {section.items.map((item) => {
+                    const isActive = item.href === '/admin' 
+                      ? pathname === '/admin'
+                      : pathname.startsWith(item.href);
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        className={`
+                          flex items-center px-3 py-2 text-sm rounded-md
+                          transition-all duration-200
+                          ${isActive 
+                            ? 'bg-indigo-500 text-white' 
+                            : 'text-gray-400 hover:bg-gray-800 hover:text-white'}
+                        `}
+                        title={isCollapsed ? item.name : ''}
+                      >
+                        <item.icon 
+                          className={`
+                            ${isCollapsed ? 'mr-0' : 'mr-3'} h-5 w-5 flex-shrink-0
+                          `}
+                          aria-hidden="true" 
+                        />
+                        {!isCollapsed && (
+                          <span>{item.name}</span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </nav>
 
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={`
-                      flex items-center px-3 py-2.5 text-sm font-medium
-                      transition-all duration-200 ease-in-out
-                      group relative
-                      ${isActive 
-                        ? 'bg-indigo-600/90 text-white' 
-                        : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                      }
-                    `}
-                    title={isCollapsed ? item.name : undefined}
-                  >
-                    <item.icon 
-                      className={`
-                        ${isCollapsed ? 'mx-auto' : 'mr-3'} 
-                        h-5 w-5 transition-all duration-200
-                        ${isActive 
-                          ? 'text-white' 
-                          : 'text-gray-400 group-hover:text-white'
-                        }
-                      `}
-                      aria-hidden="true"
-                    />
-                    {!isCollapsed && (
-                      <span className="truncate">{item.name}</span>
-                    )}
-                    
-                    {/* Tooltip for collapsed state */}
-                    {isCollapsed && (
-                      <div className="
-                        absolute left-full ml-3 px-2 py-1
-                        bg-gray-900/90 text-white text-xs
-                        rounded-md opacity-0 group-hover:opacity-100
-                        transition-opacity backdrop-blur-sm
-                        pointer-events-none whitespace-nowrap z-50
-                      ">
-                        {item.name}
-                      </div>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
-
-        {/* Collapse button */}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute bottom-4 -right-3 p-1 bg-[#1a1c23] rounded-full border border-gray-600 text-gray-400 hover:text-white"
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {isCollapsed ? (
-            <ChevronRightIcon className="h-4 w-4" />
-          ) : (
-            <ChevronLeftIcon className="h-4 w-4" />
-          )}
-        </button>
+          {/* Collapse toggle button */}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="absolute bottom-4 -right-3 p-1.5 bg-gray-800 rounded-full text-gray-400 hover:text-white hover:bg-gray-700 transition-colors shadow-lg"
+          >
+            {isCollapsed ? (
+              <ChevronRightIcon className="h-4 w-4" />
+            ) : (
+              <ChevronLeftIcon className="h-4 w-4" />
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Main content */}
