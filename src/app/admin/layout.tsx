@@ -11,7 +11,8 @@ import {
   ChevronRightIcon,
   ChartBarSquareIcon,
   PresentationChartLineIcon,
-  BanknotesIcon
+  BanknotesIcon,
+  CalculatorIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -60,6 +61,11 @@ const navigation = [
         name: 'Reports', 
         href: '/admin/reports/select', 
         icon: ChartBarIcon
+      },
+      {
+        name: 'Percentile Calculator',
+        href: '/admin/tools/percentile-calculator',
+        icon: CalculatorIcon
       }
     ]
   },

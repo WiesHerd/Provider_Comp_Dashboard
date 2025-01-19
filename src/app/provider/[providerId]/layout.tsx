@@ -14,7 +14,8 @@ import {
   ChartBarSquareIcon,
   ArrowLeftIcon,
   Cog6ToothIcon,
-  PresentationChartLineIcon
+  PresentationChartLineIcon,
+  CalculatorIcon
 } from '@heroicons/react/24/outline';
 import JumpToProvider from '@/components/common/JumpToProvider';
 
@@ -62,6 +63,11 @@ const navigation = [
         name: 'Reports', 
         href: '/admin/reports/select', 
         icon: ChartBarIcon
+      },
+      {
+        name: 'Percentile Calculator',
+        href: '/admin/tools/percentile-calculator',
+        icon: CalculatorIcon
       }
     ]
   },
