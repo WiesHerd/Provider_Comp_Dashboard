@@ -45,6 +45,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import * as XLSX from 'xlsx';
 
 interface FilterState {
   month: number;
@@ -374,16 +375,180 @@ export default function MonthlyPerformanceReport() {
     setCurrentPage(page);
   };
 
+  const handleExportToExcel = () => {
+    try {
+      // Create filter summary data
+      const filterSummary = [
+        ['Provider Performance Report - Filter Summary'],
+        [''],
+        ['Report Statistics:'],
+        ['Total Providers:', data.length.toString()],
+        ['Average WRVU Percentile:', formatPercent(summary?.averageWRVUPercentile || 0)],
+        ['Average Plan Progress:', formatPercent(summary?.averagePlanProgress || 0)],
+        ['Total WRVUs:', formatNumber(summary?.totalWRVUs || 0)],
+        ['Total Compensation:', formatCurrency(summary?.totalCompensation || 0)],
+        [''],
+        ['Applied Filters:'],
+        ['Month:', months[filters.month - 1]],
+        ['Specialty:', filters.specialty === 'all' ? 'All Specialties' : filters.specialty],
+        ['Department:', filters.department === 'all' ? 'All Departments' : filters.department],
+        ['Compensation Model:', filters.compModel],
+        ['FTE Range:', `${filters.fteRange[0].toFixed(1)} - ${filters.fteRange[1].toFixed(1)}`],
+        ['Base Salary Range:', `${formatCurrency(filters.baseSalaryRange[0])} - ${formatCurrency(filters.baseSalaryRange[1])}`],
+        ['WRVU Percentile Range:', filters.wrvuPercentileMin || filters.wrvuPercentileMax ? 
+          `${filters.wrvuPercentileMin || '0'}% - ${filters.wrvuPercentileMax || '100'}%` : 'All'],
+        ['Comp Percentile Range:', filters.compPercentileMin || filters.compPercentileMax ? 
+          `${filters.compPercentileMin || '0'}% - ${filters.compPercentileMax || '100'}%` : 'All'],
+        ['Search Query:', filters.searchQuery || 'None'],
+        [''],
+        ['Report Generated:', new Date().toLocaleString()],
+      ];
+
+      // Format the provider data for Excel
+      const excelData = data.map(provider => ({
+        'Provider Name': provider.name,
+        'Specialty': provider.specialty,
+        'Department': provider.department,
+        'Compensation Model': provider.compensationModel,
+        'Monthly WRVUs': formatNumber(provider.monthlyWRVUs || 0),
+        'Monthly Target': formatNumber(provider.targetWRVUs || 0),
+        'YTD WRVUs': formatNumber(provider.ytdWRVUs || 0),
+        'YTD Target': formatNumber(provider.ytdTargetWRVUs || 0),
+        'Plan Progress': formatPercent(provider.planProgress || 0),
+        'WRVU Percentile': formatPercent(provider.wrvuPercentile || 0),
+        'Base Salary': formatCurrency(provider.baseSalary || 0),
+        'Total Compensation': formatCurrency(provider.totalCompensation || 0),
+        'Comp Percentile': formatPercent(provider.compPercentile || 0)
+      }));
+
+      // Create a new workbook
+      const wb = XLSX.utils.book_new();
+
+      // Add filter summary sheet
+      const ws_summary = XLSX.utils.aoa_to_sheet(filterSummary);
+      XLSX.utils.book_append_sheet(wb, ws_summary, 'Report Summary');
+
+      // Style the summary sheet
+      ws_summary['!cols'] = [{ wch: 25 }, { wch: 50 }];
+      
+      // Add title style to summary sheet
+      ws_summary['A1'] = { v: 'Provider Performance Report - Filter Summary', s: { font: { bold: true, sz: 14 } } };
+      
+      // Add provider data sheet
+      const ws_data = XLSX.utils.json_to_sheet(excelData);
+      ws_data['!cols'] = [
+        { wch: 25 }, // Provider Name
+        { wch: 20 }, // Specialty
+        { wch: 20 }, // Department
+        { wch: 20 }, // Compensation Model
+        { wch: 15 }, // Monthly WRVUs
+        { wch: 15 }, // Monthly Target
+        { wch: 15 }, // YTD WRVUs
+        { wch: 15 }, // YTD Target
+        { wch: 15 }, // Plan Progress
+        { wch: 15 }, // WRVU Percentile
+        { wch: 18 }, // Base Salary
+        { wch: 18 }, // Total Compensation
+        { wch: 15 }, // Comp Percentile
+      ];
+
+      // Add data validation for percentages
+      const percentageCols = ['I', 'J', 'M']; // Plan Progress, WRVU Percentile, Comp Percentile
+      const percentageValidation = {
+        type: 'decimal',
+        operator: 'between',
+        formula1: '0',
+        formula2: '1',
+        allowBlank: true,
+        showErrorMessage: true,
+        errorTitle: 'Invalid Input',
+        error: 'Please enter a value between 0 and 100',
+        prompt: 'Enter a percentage between 0 and 100'
+      };
+
+      percentageCols.forEach(col => {
+        ws_data['!dataValidation'] = {
+          [`${col}2:${col}1048576`]: percentageValidation
+        };
+      });
+
+      // Add table styling
+      const range = XLSX.utils.decode_range(ws_data['!ref'] || 'A1:M1');
+      for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const cell_address = { c: C, r: R };
+          const cell_ref = XLSX.utils.encode_cell(cell_address);
+          if (!ws_data[cell_ref]) continue;
+          
+          // Add cell styling
+          ws_data[cell_ref].s = {
+            font: { name: 'Arial' },
+            alignment: { vertical: 'center' },
+            border: {
+              top: { style: 'thin' },
+              bottom: { style: 'thin' },
+              left: { style: 'thin' },
+              right: { style: 'thin' }
+            }
+          };
+
+          // Header row styling
+          if (R === 0) {
+            ws_data[cell_ref].s.font.bold = true;
+            ws_data[cell_ref].s.fill = { fgColor: { rgb: 'E2E8F0' } };
+          }
+          // Alternating row colors
+          else if (R % 2) {
+            ws_data[cell_ref].s.fill = { fgColor: { rgb: 'F8FAFC' } };
+          }
+        }
+      }
+
+      XLSX.utils.book_append_sheet(wb, ws_data, 'Provider Performance');
+
+      // Generate the Excel file with current month in the filename
+      const currentDate = new Date();
+      const monthName = months[currentDate.getMonth()];
+      const fileName = `Provider_Performance_${monthName}_${currentDate.getFullYear()}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      toast({
+        title: "Success",
+        description: "Data exported to Excel successfully",
+      });
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast({
+        title: "Error",
+        description: "Failed to export data. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Monthly Provider Performance Summary</h1>
-        <Button 
-          onClick={handleRecalculate}
-          className="bg-blue-600 text-white hover:bg-blue-700"
-        >
-          Recalculate Metrics
-        </Button>
+        <h1 className="text-2xl font-semibold">Monthly Provider Performance Summary</h1>
+        <div className="flex gap-3">
+          <button
+            onClick={handleExportToExcel}
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 4H4C2.89543 4 2 4.89543 2 6V18C2 19.1046 2.89543 20 4 20H20C21.1046 20 22 19.1046 22 18V6C22 4.89543 21.1046 4 20 4Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M8 12L16 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 8L12 16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Export to Excel
+          </button>
+          <button
+            onClick={handleRecalculate}
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Recalculate Metrics
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -787,8 +952,8 @@ export default function MonthlyPerformanceReport() {
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
                         className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                >
-                  Previous
+                      >
+                        Previous
                       </button>
                       {Array.from({ length: Math.min(4, Math.ceil(data.length / itemsPerPage)) }, (_, i) => i + 1).map((page) => (
                         <button
@@ -808,8 +973,8 @@ export default function MonthlyPerformanceReport() {
                         onClick={() => setCurrentPage(p => Math.min(Math.ceil(data.length / itemsPerPage), p + 1))}
                         disabled={currentPage === Math.ceil(data.length / itemsPerPage)}
                         className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
-                >
-                  Next
+                      >
+                        Next
                       </button>
                     </nav>
                   </div>

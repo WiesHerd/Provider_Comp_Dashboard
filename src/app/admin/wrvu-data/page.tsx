@@ -405,26 +405,17 @@ export default function WRVUDataPage() {
 
       {/* Search and Filter Section */}
       <div className="bg-white px-5 py-3 border-b border-gray-200">
-        <div className="flex items-center gap-4">
-          <div className="relative w-96">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-            </div>
+        <div className="flex gap-4">
+          <div className="flex-1 max-w-xs">
             <input
               type="text"
-              name="search"
-              id="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="block w-full rounded-md border-0 py-1.5 pl-10 pr-3 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
               placeholder="Search by name, ID, or specialty"
+              className="w-full rounded-lg border-2 border-gray-200 pl-3 pr-10 py-3 text-base hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
             />
           </div>
-          <div className="w-72">
+          <div className="w-[280px]">
             <select
-              value={selectedSpecialty}
-              onChange={(e) => setSelectedSpecialty(e.target.value)}
-              className="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6"
+              className="w-full rounded-lg border-2 border-gray-200 pl-3 pr-10 py-3 text-base hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
             >
               <option value="">All Specialties</option>
               {Array.from(new Set(data.map(d => d.specialty))).sort().map(specialty => (

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CalculatorIcon, PrinterIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
+import { CalculatorIcon, PrinterIcon, CurrencyDollarIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { AreaChart, Area, XAxis, YAxis, ReferenceLine, ResponsiveContainer, Tooltip, ReferenceDot, CartesianGrid, ReferenceArea, Label } from 'recharts';
 
 interface MarketData {
   id: string;
@@ -76,16 +77,16 @@ const PrintLayout = ({
       {/* Market Data Reference */}
       <div className="mt-6">
         <h2 className="text-sm font-medium text-gray-900 mb-3">Market Data Reference</h2>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-4 gap-6">
           {['25th', '50th', '75th', '90th'].map((percentile) => {
             const key = `p${percentile.split('th')[0]}_${selectedMetric}`;
             const value = marketData.find(d => d.specialty === specialty)?.[key as keyof MarketData];
             return (
-              <div key={percentile} className="bg-white rounded border border-gray-200 p-3">
-                <div className="text-sm text-gray-500">{percentile} Percentile</div>
-                <div className="mt-1 text-lg font-semibold">
+              <div key={percentile} className="bg-gray-50 rounded-lg p-5 border-2 border-gray-200">
+                <p className="text-sm text-gray-500">{percentile} Percentile</p>
+                <p className="mt-2 text-xl font-semibold text-gray-900">
                   {value !== undefined ? formatInputValue(value.toString(), selectedMetric) : '-'}
-                </div>
+                </p>
               </div>
             );
           })}
@@ -108,6 +109,231 @@ const PrintLayout = ({
           Generated from Provider Compensation Dashboard • {formattedDate} {formattedTime}
         </div>
       </div>
+    </div>
+  );
+};
+
+// Add this new component above the main component
+const PercentileGraph = ({
+  marketData,
+  selectedSpecialty,
+  selectedMetric,
+  inputValue,
+  calculatedPercentile,
+  formatValue,
+  getMetricLabel
+}: {
+  marketData: MarketData[];
+  selectedSpecialty: string;
+  selectedMetric: MetricType;
+  inputValue: string;
+  calculatedPercentile: number | null;
+  formatValue: (value: string | number) => string;
+  getMetricLabel: (metric: MetricType) => string;
+}) => {
+  const data = marketData.find(d => d.specialty === selectedSpecialty);
+  if (!data) return null;
+
+  const p25 = data[`p25_${selectedMetric}`];
+  const p50 = data[`p50_${selectedMetric}`];
+  const p75 = data[`p75_${selectedMetric}`];
+  const p90 = data[`p90_${selectedMetric}`];
+
+  const curveData = [
+    { percentile: 0, value: p25 * 0.5 },
+    { percentile: 25, value: p25 },
+    { percentile: 50, value: p50 },
+    { percentile: 75, value: p75 },
+    { percentile: 90, value: p90 },
+    { percentile: 100, value: p90 * 1.2 }
+  ];
+
+  const inputValueNum = parseFloat(inputValue.replace(/[$,]/g, ''));
+
+  // Calculate the value at the calculated percentile using linear interpolation
+  const getValueAtPercentile = (percentile: number) => {
+    if (percentile <= 25) {
+      return p25 * 0.5 + (p25 - p25 * 0.5) * (percentile / 25);
+    } else if (percentile <= 50) {
+      return p25 + (p50 - p25) * ((percentile - 25) / 25);
+    } else if (percentile <= 75) {
+      return p50 + (p75 - p50) * ((percentile - 50) / 25);
+    } else if (percentile <= 90) {
+      return p75 + (p90 - p75) * ((percentile - 75) / 15);
+    } else {
+      return p90 + (p90 * 0.2) * ((percentile - 90) / 10);
+    }
+  };
+
+  const formatYAxis = (value: number) => {
+    if (selectedMetric === 'total') {
+      return `$${(value / 1000).toFixed(0)}K`;
+    }
+    return selectedMetric === 'cf' ? `$${value.toFixed(1)}` : value.toLocaleString();
+  };
+
+  return (
+    <div className="w-full h-[350px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={curveData} margin={{ top: 30, right: 10, left: 50, bottom: 35 }}>
+          <defs>
+            <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.12}/>
+              <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          
+          {/* Background bands for quartiles */}
+          <ReferenceArea x1={0} x2={25} fill="#f8fafc" fillOpacity={0.25} />
+          <ReferenceArea x1={25} x2={50} fill="#f1f5f9" fillOpacity={0.25} />
+          <ReferenceArea x1={50} x2={75} fill="#f8fafc" fillOpacity={0.25} />
+          <ReferenceArea x1={75} x2={90} fill="#f1f5f9" fillOpacity={0.25} />
+          <ReferenceArea x1={90} x2={100} fill="#f8fafc" fillOpacity={0.25} />
+          
+          <XAxis 
+            dataKey="percentile" 
+            type="number"
+            domain={[0, 100]}
+            tick={{ fontSize: 13, fill: '#64748b' }}
+            ticks={[0, 25, 50, 75, 90, 100]}
+            axisLine={{ stroke: '#cbd5e1' }}
+            tickLine={{ stroke: '#cbd5e1' }}
+            label={{ 
+              value: 'Percentile', 
+              position: 'bottom', 
+              offset: 25,
+              style: { 
+                textAnchor: 'middle',
+                fontSize: '13px',
+                fontWeight: 500,
+                fill: '#475569'
+              }
+            }}
+          />
+          
+          <YAxis
+            tick={{ fontSize: 13, fill: '#64748b' }}
+            tickFormatter={formatYAxis}
+            axisLine={{ stroke: '#cbd5e1' }}
+            tickLine={{ stroke: '#cbd5e1' }}
+            label={{ 
+              value: selectedMetric === 'wrvu' ? 'Work RVUs' : 
+                     selectedMetric === 'total' ? 'Total Cash Compensation' :
+                     'Conversion Factor',
+              angle: -90,
+              position: 'left',
+              offset: 35,
+              style: { 
+                textAnchor: 'middle',
+                fontSize: '13px',
+                fontWeight: 500,
+                fill: '#475569'
+              }
+            }}
+          />
+          
+          {/* Key percentile markers */}
+          {[25, 50, 75, 90].map((percentile) => {
+            const value = data[`p${percentile}_${selectedMetric}`];
+            return (
+              <ReferenceDot
+                key={percentile}
+                x={percentile}
+                y={value}
+                r={4}
+                fill="#6366f1"
+                stroke="#ffffff"
+                strokeWidth={2}
+              >
+                <Label
+                  value={formatYAxis(value)}
+                  position="top"
+                  offset={15}
+                  style={{
+                    fontSize: '12px',
+                    fill: '#4f46e5',
+                    fontWeight: 500,
+                    filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))',
+                    backgroundColor: 'white',
+                    padding: '2px 6px',
+                    borderRadius: '4px'
+                  }}
+                />
+              </ReferenceDot>
+            );
+          })}
+          
+          <Area
+            type="monotone"
+            dataKey="value"
+            stroke="#6366f1"
+            strokeWidth={2}
+            fill="url(#colorValue)"
+          />
+          
+          {/* Red reference line for calculated percentile */}
+          {calculatedPercentile !== null && (
+            <g>
+              <ReferenceLine
+                segment={[
+                  { x: calculatedPercentile, y: 0 },
+                  { x: calculatedPercentile, y: getValueAtPercentile(calculatedPercentile) }
+                ]}
+                stroke="#dc2626"
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                label={{
+                  position: 'insideBottomRight',
+                  offset: 15,
+                  value: selectedMetric === 'total' 
+                    ? `$${(inputValueNum / 1000).toFixed(0)}K (${calculatedPercentile.toFixed(1)}th)`
+                    : `${formatValue(inputValueNum)} (${calculatedPercentile.toFixed(1)}th)`,
+                  fill: '#dc2626',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  style: {
+                    backgroundColor: 'white',
+                    padding: '3px 8px',
+                    borderRadius: '4px',
+                    filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
+                  }
+                }}
+              />
+              <circle
+                cx={calculatedPercentile}
+                cy={getValueAtPercentile(calculatedPercentile)}
+                r={4}
+                fill="#dc2626"
+                stroke="#ffffff"
+                strokeWidth={2}
+              />
+            </g>
+          )}
+          
+          <Tooltip 
+            formatter={(value: number) => [formatValue(value), getMetricLabel(selectedMetric)]}
+            labelFormatter={(label: number) => `${label}th Percentile`}
+            contentStyle={{
+              backgroundColor: 'white',
+              border: '1px solid #e2e8f0',
+              borderRadius: '0.5rem',
+              padding: '0.75rem 1rem',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+            }}
+            itemStyle={{
+              color: '#1e293b',
+              fontSize: '0.875rem'
+            }}
+            labelStyle={{
+              color: '#64748b',
+              fontSize: '0.75rem',
+              marginBottom: '0.25rem'
+            }}
+            cursor={{ stroke: '#94a3b8', strokeWidth: 1 }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
     </div>
   );
 };
@@ -151,55 +377,129 @@ export default function PercentileCalculatorPage() {
       return;
     }
 
-    const value = parseFloat(inputValue);
+    // Convert input value to number by removing any formatting (commas, currency symbols)
+    const cleanValue = inputValue.replace(/[^0-9.]/g, '');
+    const value = parseFloat(cleanValue);
+    
     if (isNaN(value)) {
       setError('Please enter a valid number');
       return;
     }
 
     // Get the percentile values for the selected metric
-    const percentileValues = {
-      p25: specialtyData[`p25_${selectedMetric}`],
-      p50: specialtyData[`p50_${selectedMetric}`],
-      p75: specialtyData[`p75_${selectedMetric}`],
-      p90: specialtyData[`p90_${selectedMetric}`]
-    };
+    const p25 = specialtyData[`p25_${selectedMetric}`];
+    const p50 = specialtyData[`p50_${selectedMetric}`];
+    const p75 = specialtyData[`p75_${selectedMetric}`];
+    const p90 = specialtyData[`p90_${selectedMetric}`];
 
     // Calculate the percentile using linear interpolation
     let percentile: number;
 
-    if (value <= percentileValues.p25) {
-      percentile = 25 * (value / percentileValues.p25);
-    } else if (value <= percentileValues.p50) {
-      percentile = 25 + 25 * ((value - percentileValues.p25) / (percentileValues.p50 - percentileValues.p25));
-    } else if (value <= percentileValues.p75) {
-      percentile = 50 + 25 * ((value - percentileValues.p50) / (percentileValues.p75 - percentileValues.p50));
-    } else if (value <= percentileValues.p90) {
-      percentile = 75 + 15 * ((value - percentileValues.p75) / (percentileValues.p90 - percentileValues.p75));
+    if (value <= p25) {
+      // Below 25th percentile
+      percentile = (value / p25) * 25;
+    } else if (value <= p50) {
+      // Between 25th and 50th
+      percentile = 25 + ((value - p25) / (p50 - p25)) * 25;
+    } else if (value <= p75) {
+      // Between 50th and 75th
+      percentile = 50 + ((value - p50) / (p75 - p50)) * 25;
+    } else if (value <= p90) {
+      // Between 75th and 90th
+      percentile = 75 + ((value - p75) / (p90 - p75)) * 15;
     } else {
-      percentile = 90 + 10 * ((value - percentileValues.p90) / percentileValues.p90);
+      // Above 90th percentile
+      percentile = 90 + ((value - p90) / p90) * 10;
     }
 
-    setCalculatedPercentile(Math.min(100, Math.max(0, percentile)));
+    // Ensure percentile is between 0 and 100
+    percentile = Math.min(100, Math.max(0, percentile));
+    
+    setCalculatedPercentile(percentile);
     setError(null);
   };
 
-  const formatInputValue = (value: string, metric: MetricType): string => {
-    const numValue = Number(value) || 0;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
     
-    if (metric === 'wrvu') {
-      return new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(numValue);
+    // Remove all non-numeric characters except decimal point and commas
+    value = value.replace(/[^0-9.,]/g, '');
+
+    // Handle decimal points
+    const parts = value.split('.');
+    if (parts.length > 2) return; // Don't allow multiple decimal points
+
+    // Remove any commas from the number
+    const cleanValue = value.replace(/,/g, '');
+    if (!cleanValue) {
+      setInputValue('');
+      return;
     }
+
+    // Format the whole number part with commas
+    const [whole, decimal] = cleanValue.split('.');
+    let formatted = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(numValue);
+    // Add back the decimal part if it exists
+    if (decimal !== undefined) {
+      formatted += '.' + decimal;
+    }
+
+    setInputValue(formatted);
+  };
+
+  const handleInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (!inputValue) {
+      setInputValue('');
+      return;
+    }
+
+    // Remove commas and $ for parsing
+    const cleanValue = inputValue.replace(/[$,]/g, '');
+    const number = parseFloat(cleanValue);
+
+    if (!isNaN(number)) {
+      const formatted = new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+        useGrouping: true
+      }).format(number);
+      setInputValue(formatted);
+    }
+  };
+
+  const formatValue = (value: string | number): string => {
+    // If value is a string, clean it and convert to number
+    const numValue = typeof value === 'string' 
+      ? parseFloat(value.replace(/[$,]/g, '')) 
+      : value;
+
+    if (isNaN(numValue)) return '0.00';
+
+    switch (selectedMetric) {
+      case 'wrvu':
+        return new Intl.NumberFormat('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+          useGrouping: true
+        }).format(numValue);
+      
+      case 'cf':
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(numValue);
+      
+      default: // total
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(numValue);
+    }
   };
 
   const getMetricLabel = (metric: MetricType) => {
@@ -213,83 +513,58 @@ export default function PercentileCalculatorPage() {
     }
   };
 
-  return (
-    <div className="w-full">
-      <style jsx global>{`
-        @media print {
-          @page {
-            size: landscape;
-            margin: 0;
-          }
-          body * {
-            visibility: hidden;
-          }
-          .print-layout, .print-layout * {
-            visibility: visible;
-          }
-          .print-layout {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-        }
-      `}</style>
+  const clearInputs = () => {
+    setSelectedSpecialty('');
+    setSelectedMetric('total');
+    setInputValue('');
+    setCalculatedPercentile(null);
+  };
 
-      {/* Screen Layout */}
+  const handlePrint = () => {
+    window.print();
+  };
+
+  return (
+    <div className="flex-1 space-y-6 p-8 print:!p-0">
+      {/* Screen-only content */}
       <div className="print:hidden">
-        <div className="mb-6 flex justify-between items-center">
+        {/* Header Section */}
+        <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">Percentile Calculator</h1>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-gray-600">
               Calculate percentiles for compensation metrics based on market data.
             </p>
           </div>
-          {calculatedPercentile !== null && (
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              <PrinterIcon className="mr-2 h-5 w-5" />
-              Print Results
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={handlePrint}
+            disabled={calculatedPercentile === null}
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <PrinterIcon className="w-4 h-4 mr-2" />
+            Print Results
+          </button>
         </div>
 
-        {loading ? (
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent"></div>
-          </div>
-        ) : error ? (
-          <div className="rounded-md bg-red-50 p-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">{error}</h3>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-white shadow-sm rounded-lg print:shadow-none print:rounded-none">
-            <div className="p-6 print:p-0">
-              {/* Main Form Container */}
-              <div className="max-w-4xl mx-auto print:max-w-none print:w-full">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Specialty Selection */}
-                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 print:bg-transparent">
-                    <label htmlFor="specialty" className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Specialty
-                    </label>
+        {/* Calculator Section */}
+        <div className="space-y-6 mt-6">
+          {/* Input Card */}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Specialty Select */}
+                <div className="space-y-1.5">
+                  <label htmlFor="specialty" className="block text-sm font-medium text-gray-700">
+                    Specialty
+                    <span className="text-red-500 ml-1">*</span>
+                  </label>
+                  <div className="relative">
                     <select
                       id="specialty"
                       value={selectedSpecialty}
                       onChange={(e) => setSelectedSpecialty(e.target.value)}
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-11"
+                      className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 pr-10 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm appearance-none"
                     >
                       <option value="">Select a specialty</option>
                       {marketData.map((data) => (
@@ -298,144 +573,225 @@ export default function PercentileCalculatorPage() {
                         </option>
                       ))}
                     </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                      <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
+                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                      </svg>
+                    </div>
                   </div>
+                </div>
 
-                  {/* Metric Selection */}
-                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 print:bg-transparent">
-                    <label htmlFor="metric" className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Metric
-                    </label>
+                {/* Metric Select */}
+                <div className="space-y-1.5">
+                  <label htmlFor="metric" className="block text-sm font-medium text-gray-700">
+                    Metric
+                    <span className="text-red-500 ml-1">*</span>
+                  </label>
+                  <div className="relative">
                     <select
                       id="metric"
                       value={selectedMetric}
                       onChange={(e) => setSelectedMetric(e.target.value as MetricType)}
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-11"
+                      className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 pr-10 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm appearance-none"
                     >
+                      <option value="">Select a metric</option>
                       <option value="total">Total Cash Compensation</option>
-                      <option value="wrvu">wRVUs</option>
+                      <option value="wrvu">Work RVUs</option>
                       <option value="cf">Conversion Factor</option>
                     </select>
-                  </div>
-
-                  {/* Value Input */}
-                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 print:bg-transparent">
-                    <label htmlFor="value" className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Value
-                    </label>
-                    <div className="relative rounded-md shadow-sm">
-                      {selectedMetric !== 'wrvu' && (
-                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                          <span className="text-gray-500 sm:text-sm">$</span>
-                        </div>
-                      )}
-                      <input
-                        type="number"
-                        id="value"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        className={`block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm h-11 ${
-                          selectedMetric !== 'wrvu' ? 'pl-7' : ''
-                        }`}
-                        placeholder="Enter value"
-                        step={selectedMetric === 'cf' ? '0.1' : '1'}
-                      />
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                      <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
+                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                      </svg>
                     </div>
                   </div>
                 </div>
 
-                {/* Action Buttons - Remove print button from here */}
-                <div className="mt-6 flex justify-center print:hidden">
-                  <button
-                    type="button"
-                    onClick={calculatePercentile}
-                    disabled={!selectedSpecialty || !inputValue}
-                    className="inline-flex items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                  >
-                    <CalculatorIcon className="mr-2 h-5 w-5" />
-                    Calculate Percentile
-                  </button>
-                </div>
-
-                {/* Results */}
-                {calculatedPercentile !== null && selectedSpecialty && (
-                  <div className="mt-8 print:mt-4">
-                    {/* Print Header */}
-                    <div className="hidden print:block print:mb-6">
-                      <h1 className="text-2xl font-semibold text-gray-900">Percentile Calculator Results</h1>
-                      <p className="mt-2 text-sm text-gray-600">
-                        Generated on {new Date().toLocaleDateString()}
-                      </p>
-                    </div>
-
-                    <div className="rounded-md bg-blue-50 p-4 print:bg-transparent print:border print:border-gray-200 print:shadow-none">
-                      <div className="flex">
-                        <div className="flex-shrink-0 print:hidden">
-                          <CalculatorIcon className="h-5 w-5 text-blue-400" aria-hidden="true" />
-                        </div>
-                        <div className="ml-3 print:ml-0">
-                          <h3 className="text-sm font-medium text-blue-800 print:text-gray-900">Results</h3>
-                          <div className="mt-2 text-sm text-blue-700 print:text-gray-600">
-                            <p>
-                              A {getMetricLabel(selectedMetric)} of{' '}
-                              <span className="font-semibold text-blue-900 print:text-gray-900">
-                                {formatInputValue(inputValue, selectedMetric)}
-                              </span>{' '}
-                              for {selectedSpecialty} is at the{' '}
-                              <span className="font-semibold text-blue-900 print:text-gray-900">
-                                {calculatedPercentile.toFixed(1)}th
-                              </span>{' '}
-                              percentile.
-                            </p>
-                          </div>
-                        </div>
+                {/* Value Input */}
+                <div className="space-y-1.5">
+                  <label htmlFor="value" className="block text-sm font-medium text-gray-700">
+                    Value
+                    <span className="text-red-500 ml-1">*</span>
+                  </label>
+                  <div className="relative rounded-lg shadow-sm">
+                    {selectedMetric !== 'wrvu' && (
+                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <span className="text-gray-500 sm:text-sm">$</span>
                       </div>
-                    </div>
-
-                    {/* Market Data Reference */}
-                    <div className="mt-6 print:mt-6">
-                      <h4 className="text-sm font-medium text-gray-900 print:text-base">Market Data Reference</h4>
-                      <div className="mt-3 grid grid-cols-4 gap-3 print:gap-6 print:mt-4">
-                        {['25th', '50th', '75th', '90th'].map((percentile) => {
-                          const key = `p${percentile.split('th')[0]}_${selectedMetric}`;
-                          const value = marketData.find(d => d.specialty === selectedSpecialty)?.[key as keyof MarketData];
-                          return (
-                            <div key={percentile} className="bg-white rounded-lg border border-gray-200 p-3 print:p-4 print:shadow-none">
-                              <div className="text-sm text-gray-500 print:text-gray-600">{percentile} Percentile</div>
-                              <div className="mt-1 text-lg font-semibold text-gray-900">
-                                {value !== undefined ? formatInputValue(value.toString(), selectedMetric) : '-'}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Print Footer */}
-                    <div className="hidden print:block print:mt-6 print:pt-6 print:border-t print:border-gray-200">
-                      <p className="text-sm text-gray-500">
-                        This report was generated from the Provider Compensation Dashboard on {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}.
-                      </p>
-                    </div>
+                    )}
+                    <input
+                      type="text"
+                      id="value"
+                      value={inputValue}
+                      onChange={handleInputChange}
+                      onBlur={handleInputBlur}
+                      className={`block w-full rounded-lg border border-gray-300 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-blue-600 sm:text-sm ${
+                        selectedMetric !== 'wrvu' ? 'pl-7' : 'pl-3'
+                      }`}
+                      placeholder={selectedMetric === 'wrvu' ? 'Enter RVUs' : 'Enter value'}
+                    />
                   </div>
-                )}
+                </div>
+              </div>
+
+              {/* Calculate Button */}
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={clearInputs}
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <XMarkIcon className="w-4 h-4 mr-2" />
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  onClick={calculatePercentile}
+                  disabled={!selectedSpecialty || !selectedMetric || !inputValue}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <CalculatorIcon className="w-4 h-4 mr-2" />
+                  Calculate Percentile
+                </button>
               </div>
             </div>
           </div>
-        )}
+
+          {/* Results Section */}
+          {calculatedPercentile !== null && (
+            <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+              <div className="p-6 space-y-6">
+                {/* Graph */}
+                <PercentileGraph
+                  marketData={marketData}
+                  selectedSpecialty={selectedSpecialty}
+                  selectedMetric={selectedMetric}
+                  inputValue={inputValue}
+                  calculatedPercentile={calculatedPercentile}
+                  formatValue={formatValue}
+                  getMetricLabel={getMetricLabel}
+                />
+
+                {/* Market Data Reference */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-gray-900">Market Data Reference</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {[25, 50, 75, 90].map((percentile) => {
+                      const data = marketData.find(d => d.specialty === selectedSpecialty);
+                      const value = data ? data[`p${percentile}_${selectedMetric}`] : 0;
+                      return (
+                        <div key={percentile} className="bg-gray-50 rounded-lg p-4 border border-gray-300">
+                          <div className="text-sm text-gray-600">{percentile}th Percentile</div>
+                          <div className="mt-1 text-lg font-semibold">{formatValue(value)}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Results Message */}
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <p className="text-blue-900">
+                    A {getMetricLabel(selectedMetric)} of {formatValue(inputValue)} for {selectedSpecialty} is at the{' '}
+                    <span className="font-semibold">{calculatedPercentile.toFixed(1)}th</span> percentile.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Print Layout */}
+      {/* Print-only content */}
       {calculatedPercentile !== null && (
-        <div className="print-layout">
-          <PrintLayout
-            specialty={selectedSpecialty}
-            metric={getMetricLabel(selectedMetric)}
-            inputValue={inputValue}
-            calculatedPercentile={calculatedPercentile}
-            marketData={marketData}
-            selectedMetric={selectedMetric}
-            formatInputValue={formatInputValue}
-          />
+        <div className="hidden print:block print:p-8">
+          <style type="text/css" media="print">
+            {`
+              @page {
+                size: landscape;
+                margin: 0.5in;
+              }
+              @media print {
+                body * {
+                  visibility: hidden;
+                }
+                .print\\:block, .print\\:block * {
+                  visibility: visible;
+                }
+                .print\\:block {
+                  position: absolute;
+                  left: 0;
+                  top: 0;
+                  width: 100%;
+                }
+              }
+            `}
+          </style>
+          <div className="max-w-4xl mx-auto">
+            {/* Header */}
+            <div className="flex justify-between items-start border-b border-gray-200 pb-6">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Provider Compensation Analytics</h1>
+                <p className="mt-1 text-sm text-gray-500">Market Data Intelligence</p>
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-medium text-gray-900">Report ID: PC{Date.now().toString().slice(-6)}</div>
+                <div className="text-sm text-gray-500">{new Date().toLocaleDateString()}</div>
+              </div>
+            </div>
+
+            {/* Parameters Summary */}
+            <div className="mt-8 grid grid-cols-3 gap-8">
+              <div>
+                <div className="text-sm font-medium text-gray-500">Specialty</div>
+                <div className="mt-1 text-base">{selectedSpecialty}</div>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-gray-500">Metric</div>
+                <div className="mt-1 text-base">{getMetricLabel(selectedMetric)}</div>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-gray-500">Value</div>
+                <div className="mt-1 text-base">{formatValue(inputValue)}</div>
+              </div>
+            </div>
+
+            {/* Results Box */}
+            <div className="mt-8 bg-blue-50 rounded-lg p-6">
+              <p className="text-lg text-blue-900">
+                A {getMetricLabel(selectedMetric)} of{' '}
+                <span className="font-semibold">{formatValue(inputValue)}</span> for{' '}
+                <span className="font-medium">{selectedSpecialty}</span> is at the{' '}
+                <span className="font-semibold">{calculatedPercentile.toFixed(1)}th</span> percentile.
+              </p>
+            </div>
+
+            {/* Market Data Reference */}
+            <div className="mt-8">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Market Data Reference</h2>
+              <div className="grid grid-cols-4 gap-6">
+                {['25th', '50th', '75th', '90th'].map((percentile) => {
+                  const key = `p${percentile.split('th')[0]}_${selectedMetric}`;
+                  const value = marketData.find(d => d.specialty === selectedSpecialty)?.[key as keyof MarketData];
+                  return (
+                    <div key={percentile} className="bg-gray-50 rounded-lg p-5 border border-gray-200">
+                      <p className="text-sm font-medium text-gray-500">{percentile} Percentile</p>
+                      <p className="mt-2 text-xl font-semibold text-gray-900">
+                        {value !== undefined ? formatValue(value) : '-'}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="mt-12 pt-4 border-t border-gray-200">
+              <div className="text-xs text-gray-500">
+                Generated from Provider Compensation Dashboard • {new Date().toLocaleString()}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
