@@ -43,8 +43,8 @@ export default function AddProviderModal({
     specialty: '',
     department: '',
     status: 'Active',
-    hireDate: '',
-    fte: 1.0,
+    hireDate: new Date().toISOString().split('T')[0],
+    fte: 0.00,
     baseSalary: '',
     compensationModel: 'Base Pay'
   });
@@ -62,7 +62,7 @@ export default function AddProviderModal({
         department: provider.department || '',
         status: provider.status || 'Active',
         hireDate: provider.hireDate ? new Date(provider.hireDate).toISOString().split('T')[0] : '',
-        fte: provider.fte || 1.0,
+        fte: provider.fte || 0.00,
         baseSalary: provider.baseSalary?.toString() || '',
         compensationModel: provider.compensationModel || 'Base Pay'
       });
@@ -77,8 +77,8 @@ export default function AddProviderModal({
         specialty: '',
         department: '',
         status: 'Active',
-        hireDate: '',
-        fte: 1.0,
+        hireDate: new Date().toISOString().split('T')[0],
+        fte: 0.00,
         baseSalary: '',
         compensationModel: 'Base Pay'
       });
@@ -270,12 +270,15 @@ export default function AddProviderModal({
                           <input
                             type="number"
                             required
-                            step="0.1"
+                            step="0.01"
                             min="0"
                             max="1"
                             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:ring-indigo-500"
                             value={formData.fte}
-                            onChange={(e) => setFormData({ ...formData, fte: parseFloat(e.target.value) })}
+                            onChange={(e) => {
+                              const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
+                              setFormData({ ...formData, fte: value });
+                            }}
                           />
                         </div>
                         <div>

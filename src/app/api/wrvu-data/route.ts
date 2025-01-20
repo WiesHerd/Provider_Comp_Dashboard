@@ -12,6 +12,18 @@ interface WRVUHistory {
   changedBy: string | null;
 }
 
+interface WRVURecord {
+  id: string;
+  year: number;
+  month: number;
+  value: number;
+  hours: number;
+  providerId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  history: WRVUHistory[];
+}
+
 interface WRVUDataWithHistory {
   id: string;
   providerId: string;
@@ -19,6 +31,29 @@ interface WRVUDataWithHistory {
   first_name: string;
   last_name: string;
   specialty: string;
+  jan: number;
+  feb: number;
+  mar: number;
+  apr: number;
+  may: number;
+  jun: number;
+  jul: number;
+  aug: number;
+  sep: number;
+  oct: number;
+  nov: number;
+  dec: number;
+  history: WRVUHistory[];
+}
+
+interface WRVUResponse {
+  id: string;
+  providerId: string;
+  employee_id: string;
+  first_name: string;
+  last_name: string;
+  specialty: string;
+  year: number;
   jan: number;
   feb: number;
   mar: number;
@@ -61,15 +96,16 @@ export async function GET(request: Request) {
     console.log('Total providers:', allProviders.length);
 
     // Step 2: Transform data
-    const transformedData: WRVUDataWithHistory[] = allProviders.map(provider => {
+    const transformedData: WRVUResponse[] = allProviders.map(provider => {
       // Initialize base provider data
-      const providerData: WRVUDataWithHistory = {
+      const response: WRVUResponse = {
         id: provider.id,
         providerId: provider.id,
         employee_id: provider.employeeId,
         first_name: provider.firstName,
         last_name: provider.lastName,
         specialty: provider.specialty,
+        year,
         jan: 0, feb: 0, mar: 0, apr: 0, may: 0, jun: 0,
         jul: 0, aug: 0, sep: 0, oct: 0, nov: 0, dec: 0,
         history: []
@@ -79,27 +115,32 @@ export async function GET(request: Request) {
       if (provider.wrvuData && provider.wrvuData.length > 0) {
         // Set monthly values
         provider.wrvuData.forEach(record => {
-          const monthKey = getMonthKey(record.month);
-          if (monthKey) {
-            providerData[monthKey] = record.value;
+          switch (record.month) {
+            case 1: response.jan = record.value; break;
+            case 2: response.feb = record.value; break;
+            case 3: response.mar = record.value; break;
+            case 4: response.apr = record.value; break;
+            case 5: response.may = record.value; break;
+            case 6: response.jun = record.value; break;
+            case 7: response.jul = record.value; break;
+            case 8: response.aug = record.value; break;
+            case 9: response.sep = record.value; break;
+            case 10: response.oct = record.value; break;
+            case 11: response.nov = record.value; break;
+            case 12: response.dec = record.value; break;
           }
 
           // Add history entries
           if (record.history && record.history.length > 0) {
-            providerData.history.push(
-              ...record.history.map(h => ({
-                ...h,
-                changedAt: new Date(h.changedAt)
-              }))
-            );
+            response.history.push(...record.history);
           }
         });
 
         // Sort history by date
-        providerData.history.sort((a, b) => b.changedAt.getTime() - a.changedAt.getTime());
+        response.history.sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime());
       }
 
-      return providerData;
+      return response;
     });
 
     console.log('\n=== Step 2: Final Data ===');
@@ -125,80 +166,120 @@ export async function GET(request: Request) {
 }
 
 // Helper function to get month key
-function getMonthKey(month: number): keyof WRVUDataWithHistory | undefined {
-  const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'] as const;
-  return months[month - 1];
+function getMonthKey(month: number): keyof Pick<WRVUDataWithHistory, 'jan' | 'feb' | 'mar' | 'apr' | 'may' | 'jun' | 'jul' | 'aug' | 'sep' | 'oct' | 'nov' | 'dec'> | undefined {
+  const monthMap: Record<number, keyof Pick<WRVUDataWithHistory, 'jan' | 'feb' | 'mar' | 'apr' | 'may' | 'jun' | 'jul' | 'aug' | 'sep' | 'oct' | 'nov' | 'dec'>> = {
+    1: 'jan', 2: 'feb', 3: 'mar', 4: 'apr', 5: 'may', 6: 'jun',
+    7: 'jul', 8: 'aug', 9: 'sep', 10: 'oct', 11: 'nov', 12: 'dec'
+  };
+  return monthMap[month];
 }
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const currentYear = new Date().getFullYear();
+    const { employee_id, year, ...monthlyData } = data;
 
-    // First, ensure the provider exists
-    const provider = await prisma.provider.findUnique({
+    console.log('API received request:', {
+      employee_id,
+      year,
+      monthlyData
+    });
+
+    // Validate required fields
+    if (!employee_id || !year) {
+      return NextResponse.json(
+        { error: 'Missing required fields: employee_id and year are required' },
+        { status: 400 }
+      );
+    }
+
+    // Find provider with exact match
+    const provider = await prisma.provider.findFirst({
       where: {
-        employeeId: data.employee_id
+        employeeId: employee_id
       }
     });
 
+    console.log('API found provider:', provider);
+
     if (!provider) {
       return NextResponse.json(
-        { error: 'Provider not found' },
+        { error: `Provider not found with ID: ${employee_id}` },
         { status: 404 }
       );
     }
 
-    // Create wRVU data for each month
-    const monthlyData = {
-      1: data.jan || 0,
-      2: data.feb || 0,
-      3: data.mar || 0,
-      4: data.apr || 0,
-      5: data.may || 0,
-      6: data.jun || 0,
-      7: data.jul || 0,
-      8: data.aug || 0,
-      9: data.sep || 0,
-      10: data.oct || 0,
-      11: data.nov || 0,
-      12: data.dec || 0
-    };
+    // Convert monthly values to numbers and validate
+    const monthlyValues: Record<string, number> = Object.entries(monthlyData).reduce((acc, [key, value]) => ({
+      ...acc,
+      [key]: typeof value === 'string' ? parseFloat(value) : Number(value)
+    }), {} as Record<string, number>);
 
-    // Create all monthly records
-    const wrvuData = await Promise.all(
-      Object.entries(monthlyData).map(([month, value]) =>
-        prisma.wRVUData.upsert({
-          where: {
-            providerId_year_month: {
+    console.log('Processed monthly values:', monthlyValues);
+
+    try {
+      // Create or update wRVU records for each month with data
+      const upsertPromises = Object.entries(monthlyValues)
+        .filter(([_, value]) => value > 0)
+        .map(([month, value]) => {
+          const monthNumber = getMonthNumber(month);
+          return prisma.wRVUData.upsert({
+            where: {
+              providerId_year_month: {
+                providerId: provider.id,
+                year: Number(year),
+                month: monthNumber
+              }
+            },
+            create: {
               providerId: provider.id,
-              year: currentYear,
-              month: parseInt(month)
+              year: Number(year),
+              month: monthNumber,
+              value: value,
+              hours: 160
+            },
+            update: {
+              value: value,
+              hours: 160
             }
-          },
-          create: {
-            year: currentYear,
-            month: parseInt(month),
-            value,
-            hours: 160,
-            providerId: provider.id
-          },
-          update: {
-            value,
-            hours: 160
-          }
-        })
-      )
-    );
+          });
+        });
 
-    return NextResponse.json({ success: true, count: wrvuData.length });
+      const results = await Promise.all(upsertPromises);
+      console.log('Created/Updated wRVU records:', results);
+      
+      return NextResponse.json({ data: results });
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      if (dbError instanceof Error) {
+        if (dbError.message.includes('Unique constraint')) {
+          return NextResponse.json(
+            { error: 'wRVU data already exists for this provider, year, and month', details: dbError.message },
+            { status: 409 }
+          );
+        }
+      }
+      return NextResponse.json(
+        { error: 'Failed to create wRVU data records', details: dbError instanceof Error ? dbError.message : 'Unknown error' },
+        { status: 500 }
+      );
+    }
   } catch (error) {
-    console.error('Error creating wRVU data:', error);
+    console.error('API error:', error);
     return NextResponse.json(
-      { error: 'Failed to create wRVU data' },
+      { error: 'Failed to process request', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
+}
+
+// Helper function to get month number from month key
+function getMonthNumber(month: string): number {
+  const monthMap: Record<string, number> = {
+    jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+    jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
+  };
+  return monthMap[month] || 0;
 }
 
 export async function PUT(request: Request) {
@@ -218,12 +299,25 @@ export async function PUT(request: Request) {
     }
 
     // Get or create wRVU records for each month
-    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'] as const;
-    const updatedRecords = [];
+    const months = [
+      { key: 'jan', month: 1 },
+      { key: 'feb', month: 2 },
+      { key: 'mar', month: 3 },
+      { key: 'apr', month: 4 },
+      { key: 'may', month: 5 },
+      { key: 'jun', month: 6 },
+      { key: 'jul', month: 7 },
+      { key: 'aug', month: 8 },
+      { key: 'sep', month: 9 },
+      { key: 'oct', month: 10 },
+      { key: 'nov', month: 11 },
+      { key: 'dec', month: 12 }
+    ];
     
-    for (const [index, monthKey] of months.entries()) {
-      const month = index + 1;
-      const newValue = parseFloat(monthlyData[monthKey]) || 0;
+    const updatedRecords: WRVURecord[] = [];
+    
+    for (const { key, month } of months) {
+      const newValue = parseFloat(monthlyData[key]) || 0;
 
       // Get existing record
       const existingRecord = await prisma.wRVUData.findUnique({
@@ -243,7 +337,7 @@ export async function PUT(request: Request) {
           data: {
             wrvuDataId: existingRecord.id,
             changeType: 'UPDATE',
-            fieldName: monthKey,
+            fieldName: key,
             oldValue: String(existingRecord.value),
             newValue: String(newValue),
             changedAt: new Date(),
@@ -279,61 +373,37 @@ export async function PUT(request: Request) {
             }
           }
         }
-      });
+      }) as WRVURecord;
 
       updatedRecords.push(record);
     }
 
-    // Fetch the complete updated data
-    const updatedData = await prisma.provider.findUnique({
-      where: { id: provider.id },
-      include: {
-        wrvuData: {
-          where: { year },
-          include: {
-            history: {
-              orderBy: {
-                changedAt: 'desc'
-              }
-            }
-          }
-        }
-      }
-    });
-
-    // Transform the data to match the expected format
-    const transformedData: WRVUDataWithHistory = {
+    // Transform to response format
+    const response: WRVUResponse = {
       id: provider.id,
       providerId: provider.id,
       employee_id: provider.employeeId,
       first_name: provider.firstName,
       last_name: provider.lastName,
       specialty: provider.specialty,
-      jan: 0, feb: 0, mar: 0, apr: 0, may: 0, jun: 0,
-      jul: 0, aug: 0, sep: 0, oct: 0, nov: 0, dec: 0,
-      history: []
+      year,
+      jan: updatedRecords[0].value,
+      feb: updatedRecords[1].value,
+      mar: updatedRecords[2].value,
+      apr: updatedRecords[3].value,
+      may: updatedRecords[4].value,
+      jun: updatedRecords[5].value,
+      jul: updatedRecords[6].value,
+      aug: updatedRecords[7].value,
+      sep: updatedRecords[8].value,
+      oct: updatedRecords[9].value,
+      nov: updatedRecords[10].value,
+      dec: updatedRecords[11].value,
+      history: updatedRecords.flatMap(record => record.history)
+        .sort((a, b) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime())
     };
 
-    // Set the monthly values and collect history
-    if (updatedData?.wrvuData) {
-      updatedData.wrvuData.forEach(record => {
-        const monthKey = getMonthKey(record.month);
-        if (monthKey) {
-          transformedData[monthKey] = record.value;
-        }
-        if (record.history) {
-          transformedData.history.push(...record.history.map(h => ({
-            ...h,
-            changedAt: new Date(h.changedAt)
-          })));
-        }
-      });
-    }
-
-    // Sort history by date
-    transformedData.history.sort((a, b) => b.changedAt.getTime() - a.changedAt.getTime());
-
-    return NextResponse.json(transformedData);
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error updating wRVU data:', error);
     return NextResponse.json(
@@ -350,23 +420,46 @@ export async function DELETE(request: Request) {
   try {
     const { ids } = await request.json();
 
-    if (!Array.isArray(ids)) {
+    if (!Array.isArray(ids) || ids.length === 0) {
       return NextResponse.json(
-        { error: 'Invalid request: ids must be an array' },
+        { error: 'No valid provider IDs provided' },
         { status: 400 }
       );
     }
 
-    // Delete wRVU data for the specified providers
-    await prisma.wRVUData.deleteMany({
-      where: {
-        providerId: {
-          in: ids
+    // Delete all related data in a transaction
+    await prisma.$transaction(async (prisma) => {
+      // First delete all history entries for these providers
+      await prisma.wRVUHistory.deleteMany({
+        where: {
+          wrvuData: {
+            providerId: {
+              in: ids
+            }
+          }
         }
-      }
+      });
+
+      // Then delete all wRVU data entries for these providers
+      await prisma.wRVUData.deleteMany({
+        where: {
+          providerId: {
+            in: ids
+          }
+        }
+      });
+
+      // Finally delete the provider records
+      await prisma.provider.deleteMany({
+        where: {
+          id: {
+            in: ids
+          }
+        }
+      });
     });
 
-    return NextResponse.json({ message: 'Records deleted successfully' });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting wRVU data:', error);
     return NextResponse.json(

@@ -605,116 +605,31 @@ export default function ProvidersPage() {
     }
   };
 
-  // Fetch providers
   useEffect(() => {
-    const fetchProviders = async () => {
+    setMounted(true);
+    const initializePage = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/admin/providers');
-        if (!response.ok) throw new Error('Failed to fetch providers');
-        const providerData = await response.json();
-        
-        // Debug logging
-        console.log('First 3 providers with base salaries:', 
-          providerData.slice(0, 3).map(p => ({
-            employeeId: p.employeeId,
-            name: `${p.firstName} ${p.lastName}`,
-            baseSalary: p.baseSalary,
-            formattedBaseSalary: formatSalary(p.baseSalary)
-          }))
-        );
-        
-        setProviders(providerData);
+        await fetchAndSetProviders();
         setLoading(false);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch providers');
+      } catch (error) {
+        console.error('Error initializing page:', error);
+        setError(error instanceof Error ? error.message : 'An error occurred');
         setLoading(false);
       }
     };
 
-    fetchProviders();
+    initializePage();
   }, []);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Add console log to debug
-  useEffect(() => {
-    console.log('Current providers:', providers);
-  }, [providers]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount);
-  };
-
-  const handleResetFilters = () => {
-    setSearchQuery('');
-    setSelectedSpecialty('');
-    setSelectedCompModel('');
-    setFTERange([0, 1]);
-    setBaseSalaryRange([0, 2000000]);
-    setShowMissingBenchmarks(false);
-    setShowMissingWRVUs(false);
-    setShowNonClinicalOnly(false);
-    setShowInactiveOnly(false);
-  };
-
-  const handleExportToExcel = () => {
-    // Create worksheet data from filtered providers
-    const worksheetData = filteredProviders.map(provider => ({
-      'Employee ID': provider.employeeId,
-      'Name': `${provider.firstName} ${provider.lastName}`,
-      'Email': provider.email,
-      'Specialty': provider.specialty,
-      'Department': provider.department,
-      'Status': provider.status,
-      'Total FTE': provider.fte,
-      'Clinical FTE': provider.clinicalFte,
-      'Non-Clinical FTE': provider.nonClinicalFte,
-      'Hire Date': provider.hireDate ? new Date(provider.hireDate).toLocaleDateString() : '',
-      'Termination Date': provider.terminationDate ? new Date(provider.terminationDate).toLocaleDateString() : '',
-      'Base Salary': provider.baseSalary,
-      'Compensation Model': provider.compensationModel,
-      'Clinical Salary': provider.clinicalSalary,
-      'Non-Clinical Salary': provider.nonClinicalSalary
-    }));
-
-    // Create workbook and worksheet
-    const worksheet = utils.json_to_sheet(worksheetData);
-    const workbook = utils.book_new();
-    utils.book_append_sheet(workbook, worksheet, 'Providers');
-
-    // Generate file name with current date
-    const date = new Date().toISOString().split('T')[0];
-    const fileName = `providers_export_${date}.xlsx`;
-
-    // Save file
-    writeFile(workbook, fileName);
-  };
-
-  const handleAddProvider = async (data: any) => {
+  const fetchAndSetProviders = async () => {
     try {
-      const response = await fetch('/api/providers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to add provider');
-      }
-
-      await fetchProviders(); // Refresh the list
+      const response = await fetch('/api/admin/providers');
+      if (!response.ok) throw new Error('Failed to fetch providers');
+      const providerData = await response.json();
+      setProviders(providerData);
     } catch (error) {
-      console.error('Error adding provider:', error);
+      console.error('Error fetching providers:', error);
       throw error;
     }
   };
@@ -733,7 +648,7 @@ export default function ProvidersPage() {
         throw new Error('Failed to update provider');
       }
 
-      await fetchProviders(); // Refresh the list
+      await fetchAndSetProviders(); // Refresh the list
       setEditingProvider(null);
     } catch (error) {
       console.error('Error updating provider:', error);
@@ -803,7 +718,7 @@ export default function ProvidersPage() {
       }
 
       // Refresh the providers list
-      fetchProviders();
+      await fetchAndSetProviders();
     } catch (error) {
       console.error('Error updating provider status:', error);
     }
@@ -823,7 +738,7 @@ export default function ProvidersPage() {
         throw new Error('Failed to update compensation model');
       }
 
-      await fetchProviders(); // Refresh the list
+      await fetchAndSetProviders(); // Refresh the list
       setIsCompModelModalOpen(false);
       setNewCompModel('');
     } catch (error) {
@@ -906,16 +821,86 @@ export default function ProvidersPage() {
         }
 
         // Refresh the providers list
-        await fetchProviders();
+        await fetchAndSetProviders();
       }
     } catch (error) {
       console.error('Error updating provider status:', error);
     }
   };
 
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setSelectedSpecialty('');
+    setSelectedCompModel('');
+    setFTERange([0, 1]);
+    setBaseSalaryRange([0, 2000000]);
+    setShowMissingBenchmarks(false);
+    setShowMissingWRVUs(false);
+    setShowNonClinicalOnly(false);
+    setShowInactiveOnly(false);
+  };
+
+  const handleExportToExcel = () => {
+    // Create worksheet data from filtered providers
+    const worksheetData = filteredProviders.map(provider => ({
+      'Employee ID': provider.employeeId,
+      'Name': `${provider.firstName} ${provider.lastName}`,
+      'Email': provider.email,
+      'Specialty': provider.specialty,
+      'Department': provider.department,
+      'Status': provider.status,
+      'Total FTE': provider.fte,
+      'Clinical FTE': provider.clinicalFte,
+      'Non-Clinical FTE': provider.nonClinicalFte,
+      'Hire Date': provider.hireDate ? new Date(provider.hireDate).toLocaleDateString() : '',
+      'Termination Date': provider.terminationDate ? new Date(provider.terminationDate).toLocaleDateString() : '',
+      'Base Salary': provider.baseSalary,
+      'Compensation Model': provider.compensationModel,
+      'Clinical Salary': provider.clinicalSalary,
+      'Non-Clinical Salary': provider.nonClinicalSalary
+    }));
+
+    // Create workbook and worksheet
+    const worksheet = utils.json_to_sheet(worksheetData);
+    const workbook = utils.book_new();
+    utils.book_append_sheet(workbook, worksheet, 'Providers');
+
+    // Generate file name with current date
+    const date = new Date().toISOString().split('T')[0];
+    const fileName = `providers_export_${date}.xlsx`;
+
+    // Save file
+    writeFile(workbook, fileName);
+  };
+
+  const handleAddProvider = async (data: any) => {
+    try {
+      const response = await fetch('/api/admin/providers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add provider');
+      }
+
+      await fetchAndSetProviders();
+    } catch (error) {
+      console.error('Error adding provider:', error);
+      throw error;
+    }
+  };
+
   return (
     <>
-      {!mounted ? null : (
+      {!mounted ? (
+        <div className="flex justify-center items-center h-screen">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-500"></div>
+        </div>
+      ) : (
         <div className="h-full flex flex-col space-y-3 bg-white">
           {loading ? (
             <div className="flex justify-center items-center h-screen">
@@ -923,7 +908,7 @@ export default function ProvidersPage() {
             </div>
           ) : error ? (
             <div className="flex justify-center items-center h-screen">
-              <div className="text-red-500">Error: {error}</div>
+              <div className="text-red-500">Error loading providers: {error}</div>
             </div>
           ) : (
             <>
@@ -1436,7 +1421,20 @@ export default function ProvidersPage() {
                   setEditingProvider(null);
                 }}
                 onSubmit={handleEditProvider}
-                provider={editingProvider}
+                provider={editingProvider ? {
+                  id: editingProvider.id,
+                  employeeId: editingProvider.employeeId,
+                  firstName: editingProvider.firstName,
+                  lastName: editingProvider.lastName,
+                  email: editingProvider.email,
+                  specialty: editingProvider.specialty,
+                  department: editingProvider.department,
+                  status: editingProvider.status,
+                  hireDate: editingProvider.hireDate,
+                  fte: editingProvider.fte,
+                  baseSalary: editingProvider.baseSalary.toString(),
+                  compensationModel: editingProvider.compensationModel
+                } : undefined}
                 mode="edit"
               />
 

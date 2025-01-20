@@ -1,27 +1,16 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
-import { MagnifyingGlassIcon, PlusIcon, PencilIcon, TrashIcon, ClockIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, PlusIcon, PencilIcon, TrashIcon, ClockIcon, XMarkIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import EditWRVUModal from '@/components/WRVU/EditWRVUModal';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import { WRVUData } from '@/types/wrvu';
-import { WRVUFormData } from '@/components/WRVU/EditWRVUModal';
+import { WRVUFormData, WRVUDataWithHistory } from '@/components/WRVU/EditWRVUModal';
 import Pagination from '@/components/common/Pagination';
-
-interface WRVUDataWithHistory extends WRVUData {
-  history?: Array<{
-    id: string;
-    wrvuDataId: string;
-    changeType: string;
-    fieldName: string;
-    oldValue: string | null;
-    newValue: string;
-    changedAt: Date;
-  }>;
-}
+import { Dialog, Transition } from '@headlessui/react';
 
 function classNames(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ');
@@ -46,27 +35,18 @@ const formatHistoryTooltip = (history: any) => {
 };
 
 const isRecentlyEdited = (data: WRVUDataWithHistory) => {
-  if (!data.history || !Array.isArray(data.history) || data.history.length === 0) {
+  if (!data?.history || !Array.isArray(data.history) || data.history.length === 0) {
     return false;
   }
-
-  const twentyFourHoursAgo = new Date();
-  twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-
-  console.log('Checking history for recent edits:', {
-    history: data.history,
-    twentyFourHoursAgo: twentyFourHoursAgo.toISOString()
-  });
-
+  
+  const now = new Date();
+  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  
   return data.history.some(entry => {
+    if (!entry.changedAt) return false;
     const entryDate = new Date(entry.changedAt);
-    const isRecent = entryDate > twentyFourHoursAgo;
-    console.log('Entry date check:', {
-      entryDate: entryDate.toISOString(),
-      isRecent,
-      entry
-    });
-    return isRecent;
+    // Only consider dates that are in the past and within last 24 hours
+    return entryDate <= now && entryDate >= twentyFourHoursAgo;
   });
 };
 
@@ -84,6 +64,8 @@ export default function WRVUDataPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingData, setEditingData] = useState<WRVUDataWithHistory | null>(null);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     fetchWRVUData();
@@ -187,31 +169,45 @@ export default function WRVUDataPage() {
   };
 
   const handleDelete = async () => {
-    if (selectedItems.size === 0) return;
+    if (selectedItems.size === 0) {
+      toast.error('Please select at least one record to delete');
+      return;
+    }
     
     if (!confirm(`Are you sure you want to delete ${selectedItems.size} record(s)?`)) {
       return;
     }
 
     try {
+      setIsLoading(true);
+      // Get the selected data items
+      const selectedIds = Array.from(selectedItems);
+
+      console.log('Attempting to delete wRVU IDs:', selectedIds);
+      
       const response = await fetch('/api/wrvu-data', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ids: Array.from(selectedItems) }),
+        body: JSON.stringify({ ids: selectedIds }),
       });
 
+      const responseData = await response.json();
+      console.log('Delete response:', responseData);
+
       if (!response.ok) {
-        throw new Error('Failed to delete records');
+        throw new Error(responseData.error || 'Failed to delete records');
       }
 
       await fetchWRVUData();
       setSelectedItems(new Set());
-      alert('Records deleted successfully');
+      toast.success('Records deleted successfully');
     } catch (error) {
       console.error('Error deleting records:', error);
-      alert('Failed to delete records. Please try again.');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete records. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -222,10 +218,8 @@ export default function WRVUDataPage() {
   };
 
   const handleEditWRVU = (data: WRVUDataWithHistory) => {
-    setEditingData({
-      ...data,
-      providerId: data.providerId || data.id
-    });
+    console.log('Editing wRVU data:', data);
+    setEditingData(data);
     setModalMode('edit');
     setIsModalOpen(true);
   };
@@ -233,61 +227,41 @@ export default function WRVUDataPage() {
   const handleSubmitWRVU = async (formData: WRVUFormData) => {
     try {
       setIsLoading(true);
-      const monthlyData = {
-        jan: parseFloat(formData.jan?.toString() || '0'),
-        feb: parseFloat(formData.feb?.toString() || '0'),
-        mar: parseFloat(formData.mar?.toString() || '0'),
-        apr: parseFloat(formData.apr?.toString() || '0'),
-        may: parseFloat(formData.may?.toString() || '0'),
-        jun: parseFloat(formData.jun?.toString() || '0'),
-        jul: parseFloat(formData.jul?.toString() || '0'),
-        aug: parseFloat(formData.aug?.toString() || '0'),
-        sep: parseFloat(formData.sep?.toString() || '0'),
-        oct: parseFloat(formData.oct?.toString() || '0'),
-        nov: parseFloat(formData.nov?.toString() || '0'),
-        dec: parseFloat(formData.dec?.toString() || '0'),
-      };
 
-      console.log('Submitting update with:', {
-        providerId: editingData?.providerId,
-        year: 2024,
-        monthlyData
-      });
+      console.log('Submitting wRVU data:', formData);
 
-      const response = await fetch(`/api/wrvu-data/${editingData?.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch('/api/wrvu-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
-          providerId: editingData?.providerId,
-          year: 2024,
-          monthlyData
-        }),
+          employee_id: formData.employee_id,
+          year: formData.year,
+          jan: Number(formData.jan) || 0,
+          feb: Number(formData.feb) || 0,
+          mar: Number(formData.mar) || 0,
+          apr: Number(formData.apr) || 0,
+          may: Number(formData.may) || 0,
+          jun: Number(formData.jun) || 0,
+          jul: Number(formData.jul) || 0,
+          aug: Number(formData.aug) || 0,
+          sep: Number(formData.sep) || 0,
+          oct: Number(formData.oct) || 0,
+          nov: Number(formData.nov) || 0,
+          dec: Number(formData.dec) || 0
+        })
       });
+
+      const responseData = await response.json().catch(() => ({ error: 'Invalid response from server' }));
 
       if (!response.ok) {
-        throw new Error('Failed to save wRVU data');
+        throw new Error(responseData.error || responseData.details || 'Failed to save wRVU data');
       }
 
-      const updatedData = await response.json();
-      console.log('Received updated data:', updatedData);
-
-      // Update the data in state
-      setData(prevData => {
-        const index = prevData.findIndex(item => item.id === updatedData.id);
-        if (index !== -1) {
-          const newData = [...prevData];
-          newData[index] = updatedData;
-          return newData;
-        }
-        return prevData;
-      });
-
-      setEditingData(null);
+      await fetchWRVUData();
       setIsModalOpen(false);
       toast.success('wRVU data saved successfully');
-
-      // Fetch fresh data to ensure we have the latest state
-      await fetchWRVUData();
     } catch (error) {
       console.error('Error saving wRVU data:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to save wRVU data');
@@ -337,11 +311,22 @@ export default function WRVUDataPage() {
   };
 
   // Add helper function to calculate YTD
-  const calculateYTD = (data: WRVUDataWithHistory) => {
-    return [
-      data.jan, data.feb, data.mar, data.apr, data.may, data.jun,
-      data.jul, data.aug, data.sep, data.oct, data.nov, data.dec
-    ].reduce((sum, val) => sum + (val || 0), 0);
+  const calculateYTD = (data: WRVUDataWithHistory): number => {
+    const values = [
+      data.jan || 0,
+      data.feb || 0,
+      data.mar || 0,
+      data.apr || 0,
+      data.may || 0,
+      data.jun || 0,
+      data.jul || 0,
+      data.aug || 0,
+      data.sep || 0,
+      data.oct || 0,
+      data.nov || 0,
+      data.dec || 0
+    ];
+    return values.reduce((sum, val) => sum + val, 0);
   };
 
   const hasEdits = useMemo(() => {
@@ -384,240 +369,325 @@ export default function WRVUDataPage() {
   }
 
   return (
-    <div className="h-full flex flex-col space-y-3 bg-white">
-      {/* Header with border */}
-      <div className="bg-white rounded-lg shadow p-5">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">wRVU Data Management</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              View and manage provider wRVU data across all months.
-            </p>
-          </div>
-          <button
-            onClick={() => router.push('/admin/wrvu-data/upload')}
-            className="inline-flex items-center gap-x-2 rounded-full bg-[#6366F1] px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#5558EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6366F1]"
-          >
-            <PlusIcon className="h-5 w-5" aria-hidden="true" />
-            Add wRVU Data
-          </button>
-        </div>
-      </div>
-
-      {/* Search and Filter Section */}
-      <div className="bg-white px-5 py-3 border-b border-gray-200">
-        <div className="flex gap-4">
-          <div className="flex-1 max-w-xs">
-            <input
-              type="text"
-              placeholder="Search by name, ID, or specialty"
-              className="w-full rounded-lg border-2 border-gray-200 pl-3 pr-10 py-3 text-base hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-            />
-          </div>
-          <div className="w-[280px]">
-            <select
-              className="w-full rounded-lg border-2 border-gray-200 pl-3 pr-10 py-3 text-base hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-            >
-              <option value="">All Specialties</option>
-              {Array.from(new Set(data.map(d => d.specialty))).sort().map(specialty => (
-                <option key={specialty} value={specialty}>{specialty}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      {selectedItems.size > 0 && (
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex gap-2">
+    <>
+      <div className="h-full flex flex-col space-y-3 bg-white">
+        {/* Header with border */}
+        <div className="bg-white rounded-lg shadow p-5">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">wRVU Data Management</h1>
+              <p className="mt-1 text-sm text-gray-500">
+                Add and manage provider wRVU data for performance tracking.
+              </p>
+            </div>
             <button
-              onClick={() => {
-                const selectedId = Array.from(selectedItems)[0];
-                const selectedData = data.find(d => d.id === selectedId);
-                if (selectedData) {
-                  handleEditWRVU(selectedData);
+              onClick={handleAddWRVU}
+              className="inline-flex items-center gap-x-2 rounded-full bg-[#6366F1] px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#5558EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6366F1]"
+            >
+              <PlusIcon className="h-5 w-5" aria-hidden="true" />
+              Add wRVU Data
+            </button>
+          </div>
+        </div>
+
+        {/* Search and Filter Section */}
+        <div className="bg-white px-5 py-3 border-b border-gray-200">
+          <div className="flex gap-4">
+            <div className="flex-1 max-w-xs">
+              <input
+                type="text"
+                placeholder="Search by name, ID, or specialty"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-lg border-2 border-gray-200 pl-3 pr-10 py-3 text-base hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              />
+            </div>
+            <div className="w-[280px]">
+              <select
+                value={selectedSpecialty}
+                onChange={(e) => setSelectedSpecialty(e.target.value)}
+                className="w-full rounded-lg border-2 border-gray-200 pl-3 pr-10 py-3 text-base hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              >
+                <option value="">All Specialties</option>
+                {Array.from(new Set(data.map(d => d.specialty)))
+                  .filter(Boolean)
+                  .sort()
+                  .map(specialty => (
+                    <option key={specialty} value={specialty}>{specialty}</option>
+                  ))
                 }
-              }}
-              disabled={selectedItems.size !== 1}
-              className={classNames(
-                "inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500",
-                selectedItems.size !== 1 && "opacity-50 cursor-not-allowed"
-              )}
-            >
-              <PencilIcon className="h-4 w-4 mr-2" />
-              Edit
-            </button>
-            <button
-              onClick={handleDelete}
-              className="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 text-sm font-medium rounded-full hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            >
-              <TrashIcon className="h-4 w-4 mr-2" />
-              Delete Selected ({selectedItems.size})
-            </button>
-            <button
-              onClick={handleClearHistory}
-              className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-            >
-              <ClockIcon className="h-4 w-4 mr-2" />
-              Clear History
-            </button>
+              </select>
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Table Section */}
-      <div className="flex flex-col bg-white shadow-lg rounded-lg flex-1 min-h-0 border border-gray-200">
-        <div className="overflow-y-scroll flex-1 rounded-t-lg scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th scope="col" className="relative px-6 py-3">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-                    checked={selectedItems.size === filteredData.length}
-                    onChange={handleSelectAll}
-                  />
-                </th>
-                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  Employee ID
-                </th>
-                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  Name
-                </th>
-                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  Specialty
-                </th>
-                {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, index) => (
-                  <th
-                    key={month}
-                    scope="col"
-                    className={classNames(
-                      "px-3 py-3.5 text-left text-sm font-semibold text-gray-900",
-                      index === 0 && "border-l border-gray-200 border-t-0"
-                    )}
-                    style={index === 0 ? { borderRight: 'none' } : undefined}
-                  >
-                    {month}
-                  </th>
-                ))}
-                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                  YTD
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {paginatedData.map((data) => (
-                <tr
-                  key={data.id}
-                  className={classNames(
-                    selectedItems.has(data.id) ? 'bg-gray-50' : 'bg-white',
-                    'hover:bg-gray-50'
-                  )}
-                >
-                  <td className="relative px-6 py-3">
+        {/* Action Buttons */}
+        {selectedItems.size > 0 && (
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  const selectedId = Array.from(selectedItems)[0];
+                  const selectedData = data.find(d => d.id === selectedId);
+                  if (selectedData) {
+                    handleEditWRVU(selectedData);
+                  }
+                }}
+                disabled={selectedItems.size !== 1}
+                className={classNames(
+                  "inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500",
+                  selectedItems.size !== 1 && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                <PencilIcon className="h-4 w-4 mr-2" />
+                Edit
+              </button>
+              <button
+                onClick={handleDelete}
+                className="inline-flex items-center px-4 py-2 bg-red-100 text-red-700 text-sm font-medium rounded-full hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                <TrashIcon className="h-4 w-4 mr-2" />
+                Delete Selected ({selectedItems.size})
+              </button>
+              <button
+                onClick={handleClearHistory}
+                className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                <ClockIcon className="h-4 w-4 mr-2" />
+                Clear History
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Table Section */}
+        <div className="flex flex-col bg-white shadow-lg rounded-lg flex-1 min-h-0 border border-gray-200">
+          <div className="overflow-y-scroll flex-1 rounded-t-lg scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="relative px-6 py-3">
                     <input
                       type="checkbox"
                       className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-                      checked={selectedItems.has(data.id)}
-                      onChange={() => handleSelectItem(data.id)}
+                      checked={selectedItems.size === filteredData.length}
+                      onChange={handleSelectAll}
                     />
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3.5 text-sm text-gray-900">{data.employee_id}</td>
-                  <td className="whitespace-nowrap px-3 py-3.5 text-sm text-gray-900">
-                    <div className="flex items-center gap-2">
-                      <span>{`${data.first_name} ${data.last_name}`}</span>
-                      {isRecentlyEdited(data) && (
-                        <div className="group relative inline-block">
-                          <ClockIcon
-                            className="h-5 w-5 text-blue-500 hover:text-blue-600 cursor-pointer ml-1"
-                          />
-                          <div className="hidden group-hover:block absolute z-10 w-96 bg-gray-800 rounded-lg shadow-xl border border-gray-700">
-                            <div className="px-4 py-3 border-b border-gray-700">
-                              <h4 className="font-medium text-gray-100">Recent Changes</h4>
-                            </div>
-                            <div className="p-4 space-y-4">
-                              {data.history?.slice(0, 3).map((entry) => (
-                                <div key={entry.id} className="flex flex-col">
-                                  <div className="text-sm text-gray-400 mb-1">
-                                    {format(new Date(entry.changedAt), 'MMM d, h:mm a')}
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Employee ID
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Name
+                  </th>
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    Specialty
+                  </th>
+                  {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, index) => (
+                    <th
+                      key={month}
+                      scope="col"
+                      className={classNames(
+                        "px-3 py-3.5 text-left text-sm font-semibold text-gray-900",
+                        index === 0 && "border-l border-gray-200 border-t-0"
+                      )}
+                      style={index === 0 ? { borderRight: 'none' } : undefined}
+                    >
+                      {month}
+                    </th>
+                  ))}
+                  <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                    YTD
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 bg-white">
+                {paginatedData.map((data) => (
+                  <tr
+                    key={data.id}
+                    className={classNames(
+                      selectedItems.has(data.id) ? 'bg-gray-50' : 'bg-white',
+                      'hover:bg-gray-50'
+                    )}
+                  >
+                    <td className="relative px-6 py-3">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                        checked={selectedItems.has(data.id)}
+                        onChange={() => handleSelectItem(data.id)}
+                      />
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3.5 text-sm text-gray-900">{data.employee_id}</td>
+                    <td className="whitespace-nowrap px-3 py-3.5 text-sm text-gray-900">
+                      <div className="flex items-center gap-2">
+                        <span>{`${data.first_name} ${data.last_name}`}</span>
+                        {isRecentlyEdited(data) && (
+                          <div className="group relative inline-block">
+                            <ClockIcon
+                              className="h-5 w-5 text-blue-500 hover:text-blue-600 cursor-pointer ml-1"
+                            />
+                            <div className="hidden group-hover:block absolute z-10 w-96 bg-gray-800 rounded-lg shadow-xl border border-gray-700">
+                              <div className="px-4 py-3 border-b border-gray-700">
+                                <h4 className="font-medium text-gray-100">Recent Changes</h4>
+                              </div>
+                              <div className="p-4 space-y-4">
+                                {data.history?.slice(0, 3).map((entry) => (
+                                  <div key={entry.id} className="flex flex-col">
+                                    <div className="text-sm text-gray-400 mb-1">
+                                      {format(new Date(entry.changedAt), 'MMM d, h:mm a')}
+                                    </div>
+                                    <div className="text-base text-gray-100">
+                                      {entry.fieldName === 'jan' ? 'January' :
+                                       entry.fieldName === 'feb' ? 'February' :
+                                       entry.fieldName === 'mar' ? 'March' :
+                                       entry.fieldName === 'apr' ? 'April' :
+                                       entry.fieldName === 'may' ? 'May' :
+                                       entry.fieldName === 'jun' ? 'June' :
+                                       entry.fieldName === 'jul' ? 'July' :
+                                       entry.fieldName === 'aug' ? 'August' :
+                                       entry.fieldName === 'sep' ? 'September' :
+                                       entry.fieldName === 'oct' ? 'October' :
+                                       entry.fieldName === 'nov' ? 'November' :
+                                       entry.fieldName === 'dec' ? 'December' :
+                                       entry.fieldName}:{' '}
+                                      <span className="text-red-400 line-through mr-2">{parseFloat(entry.oldValue || '0').toFixed(2)}</span>
+                                      <span className="text-green-400">{parseFloat(entry.newValue).toFixed(2)}</span>
+                                    </div>
                                   </div>
-                                  <div className="text-base text-gray-100">
-                                    {entry.fieldName === 'jan' ? 'January' :
-                                     entry.fieldName === 'feb' ? 'February' :
-                                     entry.fieldName === 'mar' ? 'March' :
-                                     entry.fieldName === 'apr' ? 'April' :
-                                     entry.fieldName === 'may' ? 'May' :
-                                     entry.fieldName === 'jun' ? 'June' :
-                                     entry.fieldName === 'jul' ? 'July' :
-                                     entry.fieldName === 'aug' ? 'August' :
-                                     entry.fieldName === 'sep' ? 'September' :
-                                     entry.fieldName === 'oct' ? 'October' :
-                                     entry.fieldName === 'nov' ? 'November' :
-                                     entry.fieldName === 'dec' ? 'December' :
-                                     entry.fieldName}:{' '}
-                                    <span className="text-red-400 line-through mr-2">{parseFloat(entry.oldValue || '0').toFixed(2)}</span>
-                                    <span className="text-green-400">{parseFloat(entry.newValue).toFixed(2)}</span>
+                                ))}
+                                {data.history && data.history.length > 3 && (
+                                  <div className="pt-2 mt-2 text-sm text-gray-400 border-t border-gray-700">
+                                    + {data.history.length - 3} more changes
                                   </div>
-                                </div>
-                              ))}
-                              {data.history && data.history.length > 3 && (
-                                <div className="pt-2 mt-2 text-sm text-gray-400 border-t border-gray-700">
-                                  + {data.history.length - 3} more changes
-                                </div>
-                              )}
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3.5 text-sm text-gray-900">{data.specialty}</td>
-                  {['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].map((month, index) => (
-                    <td 
-                      key={month} 
-                      className={classNames(
-                        "whitespace-nowrap px-3 py-3.5 text-sm text-right text-gray-900",
-                        index === 0 && "border-l border-gray-200"
-                      )}
-                    >
-                      {formatNumber(Number(data[month as keyof WRVUDataWithHistory]))}
+                        )}
+                      </div>
                     </td>
-                  ))}
-                  <td className="whitespace-nowrap px-3 py-3.5 text-sm text-right font-medium text-gray-900">
-                    {formatNumber(calculateYTD(data))}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <td className="whitespace-nowrap px-3 py-3.5 text-sm text-gray-900">{data.specialty}</td>
+                    {['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].map((month, index) => (
+                      <td 
+                        key={month} 
+                        className={classNames(
+                          "whitespace-nowrap px-3 py-3.5 text-sm text-right text-gray-900",
+                          index === 0 && "border-l border-gray-200"
+                        )}
+                      >
+                        {formatNumber(Number(data[month as keyof WRVUDataWithHistory]))}
+                      </td>
+                    ))}
+                    <td className="whitespace-nowrap px-3 py-3.5 text-sm text-right font-medium text-gray-900">
+                      {formatNumber(calculateYTD(data))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
+
+        {/* Pagination */}
+        <div className="mt-6">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
+        </div>
+
+        {/* Edit/Add Modal */}
+        {isModalOpen && (
+          <EditWRVUModal
+            isOpen={isModalOpen}
+            onClose={() => {
+              setIsModalOpen(false);
+              setEditingData(null);
+            }}
+            onSubmit={handleSubmitWRVU}
+            editingData={editingData}
+            mode={modalMode}
+          />
+        )}
       </div>
 
-      {/* Pagination */}
-      <div className="mt-6">
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-        />
-      </div>
+      {/* Error Dialog */}
+      <Transition.Root show={errorDialogOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={setErrorDialogOpen}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+          </Transition.Child>
 
-      {/* Edit/Add Modal */}
-      {isModalOpen && (
-        <EditWRVUModal
-          isOpen={isModalOpen}
-          onClose={() => {
-            setIsModalOpen(false);
-            setEditingData(null);
-          }}
-          onSubmit={handleSubmitWRVU}
-          onSave={fetchWRVUData}
-          data={editingData || undefined}
-          mode={modalMode}
-        />
-      )}
-    </div>
+          <div className="fixed inset-0 z-10 overflow-y-auto">
+            <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              >
+                <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                  <div className="sm:flex sm:items-start">
+                    <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-amber-100 sm:mx-0 sm:h-10 sm:w-10">
+                      <ExclamationTriangleIcon className="h-6 w-6 text-amber-600" aria-hidden="true" />
+                    </div>
+                    <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
+                      <Dialog.Title as="h3" className="text-base font-semibold leading-6 text-gray-900">
+                        Provider Required
+                      </Dialog.Title>
+                      <div className="mt-2">
+                        <div className="text-sm text-gray-600">
+                          <p className="mb-4">Before adding wRVU data, we need to set up the provider in our system.</p>
+                          <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                            <p className="font-medium text-gray-900">Next steps:</p>
+                            <ol className="list-decimal ml-4 space-y-1">
+                              <li>Navigate to the Providers page</li>
+                              <li>Add the provider's information</li>
+                              <li>Return here to add their wRVU data</li>
+                            </ol>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-6 sm:mt-4 sm:flex sm:flex-row-reverse gap-3">
+                    <button
+                      type="button"
+                      className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 sm:w-auto"
+                      onClick={() => {
+                        setErrorDialogOpen(false);
+                        router.push('/admin/providers');
+                      }}
+                    >
+                      Add Provider Now
+                    </button>
+                    <button
+                      type="button"
+                      className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3.5 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+                      onClick={() => setErrorDialogOpen(false)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition.Root>
+    </>
   );
 } 
