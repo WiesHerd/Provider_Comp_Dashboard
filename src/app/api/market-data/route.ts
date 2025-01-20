@@ -112,31 +112,38 @@ export async function PUT(request: Request) {
     // Update the market data
     const updatedData = await prisma.marketData.update({
       where: { id },
-      data: updateData
+      data: updateData,
+      include: {
+        history: {
+          orderBy: {
+            changedAt: 'desc'
+          },
+          take: 10
+        }
+      }
     });
 
     // Insert history records if there are changes
     if (changes.length > 0) {
-      const values = changes.map(change => 
-        `(${[
-          `'${change.id}'`,
-          `'${change.marketDataId}'`,
-          `'${change.changeType}'`,
-          `'${change.fieldName}'`,
-          `'${change.oldValue}'`,
-          `'${change.newValue}'`,
-          `datetime('now')`
-        ].join(', ')})`
-      ).join(',\n');
-
-      await prisma.$executeRaw`
-        INSERT INTO MarketDataHistory (
-          id, marketDataId, changeType, fieldName, oldValue, newValue, changedAt
-        ) VALUES ${Prisma.raw(values)}
-      `;
+      await prisma.marketDataHistory.createMany({
+        data: changes
+      });
     }
 
-    return NextResponse.json(updatedData);
+    // Fetch the final data with history
+    const finalData = await prisma.marketData.findUnique({
+      where: { id },
+      include: {
+        history: {
+          orderBy: {
+            changedAt: 'desc'
+          },
+          take: 10
+        }
+      }
+    });
+
+    return NextResponse.json(finalData);
   } catch (error) {
     console.error('Error updating market data:', error);
     return NextResponse.json(

@@ -19,13 +19,9 @@ interface WRVURow {
   Oct: string | number;
   Nov: string | number;
   Dec: string | number;
-  [key: string]: any;
 }
 
-const MONTHS = {
-  Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6,
-  Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12
-};
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export async function POST(request: Request) {
   try {
@@ -60,10 +56,13 @@ export async function POST(request: Request) {
     // If mode is 'clear', delete all existing wRVU data for the current year
     if (mode === 'clear') {
       try {
-        await prisma.wRVUData.deleteMany({
-          where: { year: 2024 }  // Hardcode to 2024 since that's our target year
+        await prisma.wRVUHistory.deleteMany({
+          where: { wrvuData: { year: 2024 } }
         });
-        console.log('Cleared existing wRVU data for year: 2024');
+        await prisma.wRVUData.deleteMany({
+          where: { year: 2024 }
+        });
+        console.log('Cleared existing wRVU data and history for year: 2024');
       } catch (clearError) {
         console.error('Error clearing existing data:', clearError);
         return NextResponse.json(
@@ -80,22 +79,22 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer();
     const workbook = XLSX.read(bytes, { type: 'array' });
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rawData = XLSX.utils.sheet_to_json(worksheet, {
+    const rawData = XLSX.utils.sheet_to_json<WRVURow>(worksheet, {
       raw: true,
       defval: 0,
-      blankrows: false,
-      header: 1
+      blankrows: false
     });
+
+    console.log('Parsed data:', rawData[0]); // Log first row for debugging
 
     // Process each row
     const successes: string[] = [];
     const errors: string[] = [];
-    let totalRecords = 0;
+    let totalRecordsCreated = 0;
 
-    // Skip header row
-    for (const row of rawData.slice(1) as any[]) {
+    for (const row of rawData) {
       try {
-        const employeeId = String(row[0] || '');
+        const employeeId = String(row.employee_id || '');
         if (!employeeId) {
           console.log('Skipping row with no employee ID');
           continue;
@@ -111,62 +110,51 @@ export async function POST(request: Request) {
           continue;
         }
 
-        // Get the year from the data, defaulting to 2024 if not provided
-        const year = 2024;  // Hardcode to 2024 since that's our target year
+        // Get the year from the data, defaulting to 2024
+        const year = 2024;
         
-        // Create or update wRVU data for each month
-        const monthlyData = {
-          1: Number(row[5] || 0),  // Jan
-          2: Number(row[6] || 0),  // Feb
-          3: Number(row[7] || 0),  // Mar
-          4: Number(row[8] || 0),  // Apr
-          5: Number(row[9] || 0),  // May
-          6: Number(row[10] || 0), // Jun
-          7: Number(row[11] || 0), // Jul
-          8: Number(row[12] || 0), // Aug
-          9: Number(row[13] || 0), // Sep
-          10: Number(row[14] || 0), // Oct
-          11: Number(row[15] || 0), // Nov
-          12: Number(row[16] || 0)  // Dec
-        };
+        // Process each month's data
+        for (let monthIndex = 0; monthIndex < MONTHS.length; monthIndex++) {
+          const monthName = MONTHS[monthIndex];
+          const value = Number(row[monthName]);
+          
+          // Skip if value is 0 or invalid
+          if (isNaN(value) || value <= 0) continue;
 
-        // Create or update wRVU data for each month
-        for (const [month, value] of Object.entries(monthlyData)) {
-          if (value > 0) {  // Only create/update records with actual values
-            await prisma.wRVUData.upsert({
-              where: {
-                providerId_year_month: {
-                  providerId: provider.id,
-                  year,
-                  month: parseInt(month)
-                }
-              },
-              update: {
-                value,
-                hours: 160
-              },
-              create: {
+          // Create or update wRVU data for the month
+          await prisma.wRVUData.upsert({
+            where: {
+              providerId_year_month: {
                 providerId: provider.id,
                 year,
-                month: parseInt(month),
-                value,
-                hours: 160
+                month: monthIndex + 1
               }
-            });
-            totalRecords++;
-          }
+            },
+            update: {
+              value,
+              hours: 160
+            },
+            create: {
+              providerId: provider.id,
+              year,
+              month: monthIndex + 1,
+              value,
+              hours: 160
+            }
+          });
+          totalRecordsCreated++;
         }
         
-        successes.push(`Successfully processed data for ${String(row[1])} ${String(row[2])} (${employeeId})`);
+        successes.push(`Successfully processed data for ${row.first_name} ${row.last_name} (${employeeId})`);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        const employeeId = String(row[0] || 'Unknown');
+        const employeeId = String(row.employee_id || 'Unknown');
         errors.push(`Error processing row for ${employeeId}: ${errorMessage}`);
         console.error(`Error processing row:`, { error, row });
       }
     }
 
-    console.log(`Completed processing. Provider rows: ${rawData.length}, Errors: ${errors.length}`);
+    console.log(`Completed processing. Rows processed: ${rawData.length}, Records created/updated: ${totalRecordsCreated}, Errors: ${errors.length}`);
 
     // Disconnect from database
     try {
@@ -177,8 +165,9 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      message: `Successfully uploaded ${rawData.length} records`,
-      count: rawData.length,
+      message: `Successfully processed ${rawData.length} providers with ${totalRecordsCreated} monthly records`,
+      providers: rawData.length,
+      records: totalRecordsCreated,
       successes,
       errors: errors.length > 0 ? errors : undefined
     });

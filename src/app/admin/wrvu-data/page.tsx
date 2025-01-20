@@ -7,41 +7,23 @@ import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import EditWRVUModal from '@/components/WRVU/EditWRVUModal';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
+import { WRVUData } from '@/types/wrvu';
+import { WRVUFormData } from '@/components/WRVU/EditWRVUModal';
 
-function classNames(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ');
-}
-
-interface WRVUData {
-  id: string;
-  providerId?: string;
-  employee_id: string;
-  first_name: string;
-  last_name: string;
-  specialty: string;
-  year: number;
-  jan: number;
-  feb: number;
-  mar: number;
-  apr: number;
-  may: number;
-  jun: number;
-  jul: number;
-  aug: number;
-  sep: number;
-  oct: number;
-  nov: number;
-  dec: number;
-  history?: {
+interface WRVUDataWithHistory extends WRVUData {
+  history?: Array<{
     id: string;
     wrvuDataId: string;
     changeType: string;
     fieldName: string;
     oldValue: string | null;
-    newValue: string | null;
+    newValue: string;
     changedAt: Date;
-    changedBy: string | null;
-  }[];
+  }>;
+}
+
+function classNames(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(' ');
 }
 
 const formatNumber = (value: number | null | undefined) => {
@@ -62,13 +44,34 @@ const formatHistoryTooltip = (history: any) => {
   return `Changed from ${oldValue} to ${newValue} on ${date}`;
 };
 
-function isRecentlyEdited(item: any) {
-  return Array.isArray(item.history) && item.history.length > 0;
-}
+const isRecentlyEdited = (data: WRVUDataWithHistory) => {
+  if (!data.history || !Array.isArray(data.history) || data.history.length === 0) {
+    return false;
+  }
+
+  const twentyFourHoursAgo = new Date();
+  twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
+  console.log('Checking history for recent edits:', {
+    history: data.history,
+    twentyFourHoursAgo: twentyFourHoursAgo.toISOString()
+  });
+
+  return data.history.some(entry => {
+    const entryDate = new Date(entry.changedAt);
+    const isRecent = entryDate > twentyFourHoursAgo;
+    console.log('Entry date check:', {
+      entryDate: entryDate.toISOString(),
+      isRecent,
+      entry
+    });
+    return isRecent;
+  });
+};
 
 export default function WRVUDataPage() {
-  const [wrvuData, setWRVUData] = useState<WRVUData[]>([]);
-  const [filteredData, setFilteredData] = useState<WRVUData[]>([]);
+  const [data, setData] = useState<WRVUDataWithHistory[]>([]);
+  const [filteredData, setFilteredData] = useState<WRVUDataWithHistory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -78,7 +81,7 @@ export default function WRVUDataPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingData, setEditingData] = useState<WRVUData | null>(null);
+  const [editingData, setEditingData] = useState<WRVUDataWithHistory | null>(null);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
 
   useEffect(() => {
@@ -87,7 +90,7 @@ export default function WRVUDataPage() {
 
   useEffect(() => {
     // Filter data based on search query and specialty
-    const filtered = wrvuData.filter(data => {
+    const filtered = data.filter(data => {
       const searchTerm = searchQuery.toLowerCase().trim();
       const fullName = `${data.first_name} ${data.last_name}`.toLowerCase();
       
@@ -102,14 +105,15 @@ export default function WRVUDataPage() {
     });
     setFilteredData(filtered);
     setCurrentPage(1); // Reset to first page when filters change
-  }, [searchQuery, selectedSpecialty, wrvuData]);
+  }, [searchQuery, selectedSpecialty, data]);
 
   const fetchWRVUData = async () => {
     try {
       setIsLoading(true);
       setError(null);
       
-      const response = await fetch('/api/wrvu-data');
+      const year = 2024; // Default to 2024 to match uploaded data
+      const response = await fetch(`/api/wrvu-data?year=${year}`);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
@@ -118,7 +122,8 @@ export default function WRVUDataPage() {
       }
 
       const data = await response.json();
-      setWRVUData(data);
+      console.log('Received wRVU data:', data);
+      setData(data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch wRVU data';
       setError(errorMessage);
@@ -145,7 +150,7 @@ export default function WRVUDataPage() {
       }
 
       // Reset all state
-      setWRVUData([]);
+      setData([]);
       setFilteredData([]);
       setSelectedItems(new Set());
       setCurrentPage(1);
@@ -215,46 +220,107 @@ export default function WRVUDataPage() {
     setIsModalOpen(true);
   };
 
-  const handleEditWRVU = (data: WRVUData) => {
+  const handleEditWRVU = (data: WRVUDataWithHistory) => {
     setEditingData({
       ...data,
-      providerId: data.id
+      providerId: data.providerId || data.id
     });
     setModalMode('edit');
     setIsModalOpen(true);
   };
 
-  const handleSubmitWRVU = async (formData: any) => {
+  const handleSubmitWRVU = async (formData: WRVUFormData) => {
     try {
-      const response = await fetch('/api/wrvu-data', {
-        method: editingData ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      setIsLoading(true);
+      const monthlyData = {
+        jan: parseFloat(formData.jan?.toString() || '0'),
+        feb: parseFloat(formData.feb?.toString() || '0'),
+        mar: parseFloat(formData.mar?.toString() || '0'),
+        apr: parseFloat(formData.apr?.toString() || '0'),
+        may: parseFloat(formData.may?.toString() || '0'),
+        jun: parseFloat(formData.jun?.toString() || '0'),
+        jul: parseFloat(formData.jul?.toString() || '0'),
+        aug: parseFloat(formData.aug?.toString() || '0'),
+        sep: parseFloat(formData.sep?.toString() || '0'),
+        oct: parseFloat(formData.oct?.toString() || '0'),
+        nov: parseFloat(formData.nov?.toString() || '0'),
+        dec: parseFloat(formData.dec?.toString() || '0'),
+      };
+
+      console.log('Submitting update with:', {
+        providerId: editingData?.providerId,
+        year: 2024,
+        monthlyData
+      });
+
+      const response = await fetch(`/api/wrvu-data/${editingData?.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: editingData?.id,
-          providerId: editingData?.id,
-          ...formData
+          providerId: editingData?.providerId,
+          year: 2024,
+          monthlyData
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save wRVU data');
-      }
-
-      const result = await response.json();
-      if (result.success) {
-        toast.success('wRVU data saved successfully');
-        setIsModalOpen(false);
-        setEditingData(null);
-        fetchWRVUData();
-      } else {
         throw new Error('Failed to save wRVU data');
       }
+
+      const updatedData = await response.json();
+      console.log('Received updated data:', updatedData);
+
+      // Update the data in state
+      setData(prevData => {
+        const index = prevData.findIndex(item => item.id === updatedData.id);
+        if (index !== -1) {
+          const newData = [...prevData];
+          newData[index] = updatedData;
+          return newData;
+        }
+        return prevData;
+      });
+
+      setEditingData(null);
+      setIsModalOpen(false);
+      toast.success('wRVU data saved successfully');
+
+      // Fetch fresh data to ensure we have the latest state
+      await fetchWRVUData();
     } catch (error) {
       console.error('Error saving wRVU data:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to save wRVU data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleClearHistory = async () => {
+    if (selectedItems.size === 0) return;
+    
+    if (!confirm(`Are you sure you want to clear history for ${selectedItems.size} record(s)?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/wrvu-data/clear-history', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ids: Array.from(selectedItems) }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to clear history');
+      }
+
+      await fetchWRVUData();
+      setSelectedItems(new Set());
+      toast.success('History cleared successfully');
+    } catch (error) {
+      console.error('Error clearing history:', error);
+      toast.error('Failed to clear history. Please try again.');
     }
   };
 
@@ -270,7 +336,7 @@ export default function WRVUDataPage() {
   };
 
   // Add helper function to calculate YTD
-  const calculateYTD = (data: WRVUData) => {
+  const calculateYTD = (data: WRVUDataWithHistory) => {
     return [
       data.jan, data.feb, data.mar, data.apr, data.may, data.jun,
       data.jul, data.aug, data.sep, data.oct, data.nov, data.dec
@@ -278,8 +344,11 @@ export default function WRVUDataPage() {
   };
 
   const hasEdits = useMemo(() => {
-    return wrvuData.some(data => isRecentlyEdited(data));
-  }, [wrvuData]);
+    console.log('Checking hasEdits for data:', data);
+    const result = data.some(data => isRecentlyEdited(data));
+    console.log('hasEdits result:', result);
+    return result;
+  }, [data]);
 
   if (isLoading) {
     return (
@@ -358,7 +427,7 @@ export default function WRVUDataPage() {
               className="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-blue-600 sm:text-sm sm:leading-6"
             >
               <option value="">All Specialties</option>
-              {Array.from(new Set(wrvuData.map(d => d.specialty))).sort().map(specialty => (
+              {Array.from(new Set(data.map(d => d.specialty))).sort().map(specialty => (
                 <option key={specialty} value={specialty}>{specialty}</option>
               ))}
             </select>
@@ -373,7 +442,7 @@ export default function WRVUDataPage() {
             <button
               onClick={() => {
                 const selectedId = Array.from(selectedItems)[0];
-                const selectedData = wrvuData.find(d => d.id === selectedId);
+                const selectedData = data.find(d => d.id === selectedId);
                 if (selectedData) {
                   handleEditWRVU(selectedData);
                 }
@@ -394,6 +463,13 @@ export default function WRVUDataPage() {
               <TrashIcon className="h-4 w-4 mr-2" />
               Delete Selected ({selectedItems.size})
             </button>
+            <button
+              onClick={handleClearHistory}
+              className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-full hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
+              <ClockIcon className="h-4 w-4 mr-2" />
+              Clear History
+            </button>
           </div>
         </div>
       )}
@@ -404,37 +480,29 @@ export default function WRVUDataPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th scope="col"></th>
-                {hasEdits && <th scope="col"></th>}
-                <th scope="col"></th>
-                <th scope="col"></th>
-                <th scope="col"></th>
-                <th scope="col" colSpan={12} className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Monthly wRVUs</th>
-                <th scope="col"></th>
-              </tr>
-              <tr className="border-b border-gray-200">
-                <th scope="col" className="relative w-12 px-4 sm:w-16 sm:px-6">
+                <th scope="col" className="relative px-6 py-3">
                   <input
                     type="checkbox"
-                    className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
-                    checked={selectedItems.size > 0 && selectedItems.size === paginatedData.length}
-                    onChange={(e) => handleSelectAll(e)}
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                    checked={selectedItems.size === filteredData.length}
+                    onChange={handleSelectAll}
                   />
                 </th>
-                {hasEdits && (
-                  <th scope="col" className="w-8 px-2 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-center">
-                    EDIT
-                  </th>
-                )}
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Employee ID</th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Name</th>
-                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Specialty</th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                  Employee ID
+                </th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                  Name
+                </th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                  Specialty
+                </th>
                 {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, index) => (
                   <th
                     key={month}
                     scope="col"
                     className={classNames(
-                      "px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap",
+                      "px-3 py-3.5 text-left text-sm font-semibold text-gray-900",
                       index === 0 && "border-l border-gray-200 border-t-0"
                     )}
                     style={index === 0 ? { borderRight: 'none' } : undefined}
@@ -442,59 +510,90 @@ export default function WRVUDataPage() {
                     {month}
                   </th>
                 ))}
-                <th scope="col" className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">YTD</th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                  YTD
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
               {paginatedData.map((data) => (
-                <tr key={data.id} className={selectedItems.has(data.id) ? 'bg-gray-50' : undefined}>
-                  <td className="relative w-12 px-4 sm:w-16 sm:px-6">
+                <tr
+                  key={data.id}
+                  className={classNames(
+                    selectedItems.has(data.id) ? 'bg-gray-50' : 'bg-white',
+                    'hover:bg-gray-50'
+                  )}
+                >
+                  <td className="relative px-6 py-3">
                     <input
                       type="checkbox"
-                      className="absolute left-4 top-1/2 -mt-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
-                      value={data.id}
+                      className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
                       checked={selectedItems.has(data.id)}
                       onChange={() => handleSelectItem(data.id)}
                     />
                   </td>
-                  {hasEdits && (
-                    <td className="whitespace-nowrap w-8 px-2 py-2 text-center">
+                  <td className="whitespace-nowrap px-3 py-3.5 text-sm text-gray-900">{data.employee_id}</td>
+                  <td className="whitespace-nowrap px-3 py-3.5 text-sm text-gray-900">
+                    <div className="flex items-center gap-2">
+                      <span>{`${data.first_name} ${data.last_name}`}</span>
                       {isRecentlyEdited(data) && (
                         <div className="group relative inline-block">
-                          <ClockIcon className="h-4 w-4 text-blue-500" aria-hidden="true" />
-                          <div className="absolute left-full ml-2 hidden group-hover:block bg-gray-800 text-white p-2 rounded shadow-lg z-50 min-w-[200px]">
-                            <div className="text-sm font-medium mb-1">Edit History</div>
-                            {data.history?.slice(0, 3).map((change: any, idx: number) => (
-                              <div key={idx} className="text-xs mb-2">
-                                <div className="text-gray-300">{new Date(change.changedAt).toLocaleString()}</div>
-                                <div>
-                                  <span className="text-gray-400">{change.fieldName}: </span>
-                                  <span className="text-red-400">{change.oldValue}</span>
-                                  <span className="text-gray-400"> → </span>
-                                  <span className="text-green-400">{change.newValue}</span>
+                          <ClockIcon
+                            className="h-5 w-5 text-blue-500 hover:text-blue-600 cursor-pointer ml-1"
+                          />
+                          <div className="hidden group-hover:block absolute z-10 w-96 bg-gray-800 rounded-lg shadow-xl border border-gray-700">
+                            <div className="px-4 py-3 border-b border-gray-700">
+                              <h4 className="font-medium text-gray-100">Recent Changes</h4>
+                            </div>
+                            <div className="p-4 space-y-4">
+                              {data.history?.slice(0, 3).map((entry) => (
+                                <div key={entry.id} className="flex flex-col">
+                                  <div className="text-sm text-gray-400 mb-1">
+                                    {format(new Date(entry.changedAt), 'MMM d, h:mm a')}
+                                  </div>
+                                  <div className="text-base text-gray-100">
+                                    {entry.fieldName === 'jan' ? 'January' :
+                                     entry.fieldName === 'feb' ? 'February' :
+                                     entry.fieldName === 'mar' ? 'March' :
+                                     entry.fieldName === 'apr' ? 'April' :
+                                     entry.fieldName === 'may' ? 'May' :
+                                     entry.fieldName === 'jun' ? 'June' :
+                                     entry.fieldName === 'jul' ? 'July' :
+                                     entry.fieldName === 'aug' ? 'August' :
+                                     entry.fieldName === 'sep' ? 'September' :
+                                     entry.fieldName === 'oct' ? 'October' :
+                                     entry.fieldName === 'nov' ? 'November' :
+                                     entry.fieldName === 'dec' ? 'December' :
+                                     entry.fieldName}:{' '}
+                                    <span className="text-red-400 line-through mr-2">{parseFloat(entry.oldValue || '0').toFixed(2)}</span>
+                                    <span className="text-green-400">{parseFloat(entry.newValue).toFixed(2)}</span>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
+                              {data.history && data.history.length > 3 && (
+                                <div className="pt-2 mt-2 text-sm text-gray-400 border-t border-gray-700">
+                                  + {data.history.length - 3} more changes
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       )}
-                    </td>
-                  )}
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">{data.employee_id}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">{`${data.first_name} ${data.last_name}`}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-900">{data.specialty}</td>
+                    </div>
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-3.5 text-sm text-gray-900">{data.specialty}</td>
                   {['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].map((month, index) => (
                     <td 
                       key={month} 
                       className={classNames(
-                        "whitespace-nowrap px-3 py-2 text-sm text-right text-gray-900",
+                        "whitespace-nowrap px-3 py-3.5 text-sm text-right text-gray-900",
                         index === 0 && "border-l border-gray-200"
                       )}
                     >
-                      {formatNumber(data[month as keyof typeof data] as number)}
+                      {formatNumber(Number(data[month as keyof WRVUDataWithHistory]))}
                     </td>
                   ))}
-                  <td className="whitespace-nowrap px-3 py-2 text-sm text-right font-medium text-gray-900">
+                  <td className="whitespace-nowrap px-3 py-3.5 text-sm text-right font-medium text-gray-900">
                     {formatNumber(calculateYTD(data))}
                   </td>
                 </tr>

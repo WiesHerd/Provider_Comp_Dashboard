@@ -5,7 +5,7 @@ import { Fragment, useState, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 
-interface WRVUFormData {
+export interface WRVUFormData {
   id?: string;
   employee_id: string;
   first_name: string;
@@ -48,7 +48,7 @@ export default function EditWRVUModal({
     first_name: '',
     last_name: '',
     specialty: '',
-    year: new Date().getFullYear(),
+    year: 2024,
     jan: 0,
     feb: 0,
     mar: 0,
@@ -76,7 +76,7 @@ export default function EditWRVUModal({
         first_name: '',
         last_name: '',
         specialty: '',
-        year: new Date().getFullYear(),
+        year: 2024,
         jan: 0,
         feb: 0,
         mar: 0,
@@ -96,45 +96,26 @@ export default function EditWRVUModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch('/api/wrvu-data', {
-        method: data?.id ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: data?.id,
-          providerId: data?.providerId,
-          year: new Date().getFullYear(),
-          month: 1, // This will be handled in the API for each month
-          jan: Number(formData.jan || 0),
-          feb: Number(formData.feb || 0),
-          mar: Number(formData.mar || 0),
-          apr: Number(formData.apr || 0),
-          may: Number(formData.may || 0),
-          jun: Number(formData.jun || 0),
-          jul: Number(formData.jul || 0),
-          aug: Number(formData.aug || 0),
-          sep: Number(formData.sep || 0),
-          oct: Number(formData.oct || 0),
-          nov: Number(formData.nov || 0),
-          dec: Number(formData.dec || 0),
-        }),
+      // Call the onSubmit prop with the form data
+      await onSubmit({
+        ...formData,
+        jan: Number(formData.jan || 0),
+        feb: Number(formData.feb || 0),
+        mar: Number(formData.mar || 0),
+        apr: Number(formData.apr || 0),
+        may: Number(formData.may || 0),
+        jun: Number(formData.jun || 0),
+        jul: Number(formData.jul || 0),
+        aug: Number(formData.aug || 0),
+        sep: Number(formData.sep || 0),
+        oct: Number(formData.oct || 0),
+        nov: Number(formData.nov || 0),
+        dec: Number(formData.dec || 0),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save wRVU data');
-      }
-
-      const result = await response.json();
-      
-      if (result.success) {
-        toast.success('wRVU data saved successfully');
-        onClose();
-        if (onSave) onSave();
-      } else {
-        throw new Error('Failed to save wRVU data');
-      }
+      // Close the modal after successful submission
+      onClose();
+      if (onSave) onSave();
     } catch (error) {
       console.error('Error saving wRVU data:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to save wRVU data');

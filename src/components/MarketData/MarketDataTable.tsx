@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import React, { useState, useMemo } from 'react';
+import { PencilIcon, TrashIcon, ClockIcon } from '@heroicons/react/24/outline';
 
 interface MarketData {
   id: string;
@@ -16,6 +16,13 @@ interface MarketData {
   p50_cf: number;
   p75_cf: number;
   p90_cf: number;
+  history?: {
+    changeType: string;
+    fieldName: string;
+    oldValue: string;
+    newValue: string;
+    changedAt: string;
+  }[];
 }
 
 interface MarketDataTableProps {
@@ -24,12 +31,20 @@ interface MarketDataTableProps {
   onDelete: (id: string) => void;
 }
 
+const isRecentlyEdited = (data: MarketData) => {
+  return Boolean(data.history && Array.isArray(data.history) && data.history.length > 0);
+};
+
 export default function MarketDataTable({ data, onEdit, onDelete }: MarketDataTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredData = data.filter(item =>
     item.specialty.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const hasEdits = useMemo(() => {
+    return data.some(item => isRecentlyEdited(item));
+  }, [data]);
 
   return (
     <div className="w-full">
@@ -49,6 +64,11 @@ export default function MarketDataTable({ data, onEdit, onDelete }: MarketDataTa
               <th scope="col" className="w-[15%] px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                 Specialty
               </th>
+              {hasEdits && (
+                <th scope="col" className="w-8 px-2 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  History
+                </th>
+              )}
               <th scope="col" colSpan={4} className="w-[28%] px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Total Cash Compensation
               </th>
@@ -64,6 +84,7 @@ export default function MarketDataTable({ data, onEdit, onDelete }: MarketDataTa
             </tr>
             <tr>
               <th scope="col" className="px-3 py-3"></th>
+              {hasEdits && <th scope="col" className="w-8 px-2"></th>}
               {['25th', '50th', '75th', '90th'].map((percentile) => (
                 <th key={`total-${percentile}`} scope="col" className="w-[7%] px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                   {percentile}
@@ -88,6 +109,13 @@ export default function MarketDataTable({ data, onEdit, onDelete }: MarketDataTa
                 <td className="px-3 py-4 text-sm font-medium text-gray-900 truncate">
                   {item.specialty}
                 </td>
+                {hasEdits && (
+                  <td className="w-8 px-2 py-3 text-center">
+                    {isRecentlyEdited(item) && (
+                      <ClockIcon className="h-4 w-4 text-blue-500 inline-block" aria-hidden="true" />
+                    )}
+                  </td>
+                )}
                 <td className="px-3 py-4 text-sm text-gray-500 text-right">
                   ${item.p25_total.toLocaleString()}
                 </td>

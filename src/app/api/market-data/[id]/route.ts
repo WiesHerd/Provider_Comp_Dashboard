@@ -74,11 +74,50 @@ export async function PUT(
     // Update the record
     const updatedMarketData = await prisma.marketData.update({
       where: { id },
-      data: updateData
+      data: updateData,
+      include: {
+        history: true
+      }
     });
 
-    console.log('Successfully updated record:', JSON.stringify(updatedMarketData, null, 2));
-    return NextResponse.json(updatedMarketData);
+    // Create history entries for changed fields
+    const historyEntries = Object.entries(updateData).map(([fieldName, newValue]) => {
+      const oldValue = String(existingData[fieldName]);
+      const newValueStr = String(newValue);
+      
+      if (oldValue !== newValueStr) {
+        return {
+          marketDataId: id,
+          changeType: 'UPDATE',
+          fieldName,
+          oldValue,
+          newValue: newValueStr,
+        };
+      }
+      return null;
+    }).filter(entry => entry !== null);
+
+    if (historyEntries.length > 0) {
+      await prisma.marketDataHistory.createMany({
+        data: historyEntries
+      });
+    }
+
+    // Fetch the updated record with history
+    const finalData = await prisma.marketData.findUnique({
+      where: { id },
+      include: {
+        history: {
+          orderBy: {
+            changedAt: 'desc'
+          },
+          take: 10
+        }
+      }
+    });
+
+    console.log('Successfully updated record with history:', JSON.stringify(finalData, null, 2));
+    return NextResponse.json(finalData);
   } catch (error) {
     console.error('Failed to update market data:', error);
     // Ensure we always return a proper JSON response

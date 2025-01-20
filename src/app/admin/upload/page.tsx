@@ -91,7 +91,7 @@ export default function UploadPage() {
       }
 
       const result = await response.json();
-      alert(`Successfully uploaded ${result.count} records`);
+      alert(`Successfully uploaded ${result.providers} providers with ${result.records} monthly records`);
       setPreviewData(null);
       router.refresh();
     } catch (error) {
