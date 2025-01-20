@@ -35,14 +35,14 @@ export default function Sidebar({ isCollapsed, onCollapse }: SidebarProps) {
           <div className="flex-shrink-0">
             <Image
               src="/images/icon.svg"
-              alt="Clarity360"
+              alt="Clarity Pay 360"
               width={32}
               height={32}
               className="w-8 h-8"
             />
           </div>
           {!isCollapsed && (
-            <span className="text-xl font-semibold text-white">Clarity360</span>
+            <span className="text-xl font-semibold text-white">Clarity Pay 360</span>
           )}
         </div>
 
