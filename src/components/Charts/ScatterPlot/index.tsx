@@ -69,37 +69,8 @@ const PERCENTILE_PRESETS = [
   }
 ];
 
-export const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
+const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
   ({ data, xKey, yKey, tooltipFormatter }, ref) => {
-    const [range, setRange] = useState<RangeState>({
-      wrvu: [0, 100],
-      comp: [0, 100]
-    });
-    const [selectedPreset, setSelectedPreset] = useState("All Providers");
-
-    const handlePresetChange = (preset: string) => {
-      const selectedPreset = PERCENTILE_PRESETS.find(p => p.label === preset);
-      if (selectedPreset) {
-        setRange({
-          wrvu: selectedPreset.wrvu,
-          comp: selectedPreset.comp
-        });
-      }
-    };
-
-    const handleRangeChange = (type: keyof RangeState, value: [number, number]) => {
-      setRange(prev => ({
-        ...prev,
-        [type]: value
-      }));
-    };
-
-    const filteredData = data.filter(d => {
-      const wrvuInRange = d.productivity.percentile >= range.wrvu[0] && d.productivity.percentile <= range.wrvu[1];
-      const compInRange = d.compensation.percentile >= range.comp[0] && d.compensation.percentile <= range.comp[1];
-      return wrvuInRange && compInRange;
-    });
-
     return (
       <div className="space-y-6" ref={ref}>
         <div className="flex items-center justify-between">
@@ -108,85 +79,6 @@ export const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
               Compare annualized YTD productivity percentiles against compensation percentiles to identify alignment
             </p>
           </div>
-          <Select
-            value={selectedPreset}
-            onValueChange={(value) => handlePresetChange(value)}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select analysis range" />
-            </SelectTrigger>
-            <SelectContent>
-              {PERCENTILE_PRESETS.map((preset) => (
-                <SelectItem key={preset.label} value={preset.label}>
-                  <div className="flex flex-col">
-                    <span>{preset.label}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {preset.description}
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="grid gap-6">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <label className="text-sm font-medium">wRVU Percentile Range</label>
-              <span className="text-sm text-muted-foreground">
-                {range.wrvu[0]}% - {range.wrvu[1]}%
-              </span>
-            </div>
-            <DualRangeSlider
-              value={range.wrvu}
-              onValueChange={(value) => handleRangeChange('wrvu', value)}
-              min={0}
-              max={100}
-              step={5}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Bottom Performers</span>
-              <span>Median</span>
-              <span>Top Performers</span>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <label className="text-sm font-medium">Compensation Percentile Range</label>
-              <span className="text-sm text-muted-foreground">
-                {range.comp[0]}% - {range.comp[1]}%
-              </span>
-            </div>
-            <DualRangeSlider
-              value={range.comp}
-              onValueChange={(value) => handleRangeChange('comp', value)}
-              min={0}
-              max={100}
-              step={5}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Below Market</span>
-              <span>Market Rate</span>
-              <span>Above Market</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <p className="text-sm">
-            <strong>Selected:</strong> {filteredData.length} providers
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePresetChange("All Providers")}
-          >
-            Reset Ranges
-          </Button>
         </div>
 
         <div className="relative h-[600px] border rounded-lg p-4">
@@ -206,10 +98,32 @@ export const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
           </div>
           
           <ResponsiveContainer width="100%" height="100%">
-            {/* ... existing scatter plot code ... */}
+            <ScatterChart margin={{ top: 20, right: 30, bottom: 50, left: 50 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                type="number"
+                dataKey={xKey}
+                name="Productivity Percentile"
+                unit="%"
+                domain={[0, 100]}
+              />
+              <YAxis
+                type="number"
+                dataKey={yKey}
+                name="Compensation Percentile"
+                unit="%"
+                domain={[0, 100]}
+              />
+              <Tooltip content={tooltipFormatter ? undefined : undefined} />
+              <Scatter data={data} fill="#8884d8" />
+            </ScatterChart>
           </ResponsiveContainer>
         </div>
       </div>
     );
   }
-); 
+);
+
+ScatterPlot.displayName = "ScatterPlot";
+
+export default ScatterPlot; 

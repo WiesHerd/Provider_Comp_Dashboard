@@ -19,11 +19,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Loader2, Users, TrendingUp, Target, DollarSign, Activity, ChevronDown, Filter, X } from 'lucide-react';
-import { formatCurrency, formatNumber, formatPercent } from '@/lib/utils';
+import { formatCurrency, formatNumber, formatPercent, cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { Switch } from "@/components/ui/switch";
 import { DualRangeSlider } from "@/components/ui/dual-range-slider";
-import { cn } from "@/lib/utils";
 import {
   Command,
   CommandEmpty,
@@ -37,8 +36,20 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import dynamic from 'next/dynamic'
+import { FunnelIcon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 const ScatterPlot = dynamic(() => import('../../../../components/ScatterPlot'), { ssr: false })
+
+// Add statistical presets
+const PERCENTILE_PRESETS = [
+  { label: "All Providers", wrvu: [0, 100] as [number, number], comp: [0, 100] as [number, number] },
+  { label: "Top Quartile (75th-100th)", wrvu: [75, 100] as [number, number], comp: [75, 100] as [number, number] },
+  { label: "Middle Half (25th-75th)", wrvu: [25, 75] as [number, number], comp: [25, 75] as [number, number] },
+  { label: "Bottom Quartile (0-25th)", wrvu: [0, 25] as [number, number], comp: [0, 25] as [number, number] },
+  { label: "High Performers (>50th)", wrvu: [50, 100] as [number, number], comp: [0, 100] as [number, number] },
+  { label: "Low Performers (<50th)", wrvu: [0, 50] as [number, number], comp: [0, 100] as [number, number] },
+  { label: "Market Competitive (40th-60th)", wrvu: [40, 60] as [number, number], comp: [40, 60] as [number, number] },
+];
 
 interface FilterState {
   month: number;
@@ -59,6 +70,7 @@ interface FilterState {
   inactiveOnly: boolean;
   fteRange: [number, number];
   baseSalaryRange: [number, number];
+  analysisRange: string;
 }
 
 const months = [
@@ -101,7 +113,8 @@ export default function ProductivityPage() {
     nonClinicalOnly: false,
     inactiveOnly: false,
     fteRange: [0, 1.0],
-    baseSalaryRange: [0, 2000000]
+    baseSalaryRange: [0, 2000000],
+    analysisRange: 'All Providers'
   });
 
   const [loading, setLoading] = useState(true);
@@ -209,6 +222,8 @@ export default function ProductivityPage() {
           id: provider.id || provider.employeeId,
           name: provider.name || provider.providerName,
           specialty: provider.specialty,
+          compModel: provider.compensationModel,
+          fte: provider.fte || 1.0,
           xValue: provider.wrvuPercentile,
           yValue: provider.compPercentile,
           color: getColorForCategory(provider.wrvuPercentile, provider.compPercentile),
@@ -252,10 +267,10 @@ export default function ProductivityPage() {
       status: 'Active',
       searchQuery: '',
       compModel: 'Select All',
-      wrvuPercentileMin: '',
-      wrvuPercentileMax: '',
-      compPercentileMin: '',
-      compPercentileMax: '',
+      wrvuPercentileMin: '0',
+      wrvuPercentileMax: '100',
+      compPercentileMin: '0',
+      compPercentileMax: '100',
       planProgressMin: '',
       planProgressMax: '',
       missingBenchmarks: false,
@@ -263,160 +278,361 @@ export default function ProductivityPage() {
       nonClinicalOnly: false,
       inactiveOnly: false,
       fteRange: [0, 1.0],
-      baseSalaryRange: [0, 2000000]
+      baseSalaryRange: [0, 2000000],
+      analysisRange: 'All Providers'
     });
   };
 
   return (
-    <div className="space-y-6 p-8">
-      {/* Page Header */}
-      <div className="flex items-center justify-between border-b pb-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">YTD Productivity vs Compensation Analysis</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Year-to-date provider productivity and compensation analysis through January 2025
-          </p>
+    <div className="min-h-screen bg-background">
+      {/* Header Section with Stats */}
+      <div className="p-6 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight">Provider Performance Analysis</h1>
+            <p className="text-xs text-muted-foreground mt-1">
+              YTD productivity and compensation analysis through {months[filters.month - 1]} 2025
+            </p>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <Users className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">{data.length} Providers</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Activity className="h-3.5 w-3.5 text-emerald-500" />
+              <span className="text-xs text-muted-foreground">{data.filter(p => Math.abs(p.analysis.percentileGap) <= 15).length} Aligned</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-3.5 w-3.5 text-red-500" />
+              <span className="text-xs text-muted-foreground">{data.filter(p => p.analysis.percentileGap > 15).length} Over Comp.</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Target className="h-3.5 w-3.5 text-amber-500" />
+              <span className="text-xs text-muted-foreground">{data.filter(p => p.analysis.percentileGap < -15).length} Under Comp.</span>
+            </div>
+          </div>
         </div>
-        <div className="flex gap-2">
-          {activeFilterCount > 0 && (
-            <Button variant="outline" size="sm" onClick={handleResetFilters}>
-              <X className="h-4 w-4 mr-1" />
-              Reset All ({activeFilterCount})
-            </Button>
-          )}
+
+        {/* Filter Bar */}
+        <div className="flex items-center gap-6">
+          <div className="flex-1 grid grid-cols-5 gap-6">
+            <Select
+              value={filters.month.toString()}
+              onValueChange={(value) => setFilters({ ...filters, month: parseInt(value) })}
+            >
+              <SelectTrigger className="h-9 bg-white/50 border-muted">
+                <SelectValue placeholder="Select month" />
+              </SelectTrigger>
+              <SelectContent>
+                {months.map((month, index) => (
+                  <SelectItem key={index + 1} value={(index + 1).toString()}>
+                    {month}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filters.specialty}
+              onValueChange={(value) => setFilters({ ...filters, specialty: value })}
+            >
+              <SelectTrigger className="h-9 bg-white/50 border-muted">
+                <SelectValue placeholder="All Specialties" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Specialties</SelectItem>
+                {specialties.map((specialty) => (
+                  <SelectItem key={specialty} value={specialty}>
+                    {specialty}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filters.department}
+              onValueChange={(value) => setFilters({ ...filters, department: value })}
+            >
+              <SelectTrigger className="h-9 bg-white/50 border-muted">
+                <SelectValue placeholder="All Departments" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Departments</SelectItem>
+                {departments.map((department) => (
+                  <SelectItem key={department} value={department}>
+                    {department}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={filters.compModel}
+              onValueChange={(value) => setFilters({ ...filters, compModel: value })}
+            >
+              <SelectTrigger className="h-9 bg-white/50 border-muted">
+                <SelectValue placeholder="All Comp Models" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Select All">All Comp Models</SelectItem>
+                {compModels.filter(model => model !== 'Select All').map((model) => (
+                  <SelectItem key={model} value={model}>
+                    {model}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center gap-3">
+              <Select
+                value={filters.analysisRange}
+                onValueChange={(value) => {
+                  if (value === 'Custom') return;
+                  const preset = PERCENTILE_PRESETS.find(p => p.label === value);
+                  if (preset) {
+                    setFilters({
+                      ...filters,
+                      analysisRange: value,
+                      wrvuPercentileMin: preset.wrvu[0].toString(),
+                      wrvuPercentileMax: preset.wrvu[1].toString(),
+                      compPercentileMin: preset.comp[0].toString(),
+                      compPercentileMax: preset.comp[1].toString(),
+                    });
+                  }
+                }}
+              >
+                <SelectTrigger className="h-9 bg-white/50 border-muted">
+                  <SelectValue placeholder="Performance Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PERCENTILE_PRESETS.map((preset) => (
+                    <SelectItem key={preset.label} value={preset.label}>
+                      {preset.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={handleResetFilters}
+                className="h-9 px-3 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Filters Section */}
-      <div className="border rounded-lg">
-        <button
-          onClick={() => setIsFiltersVisible(!isFiltersVisible)}
-          className="w-full flex items-center justify-between p-4 hover:bg-slate-50"
-        >
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            <span className="font-medium">Filters</span>
-          </div>
-          <ChevronDown className={cn("h-4 w-4 transition-transform", isFiltersVisible ? "transform rotate-180" : "")} />
-        </button>
+      {/* Main Content */}
+      <div className="p-6">
+        {/* Performance Distribution */}
+        <Card className="overflow-hidden">
+          <CardHeader className="py-3 px-6 border-b bg-muted/40">
+            <div className="flex items-center justify-between">
+              {/* Range Controls */}
+              <div className="flex gap-8">
+                <div className="w-[240px] space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[11px] font-medium text-muted-foreground">wRVU Range</label>
+                    <span className="text-[11px] text-muted-foreground">
+                      {filters.wrvuPercentileMin}-{filters.wrvuPercentileMax}%
+                    </span>
+                  </div>
+                  <Slider
+                    value={[
+                      parseInt(filters.wrvuPercentileMin || '0'),
+                      parseInt(filters.wrvuPercentileMax || '100')
+                    ]}
+                    min={0}
+                    max={100}
+                    step={1}
+                    className="py-0.5"
+                    onValueChange={(value) => {
+                      setFilters({
+                        ...filters,
+                        wrvuPercentileMin: value[0].toString(),
+                        wrvuPercentileMax: value[1].toString(),
+                        analysisRange: 'Custom'
+                      });
+                    }}
+                  />
+                </div>
 
-        {isFiltersVisible && (
-          <div className="p-4 border-t space-y-6">
-            {/* Basic Filters */}
-            <div className="grid gap-6 md:grid-cols-3">
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">YTD Through Month</label>
-                <Select
-                  value={filters.month.toString()}
-                  onValueChange={(value) => setFilters({ ...filters, month: parseInt(value) })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select month" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {months.map((month, index) => (
-                      <SelectItem key={index + 1} value={(index + 1).toString()}>
-                        {month}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="w-[240px] space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[11px] font-medium text-muted-foreground">Compensation Range</label>
+                    <span className="text-[11px] text-muted-foreground">
+                      {filters.compPercentileMin}-{filters.compPercentileMax}%
+                    </span>
+                  </div>
+                  <Slider
+                    value={[
+                      parseInt(filters.compPercentileMin || '0'),
+                      parseInt(filters.compPercentileMax || '100')
+                    ]}
+                    min={0}
+                    max={100}
+                    step={1}
+                    className="py-0.5"
+                    onValueChange={(value) => {
+                      setFilters({
+                        ...filters,
+                        compPercentileMin: value[0].toString(),
+                        compPercentileMax: value[1].toString(),
+                        analysisRange: 'Custom'
+                      });
+                    }}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">Specialty</label>
-                <Select
-                  value={filters.specialty}
-                  onValueChange={(value) => setFilters({ ...filters, specialty: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Specialties" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Specialties</SelectItem>
-                    {specialties.map((specialty) => (
-                      <SelectItem key={specialty} value={specialty}>
-                        {specialty}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">Department</label>
-                <Select
-                  value={filters.department}
-                  onValueChange={(value) => setFilters({ ...filters, department: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Departments" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Departments</SelectItem>
-                    {departments.map((department) => (
-                      <SelectItem key={department} value={department}>
-                        {department}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+
+              {/* Legend */}
+              <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="flex items-center gap-1.5 cursor-help">
+                      <span className="h-2 w-2 rounded-full bg-[#10b981]" />
+                      <span>Aligned (±15%)</span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80">
+                    <div className="p-3">
+                      <p className="text-sm font-medium mb-1">Aligned Performance</p>
+                      <p className="text-xs text-muted-foreground">Provider's compensation percentile is within 15 percentage points of their productivity percentile, indicating fair market alignment.</p>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="flex items-center gap-1.5 cursor-help">
+                      <span className="h-2 w-2 rounded-full bg-[#ef4444]" />
+                      <span>Over Compensated (&gt;15%)</span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80">
+                    <div className="p-3">
+                      <p className="text-sm font-medium mb-1">Over Compensated</p>
+                      <p className="text-xs text-muted-foreground">Provider's compensation percentile exceeds their productivity percentile by more than 15 percentage points, suggesting potential compensation adjustment may be needed.</p>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="flex items-center gap-1.5 cursor-help">
+                      <span className="h-2 w-2 rounded-full bg-[#f59e0b]" />
+                      <span>Under Compensated (&lt;-15%)</span>
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80">
+                    <div className="p-3">
+                      <p className="text-sm font-medium mb-1">Under Compensated</p>
+                      <p className="text-xs text-muted-foreground">Provider's compensation percentile is more than 15 percentage points below their productivity percentile, indicating potential for compensation increase consideration.</p>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
-          </div>
-        )}
+          </CardHeader>
+          
+          <CardContent className="p-6">
+            {/* Scatter Plot Container - Even more compact size */}
+            <div className="relative w-full" style={{ paddingBottom: '55%', maxHeight: 'calc(100vh - 28rem)' }}>
+              <div className="absolute inset-0">
+                {loading ? (
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />
+                      <p className="text-sm text-muted-foreground mt-2">Loading data...</p>
+                    </div>
+                  </div>
+                ) : data.length === 0 ? (
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">No data available for the selected filters</p>
+                      <Button variant="outline" size="sm" className="mt-4" onClick={handleResetFilters}>
+                        Reset Filters
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <ScatterPlot 
+                    data={data}
+                    xAxisKey="xValue"
+                    yAxisKey="yValue"
+                    xAxisLabel="YTD Productivity Percentile"
+                    yAxisLabel="Compensation Percentile"
+                    tooltipLabel="Provider Details"
+                  />
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Provider Details */}
+        <Card className="mt-4 overflow-hidden">
+          <CardHeader className="py-2 px-6 border-b bg-muted/40">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-medium">Provider Details</CardTitle>
+                <CardDescription className="text-xs">Detailed performance metrics by provider</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">{data.length} providers</span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="max-h-[400px] overflow-y-auto">
+              <table className="w-full border-collapse">
+                <thead className="border-b sticky top-0 bg-white">
+                  <tr>
+                    <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 pl-6 bg-gray-50/80">Provider</th>
+                    <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Specialty</th>
+                    <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Comp Model</th>
+                    <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">FTE</th>
+                    <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">WRVU %</th>
+                    <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Comp %</th>
+                    <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Gap</th>
+                    <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 pr-6 bg-gray-50/80">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {data.map((provider) => (
+                    <tr key={provider.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="p-4 pl-6 text-[13px] font-medium text-gray-900 whitespace-nowrap">{provider.name}</td>
+                      <td className="p-4 text-[13px] text-gray-500 whitespace-nowrap">{provider.specialty}</td>
+                      <td className="p-4 text-[13px] text-gray-500 whitespace-nowrap">{provider.compModel}</td>
+                      <td className="p-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{provider.fte.toFixed(2)}</td>
+                      <td className="p-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.productivity.percentile)}%</td>
+                      <td className="p-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.compensation.percentile)}%</td>
+                      <td className="p-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.analysis.percentileGap)}%</td>
+                      <td className="p-4 pr-6 whitespace-nowrap">
+                        <span 
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium"
+                          style={{ 
+                            backgroundColor: `${provider.color}12`,
+                            color: provider.color,
+                            boxShadow: `0 0 0 1px ${provider.color}25`
+                          }}
+                        >
+                          {provider.analysis.performanceCategory}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-
-      {/* Analysis Card */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-6">
-            {/* Legend */}
-            <div className="flex items-center justify-end gap-6">
-              <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-[#10b981]" />
-                <span className="text-sm text-muted-foreground">Aligned (±15%)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-[#ef4444]" />
-                <span className="text-sm text-muted-foreground">Over Compensated (&gt;15%)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="h-3 w-3 rounded-full bg-[#f59e0b]" />
-                <span className="text-sm text-muted-foreground">Under Compensated (&lt;-15%)</span>
-              </div>
-            </div>
-
-            {/* Scatter Plot */}
-            <div style={{ height: '600px' }}>
-              {loading ? (
-                <div className="h-full flex items-center justify-center">
-                  <div className="text-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />
-                    <p className="text-sm text-muted-foreground mt-2">Loading data...</p>
-                  </div>
-                </div>
-              ) : data.length === 0 ? (
-                <div className="h-full flex items-center justify-center">
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground">No data available for the selected filters</p>
-                    <Button variant="outline" size="sm" className="mt-4" onClick={handleResetFilters}>
-                      Reset Filters
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <ScatterPlot 
-                  data={data}
-                  xAxisKey="xValue"
-                  yAxisKey="yValue"
-                  xAxisLabel="YTD Productivity Percentile"
-                  yAxisLabel="Compensation Percentile"
-                  tooltipLabel="Provider Details"
-                />
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 } 
