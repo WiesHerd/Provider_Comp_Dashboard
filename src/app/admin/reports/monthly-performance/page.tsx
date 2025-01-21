@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/popover"
 import * as XLSX from 'xlsx';
 import Pagination from '@/components/common/Pagination';
+import { Badge } from "@/components/ui/badge";
 
 interface FilterState {
   month: number;
@@ -369,6 +370,7 @@ export default function MonthlyPerformanceReport() {
       fteRange: [0, 1.0],
       baseSalaryRange: [0, 2000000]
     });
+    setCurrentPage(1);
   };
 
   // Handle page change
@@ -750,82 +752,100 @@ export default function MonthlyPerformanceReport() {
               {/* Range Sliders */}
               <div className="grid grid-cols-4 gap-6">
                 {/* FTE Range */}
-                <div className="p-4 border rounded-lg bg-white space-y-4">
+                <div className="p-4 border rounded-lg bg-white space-y-2">
                   <label className="block text-sm font-medium text-gray-700">FTE Range</label>
-                  <DualRangeSlider
-                    min={0}
-                    max={2}
-                    step={0.1}
-                    value={filters.fteRange as [number, number]}
-                    onChange={(value: [number, number]) => handleRangeChange('fteRange', value)}
-                  />
-                  <div className="flex justify-between text-xs text-gray-500">
+                  <div className="pt-2">
+                    <DualRangeSlider
+                      min={0}
+                      max={1.0}
+                      step={0.1}
+                      value={[
+                        filters.fteRange[0] === 0 && filters.fteRange[1] === 1.0 ? 0 : filters.fteRange[0],
+                        filters.fteRange[0] === 0 && filters.fteRange[1] === 1.0 ? 1.0 : filters.fteRange[1]
+                      ]}
+                      onValueChange={(value: [number, number]) => handleRangeChange('fteRange', value)}
+                      className="h-1"
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 pt-2">
                     <span>{filters.fteRange[0].toFixed(1)}</span>
                     <span>{filters.fteRange[1].toFixed(1)}</span>
                   </div>
                 </div>
 
                 {/* Base Salary Range */}
-                <div className="p-4 border rounded-lg bg-white space-y-4">
+                <div className="p-4 border rounded-lg bg-white space-y-2">
                   <label className="block text-sm font-medium text-gray-700">Base Salary Range</label>
-                  <DualRangeSlider
-                    min={0}
-                    max={1000000}
-                    step={10000}
-                    value={filters.baseSalaryRange as [number, number]}
-                    onChange={(value: [number, number]) => handleRangeChange('baseSalaryRange', value)}
-                  />
-                  <div className="flex justify-between text-xs text-gray-500">
+                  <div className="pt-2">
+                    <DualRangeSlider
+                      min={0}
+                      max={2000000}
+                      step={10000}
+                      value={[
+                        filters.baseSalaryRange[0] === 0 && filters.baseSalaryRange[1] === 2000000 ? 0 : filters.baseSalaryRange[0],
+                        filters.baseSalaryRange[0] === 0 && filters.baseSalaryRange[1] === 2000000 ? 2000000 : filters.baseSalaryRange[1]
+                      ]}
+                      onValueChange={(value: [number, number]) => handleRangeChange('baseSalaryRange', value)}
+                      className="h-1"
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 pt-2">
                     <span>${filters.baseSalaryRange[0].toLocaleString()}</span>
                     <span>${filters.baseSalaryRange[1].toLocaleString()}</span>
                   </div>
                 </div>
 
                 {/* Comp Percentile Range */}
-                <div className="p-4 border rounded-lg bg-white space-y-4">
+                <div className="p-4 border rounded-lg bg-white space-y-2">
                   <label className="block text-sm font-medium text-gray-700">Comp Percentile Range</label>
-                  <DualRangeSlider
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={[
-                      filters.compPercentileMin ? parseInt(filters.compPercentileMin) : 0,
-                      filters.compPercentileMax ? parseInt(filters.compPercentileMax) : 100
-                    ]}
-                    onChange={(value: [number, number]) => {
-                      setFilters(prev => ({
-                        ...prev,
-                        compPercentileMin: value[0].toString(),
-                        compPercentileMax: value[1].toString()
-                      }));
-                    }}
-                  />
-                  <div className="flex justify-between text-xs text-gray-500">
+                  <div className="pt-2">
+                    <DualRangeSlider
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={[
+                        filters.compPercentileMin === '' ? 0 : parseInt(filters.compPercentileMin),
+                        filters.compPercentileMax === '' ? 100 : parseInt(filters.compPercentileMax)
+                      ]}
+                      onValueChange={(value: [number, number]) => {
+                        setFilters(prev => ({
+                          ...prev,
+                          compPercentileMin: value[0].toString(),
+                          compPercentileMax: value[1].toString()
+                        }));
+                      }}
+                      className="h-1"
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 pt-2">
                     <span>{filters.compPercentileMin || '0'}%</span>
                     <span>{filters.compPercentileMax || '100'}%</span>
                   </div>
                 </div>
 
                 {/* WRVU Percentile Range */}
-                <div className="p-4 border rounded-lg bg-white space-y-4">
+                <div className="p-4 border rounded-lg bg-white space-y-2">
                   <label className="block text-sm font-medium text-gray-700">WRVU Percentile Range</label>
-                  <DualRangeSlider
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={[
-                      filters.wrvuPercentileMin ? parseInt(filters.wrvuPercentileMin) : 0,
-                      filters.wrvuPercentileMax ? parseInt(filters.wrvuPercentileMax) : 100
-                    ]}
-                    onChange={(value: [number, number]) => {
-                      setFilters(prev => ({
-                        ...prev,
-                        wrvuPercentileMin: value[0].toString(),
-                        wrvuPercentileMax: value[1].toString()
-                      }));
-                    }}
-                  />
-                  <div className="flex justify-between text-xs text-gray-500">
+                  <div className="pt-2">
+                    <DualRangeSlider
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={[
+                        filters.wrvuPercentileMin === '' ? 0 : parseInt(filters.wrvuPercentileMin),
+                        filters.wrvuPercentileMax === '' ? 100 : parseInt(filters.wrvuPercentileMax)
+                      ]}
+                      onValueChange={(value: [number, number]) => {
+                        setFilters(prev => ({
+                          ...prev,
+                          wrvuPercentileMin: value[0].toString(),
+                          wrvuPercentileMax: value[1].toString()
+                        }));
+                      }}
+                      className="h-1"
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 pt-2">
                     <span>{filters.wrvuPercentileMin || '0'}%</span>
                     <span>{filters.wrvuPercentileMax || '100'}%</span>
                   </div>
