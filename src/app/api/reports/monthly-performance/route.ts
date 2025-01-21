@@ -239,6 +239,13 @@ export async function GET(request: Request) {
         .filter(adj => adj.month === month)
         .reduce((total, adj) => total + (adj.value || 0), 0);
 
+      // Calculate YTD values
+      const ytdWRVUs = provider.wrvuData
+        .reduce((total, d) => total + (d.value || 0), 0);
+
+      const ytdAdjustments = provider.wrvuAdjustments
+        .reduce((total, adj) => total + (adj.value || 0), 0);
+
       // Calculate monthly target using base salary and conversion factor
       const monthlyTarget = calculateMonthlyTarget(
         provider.baseSalary || 0,
@@ -250,68 +257,35 @@ export async function GET(request: Request) {
         .filter(adj => adj.month === month)
         .reduce((total, adj) => total + (adj.value || 0), 0);
 
-      const monthlyWRVUsWithAdjustments = monthlyWRVUs + monthlyAdjustments;
-      const finalMonthlyTarget = monthlyTarget + monthlyTargetAdjustments;
+      // Calculate YTD target
+      const ytdTarget = monthlyTarget * month;
+      const ytdTargetAdjustments = provider.targetAdjustments
+        .reduce((total, adj) => total + (adj.value || 0), 0);
 
-      // Calculate YTD values
-      const ytdWRVUs = provider.wrvuData
-        .reduce((sum, d) => sum + (d.value || 0), 0) +
-        provider.wrvuAdjustments
-        .reduce((sum, adj) => sum + (adj.value || 0), 0);
+      // Calculate total YTD wRVUs including adjustments
+      const totalYTDWRVUs = ytdWRVUs + ytdAdjustments;
+      const totalYTDTarget = ytdTarget + ytdTargetAdjustments;
 
-      const ytdTargetWRVUs = (monthlyTarget * month) +
-        provider.targetAdjustments
-        .reduce((sum, adj) => sum + (adj.value || 0), 0);
-
-      // Calculate YTD compensation
-      const monthlyBaseSalary = (provider.baseSalary || 0) / 12;
-      const ytdBaseSalary = monthlyBaseSalary * month;
-
-      // Calculate incentives month by month
-      let ytdIncentives = 0;
-      let ytdHoldback = 0;
-      
-      // Get holdback percentage from provider settings
-      const holdbackPct = provider.settings?.holdbackPercent ?? 20;
-      
-      for (let m = 1; m <= month; m++) {
-        const mWRVUs = provider.wrvuData
-          .filter(d => d.month === m)
-          .reduce((total, d) => total + (d.value || 0), 0);
-          
-        const mAdjustments = provider.wrvuAdjustments
-          .filter(adj => adj.month === m)
-          .reduce((total, adj) => total + (adj.value || 0), 0);
-          
-        const mTarget = monthlyTarget + 
-          provider.targetAdjustments
-            .filter(adj => adj.month === m)
-            .reduce((total, adj) => total + (adj.value || 0), 0);
-              
-        const mTotalWRVUs = mWRVUs + mAdjustments;
-        const mVariance = mTotalWRVUs - mTarget;
-        const mIncentive = mVariance > 0 ? mVariance * (marketData?.p50_cf || 0) : 0;
-        const mHoldback = mIncentive * (holdbackPct / 100);
-        ytdIncentives += mIncentive;
-        ytdHoldback += mHoldback;
-      }
-
-      // Calculate plan progress
-      const planProgress = ytdTargetWRVUs > 0 ? (ytdWRVUs / ytdTargetWRVUs) * 100 : 0;
-      
+      // Calculate percentiles based on YTD values
       const wrvuPercentile = calculateWRVUPercentile(
-        ytdWRVUs,
-        month,
-        provider.clinicalFte || provider.fte,
+        totalYTDWRVUs,
+        month,  // Current month for YTD
+        provider.clinicalFte || 1.0,
         marketData
       );
 
-      // Calculate total compensation
-      const totalCompensation = ytdBaseSalary + ytdIncentives - ytdHoldback;
+      // Calculate YTD compensation
+      const baseYTDComp = (provider.baseSalary || 0) * (month / 12);
+      const ytdAdditionalPay = provider.AdditionalPay
+        .reduce((total, pay) => total + (pay.amount || 0), 0);
+      
+      const totalYTDComp = baseYTDComp + ytdAdditionalPay;
 
+      // Calculate compensation percentile based on annualized YTD comp
+      const annualizedComp = (totalYTDComp / month) * 12;
       const compPercentile = calculateCompPercentile(
-        totalCompensation,
-        provider.fte,
+        annualizedComp,
+        provider.clinicalFte || 1.0,
         marketData
       );
 
@@ -322,14 +296,14 @@ export async function GET(request: Request) {
         specialty: provider.specialty,
         department: provider.department,
         compensationModel: provider.compensationModel,
-        monthlyWRVUs: monthlyWRVUsWithAdjustments,
-        targetWRVUs: finalMonthlyTarget,
+        monthlyWRVUs: monthlyWRVUs + monthlyAdjustments,
+        targetWRVUs: monthlyTarget + monthlyTargetAdjustments,
         ytdWRVUs,
-        ytdTargetWRVUs,
-        planProgress,
+        ytdTargetWRVUs: totalYTDTarget,
+        planProgress: totalYTDTarget > 0 ? (totalYTDWRVUs / totalYTDTarget) * 100 : 0,
         wrvuPercentile,
         baseSalary: provider.baseSalary,
-        totalCompensation,
+        totalCompensation: totalYTDComp,
         compPercentile
       };
     }));
