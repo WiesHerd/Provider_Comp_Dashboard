@@ -123,6 +123,7 @@ export default function ProductivityPage() {
   const [departments, setDepartments] = useState<string[]>([]);
   const [compModels, setCompModels] = useState<string[]>(['Select All']);
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
+  const [summaryStats, setSummaryStats] = useState<any>({});
 
   // Calculate active filter count
   const getActiveFilterCount = () => {
@@ -229,8 +230,8 @@ export default function ProductivityPage() {
           color: getColorForCategory(provider.wrvuPercentile, provider.compPercentile),
           size: 6,
           productivity: {
-            actualWRVUs: provider.monthlyWRVUs || provider.actualWRVUs,
-            targetWRVUs: provider.targetWRVUs,
+            actualWRVUs: provider.ytdWRVUs || provider.actualYTDWRVUs,
+            targetWRVUs: provider.ytdTargetWRVUs || provider.targetYTDWRVUs,
             percentile: provider.wrvuPercentile
           },
           compensation: {
@@ -243,7 +244,18 @@ export default function ProductivityPage() {
           }
         }));
 
+        // Update summary stats with YTD values
+        const calculatedSummary = {
+          totalProviders: processedData.length,
+          alignedCount: processedData.filter(p => Math.abs(p.analysis.percentileGap) <= 15).length,
+          overCompensatedCount: processedData.filter(p => p.analysis.percentileGap > 15).length,
+          underCompensatedCount: processedData.filter(p => p.analysis.percentileGap < -15).length,
+          totalWRVUs: processedData.reduce((sum, p) => sum + (p.productivity.actualWRVUs || 0), 0),
+          totalCompensation: processedData.reduce((sum, p) => sum + (p.compensation.total || 0), 0)
+        };
+
         setData(processedData);
+        setSummaryStats(calculatedSummary);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching provider data:', error);
@@ -317,111 +329,132 @@ export default function ProductivityPage() {
         {/* Filter Bar */}
         <div className="flex items-center gap-6">
           <div className="flex-1 grid grid-cols-5 gap-6">
-            <Select
-              value={filters.month.toString()}
-              onValueChange={(value) => setFilters({ ...filters, month: parseInt(value) })}
-            >
-              <SelectTrigger className="h-9 bg-white/50 border-muted">
-                <SelectValue placeholder="Select month" />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map((month, index) => (
-                  <SelectItem key={index + 1} value={(index + 1).toString()}>
-                    {month}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={filters.specialty}
-              onValueChange={(value) => setFilters({ ...filters, specialty: value })}
-            >
-              <SelectTrigger className="h-9 bg-white/50 border-muted">
-                <SelectValue placeholder="All Specialties" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Specialties</SelectItem>
-                {specialties.map((specialty) => (
-                  <SelectItem key={specialty} value={specialty}>
-                    {specialty}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={filters.department}
-              onValueChange={(value) => setFilters({ ...filters, department: value })}
-            >
-              <SelectTrigger className="h-9 bg-white/50 border-muted">
-                <SelectValue placeholder="All Departments" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Departments</SelectItem>
-                {departments.map((department) => (
-                  <SelectItem key={department} value={department}>
-                    {department}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={filters.compModel}
-              onValueChange={(value) => setFilters({ ...filters, compModel: value })}
-            >
-              <SelectTrigger className="h-9 bg-white/50 border-muted">
-                <SelectValue placeholder="All Comp Models" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Select All">All Comp Models</SelectItem>
-                {compModels.filter(model => model !== 'Select All').map((model) => (
-                  <SelectItem key={model} value={model}>
-                    {model}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <div className="flex items-center gap-3">
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Month YTD</label>
               <Select
-                value={filters.analysisRange}
+                value={filters.month.toString()}
                 onValueChange={(value) => {
-                  if (value === 'Custom') return;
-                  const preset = PERCENTILE_PRESETS.find(p => p.label === value);
-                  if (preset) {
-                    setFilters({
-                      ...filters,
-                      analysisRange: value,
-                      wrvuPercentileMin: preset.wrvu[0].toString(),
-                      wrvuPercentileMax: preset.wrvu[1].toString(),
-                      compPercentileMin: preset.comp[0].toString(),
-                      compPercentileMax: preset.comp[1].toString(),
-                    });
-                  }
+                  const selectedMonth = parseInt(value);
+                  setFilters(prev => ({ 
+                    ...prev, 
+                    month: selectedMonth,
+                  }));
                 }}
               >
                 <SelectTrigger className="h-9 bg-white/50 border-muted">
-                  <SelectValue placeholder="Performance Range" />
+                  <SelectValue placeholder="Select month" />
                 </SelectTrigger>
                 <SelectContent>
-                  {PERCENTILE_PRESETS.map((preset) => (
-                    <SelectItem key={preset.label} value={preset.label}>
-                      {preset.label}
+                  {months.map((month, index) => (
+                    <SelectItem key={index + 1} value={(index + 1).toString()}>
+                      {month}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+            </div>
 
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={handleResetFilters}
-                className="h-9 px-3 text-muted-foreground hover:text-foreground"
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Specialty</label>
+              <Select
+                value={filters.specialty}
+                onValueChange={(value) => setFilters({ ...filters, specialty: value })}
               >
-                <X className="h-4 w-4" />
-              </Button>
+                <SelectTrigger className="h-9 bg-white/50 border-muted">
+                  <SelectValue placeholder="All Specialties" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Specialties</SelectItem>
+                  {specialties.map((specialty) => (
+                    <SelectItem key={specialty} value={specialty}>
+                      {specialty}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Department</label>
+              <Select
+                value={filters.department}
+                onValueChange={(value) => setFilters({ ...filters, department: value })}
+              >
+                <SelectTrigger className="h-9 bg-white/50 border-muted">
+                  <SelectValue placeholder="All Departments" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  {departments.map((department) => (
+                    <SelectItem key={department} value={department}>
+                      {department}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Comp Model</label>
+              <Select
+                value={filters.compModel}
+                onValueChange={(value) => setFilters({ ...filters, compModel: value })}
+              >
+                <SelectTrigger className="h-9 bg-white/50 border-muted">
+                  <SelectValue placeholder="All Comp Models" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Select All">All Comp Models</SelectItem>
+                  {compModels.filter(model => model !== 'Select All').map((model) => (
+                    <SelectItem key={model} value={model}>
+                      {model}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Performance Range</label>
+              <div className="flex items-center gap-3">
+                <Select
+                  value={filters.analysisRange}
+                  onValueChange={(value) => {
+                    if (value === 'Custom') return;
+                    const preset = PERCENTILE_PRESETS.find(p => p.label === value);
+                    if (preset) {
+                      setFilters({
+                        ...filters,
+                        analysisRange: value,
+                        wrvuPercentileMin: preset.wrvu[0].toString(),
+                        wrvuPercentileMax: preset.wrvu[1].toString(),
+                        compPercentileMin: preset.comp[0].toString(),
+                        compPercentileMax: preset.comp[1].toString(),
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-9 bg-white/50 border-muted">
+                    <SelectValue placeholder="Performance Range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PERCENTILE_PRESETS.map((preset) => (
+                      <SelectItem key={preset.label} value={preset.label}>
+                        {preset.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={handleResetFilters}
+                  className="h-9 px-3 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -583,7 +616,30 @@ export default function ProductivityPage() {
                 <CardTitle className="text-sm font-medium">Provider Details</CardTitle>
                 <CardDescription className="text-xs">Detailed performance metrics by provider</CardDescription>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-4">
+                <div className="relative w-[300px]">
+                  <Input
+                    type="text"
+                    placeholder="Search providers..."
+                    value={filters.searchQuery}
+                    onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
+                    className="h-9 pl-9"
+                  />
+                  <svg
+                    className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
                 <span className="text-xs text-muted-foreground">{data.length} providers</span>
               </div>
             </div>
