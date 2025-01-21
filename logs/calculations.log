@@ -1,0 +1,6264 @@
+2025-01-01T19:23:27.772Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:23:27.775Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:23:27.775Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:23:28.244Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:23:28.244Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:23:28.244Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:26:05.925Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:26:05.925Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:26:05.926Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:26:06.283Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:26:06.283Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:26:06.284Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:26:15.992Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:26:15.992Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:26:15.992Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:26:16.682Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:26:16.683Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:26:16.683Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:26:17.471Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:26:17.471Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:26:17.471Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:26:18.128Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:26:18.128Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:26:18.128Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:33:18.050Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:33:18.051Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:33:18.051Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:33:18.502Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:33:18.502Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:33:18.503Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:33:29.532Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:33:29.532Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:33:29.532Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:33:29.886Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:33:29.887Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:33:29.887Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:35:28.928Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:35:28.928Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:35:28.929Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:35:29.696Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:35:29.697Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:35:29.697Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:35:30.683Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:35:30.684Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:35:30.684Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:35:31.764Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:35:31.764Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:35:31.765Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:36:46.182Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:36:46.183Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:36:46.183Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:36:52.538Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:36:52.539Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:36:52.539Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:36:52.927Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:36:52.927Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:36:52.928Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:36:53.685Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:36:53.685Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:36:53.685Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:36:55.034Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:36:55.034Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:36:55.035Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:39:55.570Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:39:55.570Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:39:55.571Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:39:56.479Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:39:56.480Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:39:56.480Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:40:08.276Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:40:08.276Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:40:08.276Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:40:16.957Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:40:16.958Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:40:16.958Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:40:17.885Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:40:17.885Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:40:17.886Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:40:18.656Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:40:18.656Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:40:18.657Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:40:19.830Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:40:19.831Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:40:19.831Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:40:37.724Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:40:37.725Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:40:37.725Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:40:38.053Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:40:38.054Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:40:38.054Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:41:37.908Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:41:37.908Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:41:37.908Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:41:38.291Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:41:38.291Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:41:38.291Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:41:38.992Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:41:38.993Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:41:38.993Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:41:39.581Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:41:39.581Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:41:39.581Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:42:58.398Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:42:58.398Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:42:58.398Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:42:58.739Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:42:58.740Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:42:58.740Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:44:20.924Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:44:20.924Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:44:20.925Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:44:21.433Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:44:21.433Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:44:21.434Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:44:22.449Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:44:22.449Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:44:22.450Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:44:23.188Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:44:23.189Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:44:23.189Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:47:32.610Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:47:32.610Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:47:32.611Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:47:33.798Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:47:33.799Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:47:33.799Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:47:34.792Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:47:34.792Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:47:34.793Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:47:35.961Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:47:35.961Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:47:35.962Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:49:35.580Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:49:35.582Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:49:35.582Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:49:36.719Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:49:36.720Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:49:36.720Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:49:37.913Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:49:37.914Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:49:37.915Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:49:39.150Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:49:39.151Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:49:39.151Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:50:26.462Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:50:26.463Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:50:26.463Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:50:26.906Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:50:26.906Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:50:26.907Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:50:27.615Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:50:27.615Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:50:27.616Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:50:28.131Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:50:28.132Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:50:28.132Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:55:45.190Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:55:45.191Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:55:45.191Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:55:48.704Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:55:48.705Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:55:48.705Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:55:49.263Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:55:49.264Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:55:49.264Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:55:50.667Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:55:50.667Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:55:50.667Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:55:51.507Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:55:51.507Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:55:51.507Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:56:50.190Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:56:50.190Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:56:50.191Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:56:51.863Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:56:51.863Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:56:51.864Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:56:52.588Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:56:52.588Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:56:52.588Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:56:53.240Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:56:53.240Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:56:53.240Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:56:53.750Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:56:53.750Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:56:53.750Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:58:44.861Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:58:44.861Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:58:44.862Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:58:45.957Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:58:45.958Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:58:45.959Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:58:47.295Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:58:47.296Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:58:47.296Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T19:58:48.468Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T19:58:48.468Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T19:58:48.468Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:00:26.185Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:00:26.185Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:00:26.186Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:00:27.177Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:00:27.177Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:00:27.177Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:00:28.314Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:00:28.315Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:00:28.315Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:00:29.506Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:00:29.507Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:00:29.507Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:02:23.747Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:02:23.747Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:02:23.748Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:02:24.876Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:02:24.877Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:02:24.877Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:02:25.646Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:02:25.646Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:02:25.647Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:02:26.333Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:02:26.334Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:02:26.334Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:04:29.780Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:04:29.781Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:04:29.781Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:04:32.987Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:04:32.987Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:04:32.988Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:04:33.400Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:04:33.401Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:04:33.401Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:04:34.284Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:04:34.284Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:04:34.284Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:04:35.017Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:04:35.017Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:04:35.017Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:08:56.775Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:08:56.776Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:08:56.776Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:08:57.069Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:08:57.070Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:08:57.070Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:10:42.253Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:10:42.254Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:10:42.254Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:10:43.276Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:10:43.277Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:10:43.277Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:10:46.096Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:10:46.098Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:10:46.098Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:10:47.981Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:10:47.981Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:10:47.982Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:10:51.315Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:10:51.315Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:10:51.316Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+
+2025-01-01T20:10:51.689Z - ROBERT MILLER DETAILED CALCULATIONS
+{
+  "currentMonthWRVUs": 295.78,
+  "ytdWRVUs": 295.78,
+  "monthsCompleted": 1,
+  "fte": 0.5,
+  "clinicalFte": 0.5,
+  "specialty": "Orthopedic Surgery",
+  "marketData": {
+    "id": "cm5d265v2004al0v0b370o15t",
+    "specialty": "Orthopedic Surgery",
+    "p25_total": 501157,
+    "p50_total": 615648,
+    "p75_total": 783354,
+    "p90_total": 947472,
+    "p25_wrvu": 5684,
+    "p50_wrvu": 7519,
+    "p75_wrvu": 9965,
+    "p90_wrvu": 12029,
+    "p25_cf": 71.1,
+    "p50_cf": 81.2,
+    "p75_cf": 104.1,
+    "p90_cf": 127.4,
+    "createdAt": "2024-12-31T22:47:08.846Z",
+    "updatedAt": "2024-12-31T22:47:08.846Z"
+  },
+  "rawData": {
+    "currentMonthData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ],
+    "ytdData": [
+      {
+        "id": "cm5e2slem003zl0dsexspveca",
+        "year": 2025,
+        "month": 1,
+        "value": 295.78,
+        "hours": 160,
+        "providerId": "cm5d25sq60003l0v00z03fozo",
+        "createdAt": "2025-01-01T15:52:21.598Z",
+        "updatedAt": "2025-01-01T15:52:21.598Z"
+      }
+    ]
+  }
+}
+
+2025-01-01T20:10:51.689Z - ROBERT MILLER WRVU CALCULATIONS
+{
+  "annualizedWRVUs": 3549.3599999999997,
+  "fteAdjustedWRVUs": 7098.719999999999,
+  "marketDataBenchmarks": {
+    "p25": 5684,
+    "p50": 7519,
+    "p75": 9965,
+    "p90": 12029
+  }
+}
+
+2025-01-01T20:10:51.690Z - ROBERT MILLER FINAL PERCENTILE
+{
+  "wrvuPercentile": 44,
+  "calculationMethod": "Using market data benchmarks"
+}
+

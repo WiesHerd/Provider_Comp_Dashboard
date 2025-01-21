@@ -1,0 +1,29 @@
+[33mcommit 60efdd522207c64cd0d687c2fc9753ea978f9a78[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: Wieslaw Herdzik <wherdzik@gmail.com>
+Date:   Wed Jan 1 19:53:56 2025 -0500
+
+    Add Years of Experience (YOE) feature: - Add YOE field to Provider model - Calculate YOE based on hire date - Display YOE in provider table - Update YOE on provider upload - Add migration for YOE field
+
+[33mcommit 64b42cee7464179042fd7eaef1f78b9cfc80ace1[m
+Author: Wieslaw Herdzik <wherdzik@gmail.com>
+Date:   Tue Dec 31 19:31:34 2024 -0500
+
+    fix: add detailed logging for base salary data and fix display in admin providers table
+
+[33mcommit 758ccbdc8dca104774d7fbb0ac30c30f307f539c[m
+Author: Wieslaw Herdzik <wherdzik@gmail.com>
+Date:   Tue Dec 31 19:02:00 2024 -0500
+
+    fix: improve TCC percentile calculation - Include all providers, use YTD comp, handle edge cases, filter positive comp only
+
+[33mcommit 6215f44b77cc9314a32b20d41ca6596ac91f1864[m[33m ([m[1;32mui-improvements[m[33m)[m
+Author: Wieslaw Herdzik <wherdzik@gmail.com>
+Date:   Tue Dec 31 13:28:20 2024 -0500
+
+    feat: UI improvements - Update department page layout and search - Standardize pagination across screens - Fix provider table column display - Improve button styling and consistency - Update filter layouts for better UX
+
+[33mcommit c00e82386be9f3df9e291b48b084f6ef8b70f803[m
+Author: Wieslaw Herdzik <wherdzik@gmail.com>
+Date:   Tue Dec 31 09:21:16 2024 -0500
+
+    feat: enhance provider table display - Add Employee ID column - Add missing columns (Hire Date, Termination Date, Base Salary, Compensation Model, Clinical Salary, Non-Clinical Salary) - Improve formatting for monetary values and dates

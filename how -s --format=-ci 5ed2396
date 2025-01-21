@@ -1,0 +1,10 @@
+[33m908a146[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{0}: checkout: moving from b1794703e73894e4ff35cd0e91a3972dac2f8240 to main
+[33mb179470[m[33m ([m[1;31morigin/fix/table-layouts[m[33m)[m HEAD@{1}: checkout: moving from 7541b9b1fb954cfaaaca16295a5571185cb8ce65 to b179470
+[33m7541b9b[m HEAD@{2}: checkout: moving from main to 7541b9b
+[33m908a146[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{3}: checkout: moving from fix/table-layouts to main
+[33m5ed2396[m[33m ([m[1;32mfix/table-layouts[m[33m)[m HEAD@{4}: reset: moving to HEAD
+[33m5ed2396[m[33m ([m[1;32mfix/table-layouts[m[33m)[m HEAD@{5}: reset: moving to HEAD
+[33m5ed2396[m[33m ([m[1;32mfix/table-layouts[m[33m)[m HEAD@{6}: commit: fix: Add null check for providers array in ProviderDashboard to prevent TypeError on initial render
+[33mb179470[m[33m ([m[1;31morigin/fix/table-layouts[m[33m)[m HEAD@{7}: commit: feat: Enhanced providers table with additional fields - Added clinical/non-clinical FTE and salary columns - Added email, hire date, and termination date columns - Added compensation model column - Fixed data fetching and filtering logic - Improved error handling and loading states
+[33mdd52e4f[m HEAD@{8}: commit: Update provider management interface: Add clinical/non-clinical FTE and salary columns, right-align numeric values, update compensation model options, fix table styling and horizontal scrollbar
+[33m7e830e3[m HEAD@{9}: commit: feat: add clinical and non-clinical FTE/salary splits to provider data structure

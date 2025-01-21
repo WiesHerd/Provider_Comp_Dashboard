@@ -1,0 +1,239 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Provider {
+  id                  String               @id @default(cuid())
+  employeeId          String               @unique
+  firstName           String
+  lastName            String
+  email               String
+  specialty           String
+  department          String
+  status              String               @default("Active")
+  terminationDate     DateTime?
+  hireDate            DateTime
+  yearsOfExperience   Float                @default(0)
+  fte                 Float
+  baseSalary          Float
+  compensationModel   String
+  clinicalFte         Float                @default(0)
+  nonClinicalFte      Float                @default(0)
+  clinicalSalary      Float                @default(0)
+  nonClinicalSalary   Float                @default(0)
+  targetWRVUs         Float                @default(0)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  AdditionalPay       AdditionalPay[]
+  additionalPayments  AdditionalPayment[]
+  compensationChanges CompensationChange[]
+  analytics           ProviderAnalytics[]
+  metrics             ProviderMetrics[]
+  settings            ProviderSettings?
+  targetAdjustments   TargetAdjustment[]
+  wrvuAdjustments     WRVUAdjustment[]
+  wrvuData            WRVUData[]
+
+  @@map("providers")
+}
+
+model CompensationChange {
+  id                       String   @id @default(cuid())
+  effectiveDate            DateTime
+  previousSalary           Float
+  newSalary                Float
+  previousFTE              Float
+  newFTE                   Float
+  previousConversionFactor Float
+  newConversionFactor      Float
+  reason                   String?
+  providerId               String
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  provider                 Provider @relation(fields: [providerId], references: [id])
+
+  @@index([providerId, effectiveDate])
+}
+
+model WRVUAdjustment {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  year        Int
+  month       Int
+  value       Float
+  providerId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  provider    Provider @relation(fields: [providerId], references: [id])
+
+  @@index([providerId, year, month])
+}
+
+model TargetAdjustment {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  year        Int
+  month       Int
+  value       Float
+  providerId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  provider    Provider @relation(fields: [providerId], references: [id])
+
+  @@index([providerId, year, month])
+}
+
+model AdditionalPayment {
+  id         String   @id @default(cuid())
+  name       String
+  amount     Float
+  month      Int
+  year       Int
+  providerId String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  provider   Provider @relation(fields: [providerId], references: [id])
+
+  @@index([providerId, year, month])
+}
+
+model MarketDataHistory {
+  id           String     @id @default(cuid())
+  marketDataId String
+  changeType   String
+  fieldName    String
+  oldValue     String?
+  newValue     String?
+  changedAt    DateTime   @default(now())
+  changedBy    String?
+  marketData   MarketData @relation(fields: [marketDataId], references: [id], onDelete: Cascade)
+
+  @@index([marketDataId])
+  @@index([changedAt])
+}
+
+model MarketData {
+  id        String              @id @default(cuid())
+  specialty String              @unique
+  p25_total Float
+  p50_total Float
+  p75_total Float
+  p90_total Float
+  p25_wrvu  Float
+  p50_wrvu  Float
+  p75_wrvu  Float
+  p90_wrvu  Float
+  p25_cf    Float
+  p50_cf    Float
+  p75_cf    Float
+  p90_cf    Float
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  history   MarketDataHistory[]
+
+  @@map("market_data")
+}
+
+model WRVUData {
+  id         String        @id @default(cuid())
+  year       Int
+  month      Int
+  value      Float
+  hours      Float         @default(0)
+  providerId String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  provider   Provider      @relation(fields: [providerId], references: [id])
+  history    WRVUHistory[]
+
+  @@unique([providerId, year, month])
+  @@index([providerId, year])
+}
+
+model WRVUHistory {
+  id         String   @id @default(cuid())
+  wrvuDataId String
+  changeType String
+  fieldName  String
+  oldValue   String?
+  newValue   String?
+  changedAt  DateTime @default(now())
+  changedBy  String?
+  wrvuData   WRVUData @relation(fields: [wrvuDataId], references: [id], onDelete: Cascade)
+}
+
+model ProviderMetrics {
+  id                String   @id @default(cuid())
+  providerId        String
+  year              Int
+  month             Int
+  actualWRVUs       Float
+  rawMonthlyWRVUs   Float
+  ytdWRVUs          Float
+  ytdTargetWRVUs    Float
+  targetWRVUs       Float
+  baseSalary        Float
+  totalCompensation Float
+  incentivesEarned  Float
+  holdbackAmount    Float
+  wrvuPercentile    Float
+  compPercentile    Float
+  planProgress      Float
+  monthsCompleted   Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  provider          Provider @relation(fields: [providerId], references: [id])
+
+  @@unique([providerId, year, month])
+  @@index([providerId, year])
+}
+
+model ProviderAnalytics {
+  id                  String   @id @default(cuid())
+  providerId          String
+  year                Int
+  month               Int
+  ytdProgress         Float
+  ytdTargetProgress   Float
+  incentivePercentage Float
+  clinicalUtilization Float
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  provider            Provider @relation(fields: [providerId], references: [id])
+
+  @@unique([providerId, year, month])
+  @@index([providerId, year])
+}
+
+model AdditionalPay {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  providerId  String
+  year        Int
+  month       Int
+  amount      Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  providers   Provider @relation(fields: [providerId], references: [id])
+
+  @@index([month])
+  @@index([year])
+  @@index([providerId])
+}
+
+model ProviderSettings {
+  id              String   @id @default(cuid())
+  providerId      String   @unique
+  holdbackPercent Float    @default(20)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  provider        Provider @relation(fields: [providerId], references: [id])
+}
