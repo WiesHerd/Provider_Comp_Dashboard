@@ -23,6 +23,8 @@ interface DataPoint {
     category: string;
     gap: number;
   };
+  ytdWRVUs: number;
+  ytdTarget: number;
 }
 
 interface ScatterPlotProps {
@@ -82,11 +84,15 @@ const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: any[] 
           <div className="grid grid-cols-2 gap-8">
             <div>
               <div className="text-[13px] text-gray-600 mb-1">YTD wRVUs</div>
-              <div className="text-[15px] font-medium text-gray-900">{data.wrvus.toLocaleString()}</div>
+              <div className="text-[15px] font-medium text-gray-900">
+                {data.ytdWRVUs ? data.ytdWRVUs.toLocaleString() : 'N/A'}
+              </div>
             </div>
             <div>
               <div className="text-[13px] text-gray-600 mb-1">YTD Target</div>
-              <div className="text-[15px] font-medium text-gray-900">{data.target.toLocaleString()}</div>
+              <div className="text-[15px] font-medium text-gray-900">
+                {data.ytdTarget ? data.ytdTarget.toLocaleString() : 'N/A'}
+              </div>
             </div>
           </div>
 
@@ -94,7 +100,7 @@ const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: any[] 
           <div>
             <div className="text-[13px] text-gray-600 mb-1">YTD Comp</div>
             <div className="text-[15px] font-medium text-gray-900">
-              {data.compensation.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+              {data.compensation ? data.compensation.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : 'N/A'}
             </div>
           </div>
 
@@ -103,7 +109,9 @@ const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: any[] 
             <div>
               <div className="text-[13px] text-gray-600 mb-1">wRVU %ile</div>
               <div className="flex items-center gap-1.5">
-                <span className="text-[15px] font-medium text-gray-900">{data.wrvuPercentile.toFixed(1)}%</span>
+                <span className="text-[15px] font-medium text-gray-900">
+                  {data.wrvuPercentile ? data.wrvuPercentile.toFixed(1) : 'N/A'}%
+                </span>
                 <div className={`w-1.5 h-1.5 rounded-full ${
                   data.wrvuPercentile >= 75 ? 'bg-emerald-500' :
                   data.wrvuPercentile >= 50 ? 'bg-blue-500' :
@@ -114,7 +122,9 @@ const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: any[] 
             <div>
               <div className="text-[13px] text-gray-600 mb-1">Comp %ile</div>
               <div className="flex items-center gap-1.5">
-                <span className="text-[15px] font-medium text-gray-900">{data.compPercentile.toFixed(1)}%</span>
+                <span className="text-[15px] font-medium text-gray-900">
+                  {data.compPercentile ? data.compPercentile.toFixed(1) : 'N/A'}%
+                </span>
                 <div className={`w-1.5 h-1.5 rounded-full ${
                   data.compPercentile >= 75 ? 'bg-emerald-500' :
                   data.compPercentile >= 50 ? 'bg-blue-500' :
@@ -129,15 +139,15 @@ const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: any[] 
             <div className="text-[13px] text-gray-600 mb-1">Percentile Gap</div>
             <div className="flex items-center gap-1.5">
               <span className={`text-[15px] font-medium ${
-                data.analysis.category === 'Aligned' ? 'text-emerald-600' :
-                data.analysis.category === 'Over Compensated' ? 'text-red-600' :
+                data.analysis?.category === 'Aligned' ? 'text-emerald-600' :
+                data.analysis?.category === 'Over Compensated' ? 'text-red-600' :
                 'text-amber-600'
               }`}>
-                {data.analysis.gap > 0 ? '+' : ''}{data.analysis.gap.toFixed(1)}%
+                {data.analysis?.gap ? (data.analysis.gap > 0 ? '+' : '') + data.analysis.gap.toFixed(1) : 'N/A'}%
               </span>
               <div className={`w-1.5 h-1.5 rounded-full ${
-                data.analysis.category === 'Aligned' ? 'bg-emerald-500' :
-                data.analysis.category === 'Over Compensated' ? 'bg-red-500' :
+                data.analysis?.category === 'Aligned' ? 'bg-emerald-500' :
+                data.analysis?.category === 'Over Compensated' ? 'bg-red-500' :
                 'bg-amber-500'
               }`} />
             </div>

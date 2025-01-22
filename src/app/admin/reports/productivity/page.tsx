@@ -173,6 +173,7 @@ export default function ProductivityPage() {
         }
         const rawData = await response.json();
         console.log('Raw API response:', rawData);
+        console.log('Sample provider data:', rawData.data[0]);
         
         if (!rawData || !rawData.data) {
           console.error('Invalid API response structure:', rawData);
@@ -231,6 +232,8 @@ export default function ProductivityPage() {
             fte: provider.fte || 1.0,
             wrvus: provider.monthlyWRVUs || provider.actualWRVUs,
             target: provider.targetWRVUs,
+            ytdWRVUs: provider.ytdWRVUs,
+            ytdTarget: provider.ytdTarget || provider.ytdTargetWRVUs,
             wrvuPercentile: provider.wrvuPercentile,
             compPercentile: provider.compPercentile,
             compensation: provider.totalCompensation,
