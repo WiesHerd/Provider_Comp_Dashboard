@@ -161,6 +161,8 @@ const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: any[] 
 
 const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
   ({ data, xAxisKey, yAxisKey, xAxisLabel, yAxisLabel }, ref) => {
+    const [hoveredPoint, setHoveredPoint] = useState<string | null>(null);
+
     return (
       <div ref={ref} className="h-full flex flex-col">
         <p className="text-sm text-muted-foreground mb-4">
@@ -288,45 +290,59 @@ const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
                 data={data} 
                 shape={(props: any) => {
                   const { cx, cy, payload } = props;
+                  const isHovered = hoveredPoint === payload.id;
+                  const baseRadius = 4;
+                  const hoverRadius = 8;
+                  const radius = isHovered ? hoverRadius : baseRadius;
+                  
                   return (
                     <g>
-                      {/* Subtle outer glow */}
+                      {/* Outer glow */}
                       <circle
                         cx={cx}
                         cy={cy}
-                        r={8}
+                        r={radius + 4}
                         fill={payload.color}
                         fillOpacity={0.08}
                         style={{
                           filter: 'blur(4px)',
+                          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                          transform: isHovered ? 'scale(1.2)' : 'scale(1)',
+                          transformOrigin: `${cx}px ${cy}px`
                         }}
                       />
                       {/* Inner glow */}
                       <circle
                         cx={cx}
                         cy={cy}
-                        r={6}
+                        r={radius + 2}
                         fill={payload.color}
                         fillOpacity={0.12}
                         style={{
                           filter: 'blur(2px)',
+                          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                          transform: isHovered ? 'scale(1.2)' : 'scale(1)',
+                          transformOrigin: `${cx}px ${cy}px`
                         }}
                       />
                       {/* Main point */}
                       <circle
                         cx={cx}
                         cy={cy}
-                        r={4}
+                        r={radius}
                         fill={payload.color}
                         fillOpacity={1}
                         stroke="white"
                         strokeWidth={1.5}
                         style={{ 
                           cursor: 'pointer',
-                          transformOrigin: 'center',
-                          transition: 'all 0.2s ease-out',
+                          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                          transform: isHovered ? 'scale(1.2)' : 'scale(1)',
+                          transformOrigin: `${cx}px ${cy}px`,
                           filter: 'drop-shadow(0 2px 4px rgb(0 0 0 / 0.1))'
                         }}
+                        onMouseEnter={() => setHoveredPoint(payload.id)}
+                        onMouseLeave={() => setHoveredPoint(null)}
                       />
                     </g>
                   );
