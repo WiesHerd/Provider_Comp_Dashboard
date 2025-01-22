@@ -38,7 +38,7 @@ import {
 import dynamic from 'next/dynamic'
 import { FunnelIcon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
-const ScatterPlot = dynamic(() => import('../../../../components/ScatterPlot'), { ssr: false })
+const ScatterPlot = dynamic(() => import('@/components/Charts/ScatterPlot'), { ssr: false })
 
 // Add statistical presets
 const PERCENTILE_PRESETS = [
@@ -172,6 +172,7 @@ export default function ProductivityPage() {
           throw new Error('Failed to fetch data');
         }
         const rawData = await response.json();
+        console.log('Raw API response:', rawData);
         
         if (!rawData || !rawData.data) {
           console.error('Invalid API response structure:', rawData);
@@ -180,6 +181,7 @@ export default function ProductivityPage() {
 
         // Apply filters
         const filteredData = rawData.data.filter((provider: any) => {
+          console.log('Processing provider:', provider);
           const searchMatch = !filters.searchQuery || 
             provider.name?.toLowerCase().includes(filters.searchQuery.toLowerCase());
           
@@ -218,31 +220,32 @@ export default function ProductivityPage() {
         });
 
         // Process data for scatter plot
-        const processedData = filteredData.map((provider: any) => ({
-          id: provider.id || provider.employeeId,
-          name: provider.name || provider.providerName,
-          specialty: provider.specialty,
-          compModel: provider.compensationModel,
-          fte: provider.fte || 1.0,
-          xValue: provider.wrvuPercentile,
-          yValue: provider.compPercentile,
-          color: getColorForCategory(provider.wrvuPercentile, provider.compPercentile),
-          size: 6,
-          productivity: {
-            actualWRVUs: provider.monthlyWRVUs || provider.actualWRVUs,
-            targetWRVUs: provider.targetWRVUs,
-            percentile: provider.wrvuPercentile
-          },
-          compensation: {
-            total: provider.totalCompensation,
-            percentile: provider.compPercentile
-          },
-          analysis: {
-            percentileGap: provider.compPercentile - provider.wrvuPercentile,
-            performanceCategory: getPerformanceCategory(provider.wrvuPercentile, provider.compPercentile)
-          }
-        }));
+        const processedData = filteredData.map((provider: any) => {
+          console.log('Provider before processing:', provider);
+          const processed = {
+            id: provider.id || provider.employeeId,
+            name: provider.name || provider.providerName,
+            specialty: provider.specialty,
+            department: provider.department,
+            compModel: provider.compensationModel,
+            fte: provider.fte || 1.0,
+            wrvus: provider.monthlyWRVUs || provider.actualWRVUs,
+            target: provider.targetWRVUs,
+            wrvuPercentile: provider.wrvuPercentile,
+            compPercentile: provider.compPercentile,
+            compensation: provider.totalCompensation,
+            color: getColorForCategory(provider.wrvuPercentile, provider.compPercentile),
+            size: 6,
+            analysis: {
+              category: getPerformanceCategory(provider.wrvuPercentile, provider.compPercentile),
+              gap: provider.compPercentile - provider.wrvuPercentile
+            }
+          };
+          console.log('Processed provider data:', processed);
+          return processed;
+        });
 
+        console.log('Final processed data:', processedData);
         setData(processedData);
         setLoading(false);
       } catch (error) {
@@ -301,15 +304,15 @@ export default function ProductivityPage() {
             </div>
             <div className="flex items-center gap-2">
               <Activity className="h-3.5 w-3.5 text-emerald-500" />
-              <span className="text-xs text-muted-foreground">{data.filter(p => Math.abs(p.analysis.percentileGap) <= 15).length} Aligned</span>
+              <span className="text-xs text-muted-foreground">{data.filter(p => Math.abs(p.analysis.gap) <= 15).length} Aligned</span>
             </div>
             <div className="flex items-center gap-2">
               <TrendingUp className="h-3.5 w-3.5 text-red-500" />
-              <span className="text-xs text-muted-foreground">{data.filter(p => p.analysis.percentileGap > 15).length} Over Comp.</span>
+              <span className="text-xs text-muted-foreground">{data.filter(p => p.analysis.gap > 15).length} Over Comp.</span>
             </div>
             <div className="flex items-center gap-2">
               <Target className="h-3.5 w-3.5 text-amber-500" />
-              <span className="text-xs text-muted-foreground">{data.filter(p => p.analysis.percentileGap < -15).length} Under Comp.</span>
+              <span className="text-xs text-muted-foreground">{data.filter(p => p.analysis.gap < -15).length} Under Comp.</span>
             </div>
           </div>
         </div>
@@ -563,8 +566,8 @@ export default function ProductivityPage() {
                 ) : (
                   <ScatterPlot 
                     data={data}
-                    xAxisKey="xValue"
-                    yAxisKey="yValue"
+                    xAxisKey="wrvuPercentile"
+                    yAxisKey="compPercentile"
                     xAxisLabel="YTD Productivity Percentile"
                     yAxisLabel="Compensation Percentile"
                     tooltipLabel="Provider Details"
@@ -593,36 +596,36 @@ export default function ProductivityPage() {
               <table className="w-full border-collapse">
                 <thead className="border-b sticky top-0 bg-white">
                   <tr>
-                    <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 pl-6 bg-gray-50/80">Provider</th>
-                    <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Specialty</th>
-                    <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Comp Model</th>
-                    <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">FTE</th>
-                    <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">WRVU %</th>
-                    <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Comp %</th>
-                    <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Gap</th>
-                    <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 pr-6 bg-gray-50/80">Status</th>
+                    <th className="text-left text-[10px] font-medium uppercase tracking-wider text-gray-500 p-3 pl-6 bg-gray-50/80">Provider</th>
+                    <th className="text-left text-[10px] font-medium uppercase tracking-wider text-gray-500 p-3 bg-gray-50/80">Specialty</th>
+                    <th className="text-left text-[10px] font-medium uppercase tracking-wider text-gray-500 p-3 bg-gray-50/80">Comp Model</th>
+                    <th className="text-right text-[10px] font-medium uppercase tracking-wider text-gray-500 p-3 bg-gray-50/80">FTE</th>
+                    <th className="text-right text-[10px] font-medium uppercase tracking-wider text-gray-500 p-3 bg-gray-50/80">WRVU %</th>
+                    <th className="text-right text-[10px] font-medium uppercase tracking-wider text-gray-500 p-3 bg-gray-50/80">Comp %</th>
+                    <th className="text-right text-[10px] font-medium uppercase tracking-wider text-gray-500 p-3 bg-gray-50/80">Gap</th>
+                    <th className="text-left text-[10px] font-medium uppercase tracking-wider text-gray-500 p-3 pr-6 bg-gray-50/80">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y divide-gray-100">
                   {data.map((provider) => (
                     <tr key={provider.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="p-4 pl-6 text-[13px] font-medium text-gray-900 whitespace-nowrap">{provider.name}</td>
-                      <td className="p-4 text-[13px] text-gray-500 whitespace-nowrap">{provider.specialty}</td>
-                      <td className="p-4 text-[13px] text-gray-500 whitespace-nowrap">{provider.compModel}</td>
-                      <td className="p-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{provider.fte.toFixed(2)}</td>
-                      <td className="p-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.productivity.percentile)}%</td>
-                      <td className="p-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.compensation.percentile)}%</td>
-                      <td className="p-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.analysis.percentileGap)}%</td>
-                      <td className="p-4 pr-6 whitespace-nowrap">
+                      <td className="p-3 pl-6 text-[12px] font-medium text-gray-900 whitespace-nowrap">{provider.name}</td>
+                      <td className="p-3 text-[12px] text-gray-600 whitespace-nowrap">{provider.specialty}</td>
+                      <td className="p-3 text-[12px] text-gray-600 whitespace-nowrap">{provider.compModel}</td>
+                      <td className="p-3 text-[12px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{provider.fte.toFixed(2)}</td>
+                      <td className="p-3 text-[12px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.wrvuPercentile)}%</td>
+                      <td className="p-3 text-[12px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.compPercentile)}%</td>
+                      <td className="p-3 text-[12px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.analysis.gap)}%</td>
+                      <td className="p-3 pr-6 whitespace-nowrap">
                         <span 
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium"
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium"
                           style={{ 
                             backgroundColor: `${provider.color}12`,
                             color: provider.color,
                             boxShadow: `0 0 0 1px ${provider.color}25`
                           }}
                         >
-                          {provider.analysis.performanceCategory}
+                          {provider.analysis.category}
                         </span>
                       </td>
                     </tr>
