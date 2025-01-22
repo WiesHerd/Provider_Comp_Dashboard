@@ -586,7 +586,30 @@ export default function ProductivityPage() {
                 <CardTitle className="text-sm font-medium">Provider Details</CardTitle>
                 <CardDescription className="text-xs">Detailed performance metrics by provider</CardDescription>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-4">
+                <div className="relative w-[300px]">
+                  <Input
+                    type="text"
+                    placeholder="Search providers..."
+                    value={filters.searchQuery}
+                    onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
+                    className="h-9 pl-9"
+                  />
+                  <svg
+                    className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
                 <span className="text-xs text-muted-foreground">{data.length} providers</span>
               </div>
             </div>
@@ -596,29 +619,29 @@ export default function ProductivityPage() {
               <table className="w-full border-collapse">
                 <thead className="border-b sticky top-0 bg-white">
                   <tr>
-                    <th className="text-left text-[10px] font-medium uppercase tracking-wider text-gray-500 p-3 pl-6 bg-gray-50/80">Provider</th>
-                    <th className="text-left text-[10px] font-medium uppercase tracking-wider text-gray-500 p-3 bg-gray-50/80">Specialty</th>
-                    <th className="text-left text-[10px] font-medium uppercase tracking-wider text-gray-500 p-3 bg-gray-50/80">Comp Model</th>
-                    <th className="text-right text-[10px] font-medium uppercase tracking-wider text-gray-500 p-3 bg-gray-50/80">FTE</th>
-                    <th className="text-right text-[10px] font-medium uppercase tracking-wider text-gray-500 p-3 bg-gray-50/80">WRVU %</th>
-                    <th className="text-right text-[10px] font-medium uppercase tracking-wider text-gray-500 p-3 bg-gray-50/80">Comp %</th>
-                    <th className="text-right text-[10px] font-medium uppercase tracking-wider text-gray-500 p-3 bg-gray-50/80">Gap</th>
-                    <th className="text-left text-[10px] font-medium uppercase tracking-wider text-gray-500 p-3 pr-6 bg-gray-50/80">Status</th>
+                    <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 pl-6 bg-gray-50/80">Provider</th>
+                    <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Specialty</th>
+                    <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Comp Model</th>
+                    <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">FTE</th>
+                    <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">WRVU %</th>
+                    <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Comp %</th>
+                    <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Gap</th>
+                    <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 pr-6 bg-gray-50/80">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y">
                   {data.map((provider) => (
                     <tr key={provider.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="p-3 pl-6 text-[12px] font-medium text-gray-900 whitespace-nowrap">{provider.name}</td>
-                      <td className="p-3 text-[12px] text-gray-600 whitespace-nowrap">{provider.specialty}</td>
-                      <td className="p-3 text-[12px] text-gray-600 whitespace-nowrap">{provider.compModel}</td>
-                      <td className="p-3 text-[12px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{provider.fte.toFixed(2)}</td>
-                      <td className="p-3 text-[12px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.wrvuPercentile)}%</td>
-                      <td className="p-3 text-[12px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.compPercentile)}%</td>
-                      <td className="p-3 text-[12px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.analysis.gap)}%</td>
-                      <td className="p-3 pr-6 whitespace-nowrap">
+                      <td className="p-4 pl-6 text-[13px] font-medium text-gray-900 whitespace-nowrap">{provider.name}</td>
+                      <td className="p-4 text-[13px] text-gray-500 whitespace-nowrap">{provider.specialty}</td>
+                      <td className="p-4 text-[13px] text-gray-500 whitespace-nowrap">{provider.compModel}</td>
+                      <td className="p-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{provider.fte.toFixed(2)}</td>
+                      <td className="p-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.wrvuPercentile)}%</td>
+                      <td className="p-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.compPercentile)}%</td>
+                      <td className="p-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.analysis.gap)}%</td>
+                      <td className="p-4 pr-6 whitespace-nowrap">
                         <span 
-                          className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium"
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium"
                           style={{ 
                             backgroundColor: `${provider.color}12`,
                             color: provider.color,
