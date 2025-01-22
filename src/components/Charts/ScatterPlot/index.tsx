@@ -189,7 +189,7 @@ const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
                 strokeWidth={1}
                 label={{
                   value: "Median Compensation",
-                  position: "right",
+                  position: "top",
                   fill: "#64748b",
                   fontSize: 11,
                   fontWeight: 500

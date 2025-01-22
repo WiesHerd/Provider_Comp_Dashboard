@@ -103,9 +103,20 @@ export async function GET(request: Request) {
         include: {
           metrics: {
             where: {
-              year: new Date().getFullYear()
+              OR: [
+                {
+                  year: new Date().getFullYear(),
+                  month: new Date().getMonth()
+                },
+                {
+                  year: new Date().getMonth() === 0 ? new Date().getFullYear() - 1 : new Date().getFullYear(),
+                  month: new Date().getMonth() === 0 ? 11 : new Date().getMonth() - 1
+                }
+              ]
             },
-            take: 1
+            orderBy: {
+              month: 'desc'
+            }
           }
         }
       })
@@ -125,11 +136,18 @@ export async function GET(request: Request) {
     }
 
     // Add derived fields
-    const providersWithDerivedFields = providers.map(provider => ({
-      ...provider,
-      hasBenchmarks: true, // You'll need to implement the actual logic for this
-      hasWRVUs: provider.metrics.length > 0
-    }));
+    const providersWithDerivedFields = providers.map(provider => {
+      const currentMetrics = provider.metrics[0];
+      const previousMetrics = provider.metrics[1];
+      
+      return {
+        ...provider,
+        hasBenchmarks: true,
+        hasWRVUs: provider.metrics.length > 0,
+        currentMonth: currentMetrics,
+        previousMonth: previousMetrics
+      };
+    });
 
     // Filter after fetching if needed
     let filteredProviders = providersWithDerivedFields;

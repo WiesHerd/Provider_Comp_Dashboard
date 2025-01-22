@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { FC } from 'react';
 import {
   Card,
   CardContent,
@@ -14,11 +15,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
+  SelectLabel,
+  SelectSeparator,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Loader2, Users, TrendingUp, Target, DollarSign, Activity, ChevronDown, Filter, X } from 'lucide-react';
+import { Users, Activity, TrendingUp, Target, DollarSign, ChevronDown, Filter, X, Loader2 } from 'lucide-react';
 import { formatCurrency, formatNumber, formatPercent, cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { Switch } from "@/components/ui/switch";
@@ -29,16 +33,16 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
-} from "@/components/ui/command"
+} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
-import dynamic from 'next/dynamic'
+} from "@/components/ui/popover";
+import dynamic from 'next/dynamic';
 import { FunnelIcon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
-const ScatterPlot = dynamic(() => import('@/components/Charts/ScatterPlot'), { ssr: false })
+const ScatterPlot = dynamic(() => import('@/components/Charts/ScatterPlot'), { ssr: false });
 
 // Add statistical presets
 const PERCENTILE_PRESETS = [
@@ -49,6 +53,9 @@ const PERCENTILE_PRESETS = [
   { label: "High Performers (>50th)", wrvu: [50, 100] as [number, number], comp: [0, 100] as [number, number] },
   { label: "Low Performers (<50th)", wrvu: [0, 50] as [number, number], comp: [0, 100] as [number, number] },
   { label: "Market Competitive (40th-60th)", wrvu: [40, 60] as [number, number], comp: [40, 60] as [number, number] },
+  { label: "Aligned Only", wrvu: [0, 100] as [number, number], comp: [0, 100] as [number, number], alignmentFilter: 'aligned' },
+  { label: "Over Compensated Only", wrvu: [0, 100] as [number, number], comp: [0, 100] as [number, number], alignmentFilter: 'over' },
+  { label: "Under Compensated Only", wrvu: [0, 100] as [number, number], comp: [0, 100] as [number, number], alignmentFilter: 'under' }
 ];
 
 interface FilterState {
@@ -93,7 +100,7 @@ const getPerformanceCategory = (wrvuPercentile: number, compPercentile: number):
   return 'Under Compensated';
 };
 
-export default function ProductivityPage() {
+const ProductivityPage: FC = () => {
   const { toast } = useToast();
   const [filters, setFilters] = useState<FilterState>({
     month: new Date().getMonth() + 1,
@@ -215,14 +222,29 @@ export default function ProductivityPage() {
             (!filters.wrvuPercentileMax || provider.wrvuPercentile <= parseInt(filters.wrvuPercentileMax))
           );
 
+          // Add alignment filter
+          const preset = PERCENTILE_PRESETS.find(p => p.label === filters.analysisRange);
+          const gap = provider.compPercentile - provider.wrvuPercentile;
+          const alignmentMatch = !preset?.alignmentFilter || (
+            (preset.alignmentFilter === 'aligned' && Math.abs(gap) <= 15) ||
+            (preset.alignmentFilter === 'over' && gap > 15) ||
+            (preset.alignmentFilter === 'under' && gap < -15)
+          );
+
           return searchMatch && specialtyMatch && departmentMatch && 
             compModelMatch && fteMatch && salaryMatch && 
-            compPercentileMatch && wrvuPercentileMatch;
+            compPercentileMatch && wrvuPercentileMatch && alignmentMatch;
         });
 
         // Process data for scatter plot
         const processedData = filteredData.map((provider: any) => {
           console.log('Provider before processing:', provider);
+          
+          // Safely access percentiles with fallbacks
+          const wrvuPercentile = provider.wrvuPercentile || 
+            (provider.productivity && provider.productivity.percentile) || 0;
+          const compPercentile = provider.compPercentile || 0;
+          
           const processed = {
             id: provider.id || provider.employeeId,
             name: provider.name || provider.providerName,
@@ -230,21 +252,27 @@ export default function ProductivityPage() {
             department: provider.department,
             compModel: provider.compensationModel,
             fte: provider.fte || 1.0,
-            wrvus: provider.monthlyWRVUs || provider.actualWRVUs,
-            target: provider.targetWRVUs,
-            ytdWRVUs: provider.ytdWRVUs,
-            ytdTarget: provider.ytdTarget || provider.ytdTargetWRVUs,
-            wrvuPercentile: provider.wrvuPercentile,
-            compPercentile: provider.compPercentile,
-            compensation: provider.totalCompensation,
-            color: getColorForCategory(provider.wrvuPercentile, provider.compPercentile),
+            wrvus: provider.monthlyWRVUs || provider.actualWRVUs || 0,
+            target: provider.targetWRVUs || 0,
+            ytdWRVUs: provider.ytdWRVUs || 0,
+            ytdTarget: provider.ytdTarget || provider.ytdTargetWRVUs || 0,
+            ytdTargetWRVUs: provider.ytdTargetWRVUs || 
+              (provider.productivity && provider.productivity.ytdTargetWRVUs) || 0,
+            wrvuPercentile,
+            compPercentile,
+            compensation: provider.totalCompensation || 0,
+            color: getColorForCategory(wrvuPercentile, compPercentile),
             size: 6,
+            previousPosition: provider.previousMonth ? {
+              wrvuPercentile: provider.previousMonth.wrvuPercentile || 0,
+              compPercentile: provider.previousMonth.compPercentile || 0
+            } : undefined,
             analysis: {
-              category: getPerformanceCategory(provider.wrvuPercentile, provider.compPercentile),
-              gap: provider.compPercentile - provider.wrvuPercentile
+              category: getPerformanceCategory(wrvuPercentile, compPercentile),
+              gap: compPercentile - wrvuPercentile
             }
           };
-          console.log('Processed provider data:', processed);
+          
           return processed;
         });
 
@@ -302,20 +330,20 @@ export default function ProductivityPage() {
           </div>
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
-              <Users className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">{data.length} Providers</span>
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">{data.length} Providers</span>
             </div>
             <div className="flex items-center gap-2">
-              <Activity className="h-3.5 w-3.5 text-emerald-500" />
-              <span className="text-xs text-muted-foreground">{data.filter(p => Math.abs(p.analysis.gap) <= 15).length} Aligned</span>
+              <Activity className="h-4 w-4 text-emerald-500" />
+              <span className="text-sm text-muted-foreground">{data.filter(p => Math.abs(p.analysis.gap) <= 15).length} Aligned</span>
             </div>
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-3.5 w-3.5 text-red-500" />
-              <span className="text-xs text-muted-foreground">{data.filter(p => p.analysis.gap > 15).length} Over Comp.</span>
+              <TrendingUp className="h-4 w-4 text-red-500" />
+              <span className="text-sm text-muted-foreground">{data.filter(p => p.analysis.gap > 15).length} Over Comp.</span>
             </div>
             <div className="flex items-center gap-2">
-              <Target className="h-3.5 w-3.5 text-amber-500" />
-              <span className="text-xs text-muted-foreground">{data.filter(p => p.analysis.gap < -15).length} Under Comp.</span>
+              <Target className="h-4 w-4 text-amber-500" />
+              <span className="text-sm text-muted-foreground">{data.filter(p => p.analysis.gap < -15).length} Under Comp.</span>
             </div>
           </div>
         </div>
@@ -323,74 +351,87 @@ export default function ProductivityPage() {
         {/* Filter Bar */}
         <div className="flex items-center gap-6">
           <div className="flex-1 grid grid-cols-5 gap-6">
-            <Select
-              value={filters.month.toString()}
-              onValueChange={(value) => setFilters({ ...filters, month: parseInt(value) })}
-            >
-              <SelectTrigger className="h-9 bg-white/50 border-muted">
-                <SelectValue placeholder="Select month" />
-              </SelectTrigger>
-              <SelectContent>
-                {months.map((month, index) => (
-                  <SelectItem key={index + 1} value={(index + 1).toString()}>
-                    {month}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">YTD Month</label>
+              <Select
+                value={filters.month.toString()}
+                onValueChange={(value) => setFilters({ ...filters, month: parseInt(value) })}
+              >
+                <SelectTrigger className="h-9 bg-white/50 border-muted">
+                  <SelectValue placeholder="Select month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map((month, index) => (
+                    <SelectItem key={index + 1} value={(index + 1).toString()}>
+                      {month}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select
-              value={filters.specialty}
-              onValueChange={(value) => setFilters({ ...filters, specialty: value })}
-            >
-              <SelectTrigger className="h-9 bg-white/50 border-muted">
-                <SelectValue placeholder="All Specialties" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Specialties</SelectItem>
-                {specialties.map((specialty) => (
-                  <SelectItem key={specialty} value={specialty}>
-                    {specialty}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Specialty</label>
+              <Select
+                value={filters.specialty}
+                onValueChange={(value) => setFilters({ ...filters, specialty: value })}
+              >
+                <SelectTrigger className="h-9 bg-white/50 border-muted">
+                  <SelectValue placeholder="All Specialties" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Specialties</SelectItem>
+                  {specialties.map((specialty) => (
+                    <SelectItem key={specialty} value={specialty}>
+                      {specialty}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select
-              value={filters.department}
-              onValueChange={(value) => setFilters({ ...filters, department: value })}
-            >
-              <SelectTrigger className="h-9 bg-white/50 border-muted">
-                <SelectValue placeholder="All Departments" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Departments</SelectItem>
-                {departments.map((department) => (
-                  <SelectItem key={department} value={department}>
-                    {department}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Department</label>
+              <Select
+                value={filters.department}
+                onValueChange={(value) => setFilters({ ...filters, department: value })}
+              >
+                <SelectTrigger className="h-9 bg-white/50 border-muted">
+                  <SelectValue placeholder="All Departments" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  {departments.map((department) => (
+                    <SelectItem key={department} value={department}>
+                      {department}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select
-              value={filters.compModel}
-              onValueChange={(value) => setFilters({ ...filters, compModel: value })}
-            >
-              <SelectTrigger className="h-9 bg-white/50 border-muted">
-                <SelectValue placeholder="All Comp Models" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Select All">All Comp Models</SelectItem>
-                {compModels.filter(model => model !== 'Select All').map((model) => (
-                  <SelectItem key={model} value={model}>
-                    {model}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Comp Model</label>
+              <Select
+                value={filters.compModel}
+                onValueChange={(value) => setFilters({ ...filters, compModel: value })}
+              >
+                <SelectTrigger className="h-9 bg-white/50 border-muted">
+                  <SelectValue placeholder="All Comp Models" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Select All">All Comp Models</SelectItem>
+                  {compModels.filter(model => model !== 'Select All').map((model) => (
+                    <SelectItem key={model} value={model}>
+                      {model}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <div className="flex items-center gap-3">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Analysis Range</label>
               <Select
                 value={filters.analysisRange}
                 onValueChange={(value) => {
@@ -412,14 +453,28 @@ export default function ProductivityPage() {
                   <SelectValue placeholder="Performance Range" />
                 </SelectTrigger>
                 <SelectContent>
-                  {PERCENTILE_PRESETS.map((preset) => (
-                    <SelectItem key={preset.label} value={preset.label}>
-                      {preset.label}
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    <SelectLabel>Range Based</SelectLabel>
+                    <SelectItem value="All Providers">All Providers</SelectItem>
+                    <SelectItem value="Top Quartile (75th-100th)">Top Quartile (75th-100th)</SelectItem>
+                    <SelectItem value="Middle Half (25th-75th)">Middle Half (25th-75th)</SelectItem>
+                    <SelectItem value="Bottom Quartile (0-25th)">Bottom Quartile (0-25th)</SelectItem>
+                    <SelectItem value="High Performers (>50th)">High Performers ({'>'}50th)</SelectItem>
+                    <SelectItem value="Low Performers (<50th)">Low Performers ({'<'}50th)</SelectItem>
+                    <SelectItem value="Market Competitive (40th-60th)">Market Competitive (40th-60th)</SelectItem>
+                  </SelectGroup>
+                  <SelectSeparator />
+                  <SelectGroup>
+                    <SelectLabel>Alignment Based</SelectLabel>
+                    <SelectItem value="Aligned Only">Aligned Only</SelectItem>
+                    <SelectItem value="Over Compensated Only">Over Compensated Only</SelectItem>
+                    <SelectItem value="Under Compensated Only">Under Compensated Only</SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
+            </div>
 
+            <div className="flex items-center gap-3">
               <Button 
                 variant="ghost" 
                 size="sm"
@@ -574,6 +629,12 @@ export default function ProductivityPage() {
                     xAxisLabel="YTD Productivity Percentile"
                     yAxisLabel="Compensation Percentile"
                     tooltipLabel="Provider Details"
+                    hideRightLabel={true}
+                    hideMedianLabel={true}
+                    xAxisLabelOffset={40}
+                    medianXLabel="Median Productivity"
+                    medianYLabel="Median Compensation"
+                    medianLabelsPosition="top"
                   />
                 )}
               </div>
@@ -664,4 +725,6 @@ export default function ProductivityPage() {
       </div>
     </div>
   );
-} 
+};
+
+export default ProductivityPage; 
