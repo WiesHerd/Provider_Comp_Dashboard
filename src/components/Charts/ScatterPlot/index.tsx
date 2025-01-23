@@ -243,7 +243,7 @@ const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
                 type="number"
                 dataKey={xAxisKey}
                 name={xAxisLabel}
-                unit="%"
+                unit=""
                 domain={[0, 100]}
                 tickCount={5}
                 tick={{ fontSize: 12, fill: "#64748b", fontWeight: 500 }}
@@ -258,11 +258,12 @@ const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
                   fontWeight: 500
                 }}
               />
+
               <YAxis
                 type="number"
                 dataKey={yAxisKey}
                 name={yAxisLabel}
-                unit="%"
+                unit=""
                 domain={[0, 100]}
                 tickCount={5}
                 tick={{ fontSize: 12, fill: "#64748b", fontWeight: 500 }}
