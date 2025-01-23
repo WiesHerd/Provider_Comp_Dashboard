@@ -6,10 +6,14 @@ import { Toaster } from '@/components/ui/toast'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Clarity Pay 360 | Provider Compensation Analytics',
-  description: 'A comprehensive provider compensation analytics platform offering 360° visibility into compensation data, market benchmarks, and performance metrics.',
+  title: 'ClarityPay360 | Provider Compensation Analytics',
+  description: 'Advanced analytics and insights for healthcare provider compensation management',
+  keywords: 'healthcare, compensation, analytics, provider management, WRVU analysis',
+  themeColor: '#3b82f6',
+  manifest: '/manifest.json',
   icons: {
-    icon: '/images/icon.svg'
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
   },
 }
 

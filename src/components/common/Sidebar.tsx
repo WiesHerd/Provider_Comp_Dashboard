@@ -32,18 +32,23 @@ export default function Sidebar({ isCollapsed, onCollapse }: SidebarProps) {
       <div className="flex flex-col h-full">
         {/* Logo */}
         <div className="flex items-center gap-3 p-4">
-          <div className="flex-shrink-0">
-            <Image
-              src="/images/icon.svg"
-              alt="Clarity Pay 360"
-              width={32}
-              height={32}
-              className="w-8 h-8"
-            />
-          </div>
-          {!isCollapsed && (
-            <span className="text-xl font-semibold text-white">Clarity Pay 360</span>
-          )}
+          <Link href="/" className="flex items-center">
+            <div className="relative flex items-center">
+              <Image 
+                src="/images/icon.svg"
+                alt="ClarityPay360"
+                width={32}
+                height={32}
+              />
+              {!isCollapsed && (
+                <div className="ml-2">
+                  <span className="text-lg font-semibold text-white tracking-tight">
+                    Clarity<span className="text-indigo-400">Pay</span><span className="text-indigo-300">360</span>
+                  </span>
+                </div>
+              )}
+            </div>
+          </Link>
         </div>
 
         {/* Navigation */}
