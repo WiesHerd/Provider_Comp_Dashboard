@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { FC } from 'react';
 import {
   Card,
@@ -16,35 +16,64 @@ import {
   SelectTrigger,
   SelectValue,
   SelectGroup,
-  SelectLabel,
   SelectSeparator,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { Users, Activity, TrendingUp, Target, DollarSign, ChevronDown, Filter, X, Loader2 } from 'lucide-react';
+import { Users, Activity, TrendingUp, Target, ChevronDown, Filter, Loader2, Pause, Play } from 'lucide-react';
 import { formatCurrency, formatNumber, formatPercent, cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
-import { Switch } from "@/components/ui/switch";
-import { DualRangeSlider } from "@/components/ui/dual-range-slider";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import React from 'react';
+import { ResponsiveContainer } from 'recharts';
 import dynamic from 'next/dynamic';
-import { FunnelIcon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 const ScatterPlot = dynamic(() => import('@/components/Charts/ScatterPlot'), { ssr: false });
 
-// Add statistical presets
+// Add proper types for animation points
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface Provider {
+  id: string;
+  name: string;
+  wrvuPercentile: number;
+  compPercentile: number;
+  specialty: string;
+  department: string;
+  compModel: string;
+  fte: number;
+  color: string;
+  size: number;
+  analysis: {
+    category: string;
+    gap: number;
+  };
+}
+
+// Remove unused interface properties
+interface FilterState {
+  month: number;
+  specialty: string;
+  department: string;
+  status: string;
+  searchQuery: string;
+  compModel: string;
+  wrvuPercentileMin: string;
+  wrvuPercentileMax: string;
+  compPercentileMin: string;
+  compPercentileMax: string;
+  analysisRange: string;
+}
+
+// Keep only the presets we're using
 const PERCENTILE_PRESETS = [
   { label: "All Providers", wrvu: [0, 100] as [number, number], comp: [0, 100] as [number, number] },
   { label: "Top Quartile (75th-100th)", wrvu: [75, 100] as [number, number], comp: [75, 100] as [number, number] },
@@ -57,28 +86,6 @@ const PERCENTILE_PRESETS = [
   { label: "Over Compensated Only", wrvu: [0, 100] as [number, number], comp: [0, 100] as [number, number], alignmentFilter: 'over' },
   { label: "Under Compensated Only", wrvu: [0, 100] as [number, number], comp: [0, 100] as [number, number], alignmentFilter: 'under' }
 ];
-
-interface FilterState {
-  month: number;
-  specialty: string;
-  department: string;
-  status: string;
-  searchQuery: string;
-  compModel: string;
-  wrvuPercentileMin: string;
-  wrvuPercentileMax: string;
-  compPercentileMin: string;
-  compPercentileMax: string;
-  planProgressMin: string;
-  planProgressMax: string;
-  missingBenchmarks: boolean;
-  missingWRVUs: boolean;
-  nonClinicalOnly: boolean;
-  inactiveOnly: boolean;
-  fteRange: [number, number];
-  baseSalaryRange: [number, number];
-  analysisRange: string;
-}
 
 const months = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -113,15 +120,7 @@ const ProductivityPage: FC = () => {
     wrvuPercentileMax: '',
     compPercentileMin: '',
     compPercentileMax: '',
-    planProgressMin: '',
-    planProgressMax: '',
-    missingBenchmarks: false,
-    missingWRVUs: false,
-    nonClinicalOnly: false,
-    inactiveOnly: false,
-    fteRange: [0, 1.0],
-    baseSalaryRange: [0, 2000000],
-    analysisRange: 'All Providers'
+    analysisRange: 'All Providers',
   });
 
   const [loading, setLoading] = useState(true);
@@ -131,18 +130,149 @@ const ProductivityPage: FC = () => {
   const [compModels, setCompModels] = useState<string[]>(['Select All']);
   const [isFiltersVisible, setIsFiltersVisible] = useState(false);
 
+  // Animation state
+  const [selectedProvider, setSelectedProvider] = useState<string>('');
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [animationFrame, setAnimationFrame] = useState(0);
+  const animationRef = useRef<number>();
+  const pathPoints = useRef<Point[]>([]);
+
+  // Generate animation path points
+  const generatePathPoints = (provider: Provider): Point[] => {
+    const points: Point[] = [];
+    const baseX = Math.min(100, Math.max(0, provider.wrvuPercentile));
+    const baseY = Math.min(100, Math.max(0, provider.compPercentile));
+    
+    // Start point
+    points.push({ x: baseX, y: baseY });
+
+    // Generate intermediate points with smaller, controlled variation
+    // Reduced number of points and smaller variation for more precise movement
+    for (let i = 1; i < 7; i++) {
+      const progress = i / 6;
+      // Use smaller variation (2.5 instead of 5) and single sine wave
+      const variation = 2.5;
+      const x = Math.min(100, Math.max(0, baseX + Math.sin(progress * Math.PI) * variation));
+      const y = Math.min(100, Math.max(0, baseY + Math.cos(progress * Math.PI) * variation));
+      points.push({ x, y });
+    }
+
+    // End point (same as start for loop animation)
+    points.push({ x: baseX, y: baseY });
+
+    return points;
+  };
+
+  // Animation effect with slower speed
+  useEffect(() => {
+    if (isPlaying && selectedProvider) {
+      const provider = data.find(p => p.id === selectedProvider);
+      if (!provider) return;
+
+      // Generate path points if not already generated
+      if (pathPoints.current.length === 0) {
+        pathPoints.current = generatePathPoints(provider);
+      }
+
+      const animate = () => {
+        // Slow down the animation by updating frame less frequently
+        setTimeout(() => {
+          setAnimationFrame(prev => (prev + 1) % (pathPoints.current.length * 15)); // Increased from 10 to 15 for slower animation
+          if (isPlaying) {
+            animationRef.current = requestAnimationFrame(animate);
+          }
+        }, 50); // Added delay between frames
+      };
+
+      animationRef.current = requestAnimationFrame(animate);
+
+      return () => {
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+        }
+      };
+    } else {
+      // Reset animation when stopped
+      setAnimationFrame(0);
+      pathPoints.current = [];
+    }
+  }, [isPlaying, selectedProvider, data]);
+
+  // Get animated data for visualization
+  const getAnimatedProviderData = () => {
+    if (!selectedProvider || !isPlaying) return data;
+
+    const provider = data.find(p => p.id === selectedProvider) as Provider;
+    if (!provider || pathPoints.current.length === 0) return data;
+
+    // Calculate current position along the path
+    const pointIndex = Math.floor(animationFrame / 15);
+    const progress = (animationFrame % 15) / 15;
+    const currentPoint = pathPoints.current[pointIndex];
+    const nextPoint = pathPoints.current[(pointIndex + 1) % pathPoints.current.length];
+
+    // Interpolate between points
+    const currentPosition = {
+      x: currentPoint.x + (nextPoint.x - currentPoint.x) * progress,
+      y: currentPoint.y + (nextPoint.y - currentPoint.y) * progress
+    };
+
+    // Create animated data
+    return data.map(p => {
+      if (p.id !== selectedProvider) {
+        return {
+          ...p,
+          color: 'rgba(200, 200, 200, 0.2)',
+          size: 4
+        };
+      }
+
+      // Add trail effect
+      const trail = [];
+      for (let i = Math.max(0, pointIndex - 5); i <= pointIndex; i++) {
+        const trailPoint = pathPoints.current[i];
+        const opacity = (i - (pointIndex - 5)) / 5;
+        trail.push({
+          ...provider,
+          id: `${provider.id}-trail-${i}`,
+          wrvuPercentile: trailPoint.x,
+          compPercentile: trailPoint.y,
+          color: `rgba(16, 185, 129, ${opacity})`,
+          size: i === pointIndex ? 8 : 4
+        });
+      }
+
+      // Add current position
+      trail.push({
+        ...provider,
+        id: `${provider.id}-current`,
+        wrvuPercentile: currentPosition.x,
+        compPercentile: currentPosition.y,
+        color: '#10b981',
+        size: 8
+      });
+
+      return trail;
+    }).flat();
+  };
+
+  // Use animated data for scatter plot
+  const displayData = isPlaying ? getAnimatedProviderData() : data;
+
+  // Update month display based on animation progress
+  const currentMonth = isPlaying ? 
+    months[Math.floor((animationFrame / (pathPoints.current.length * 15)) * 12)] : 
+    months[filters.month - 1];
+
   // Calculate active filter count
   const getActiveFilterCount = () => {
     let count = 0;
     if (filters.specialty !== 'all') count++;
     if (filters.department !== 'all') count++;
-    if (filters.fteRange[0] !== 0 || filters.fteRange[1] !== 1.0) count++;
-    if (filters.baseSalaryRange[0] !== 0 || filters.baseSalaryRange[1] !== 2000000) count++;
     if (filters.month !== new Date().getMonth() + 1) count++;
-    if (filters.missingBenchmarks) count++;
-    if (filters.missingWRVUs) count++;
-    if (filters.nonClinicalOnly) count++;
-    if (filters.inactiveOnly) count++;
+    if (filters.compModel !== 'Select All') count++;
+    if (filters.analysisRange !== 'All Providers') count++;
+    if (filters.searchQuery) count++;
     return count;
   };
 
@@ -201,16 +331,6 @@ const ProductivityPage: FC = () => {
           
           const compModelMatch = filters.compModel === 'Select All' || 
             provider.compensationModel === filters.compModel;
-          
-          const fteMatch = (!provider.fte || (
-            provider.fte >= filters.fteRange[0] && 
-            provider.fte <= filters.fteRange[1]
-          ));
-          
-          const salaryMatch = (!provider.baseSalary || (
-            provider.baseSalary >= filters.baseSalaryRange[0] && 
-            provider.baseSalary <= filters.baseSalaryRange[1]
-          ));
 
           const compPercentileMatch = (
             (!filters.compPercentileMin || provider.compPercentile >= parseInt(filters.compPercentileMin)) &&
@@ -232,20 +352,16 @@ const ProductivityPage: FC = () => {
           );
 
           return searchMatch && specialtyMatch && departmentMatch && 
-            compModelMatch && fteMatch && salaryMatch && 
-            compPercentileMatch && wrvuPercentileMatch && alignmentMatch;
+            compModelMatch && compPercentileMatch && wrvuPercentileMatch && alignmentMatch;
         });
 
         // Process data for scatter plot
         const processedData = filteredData.map((provider: any) => {
-          console.log('Provider before processing:', provider);
+          const wrvuPercentile = Math.min(100, Math.max(0, provider.wrvuPercentile || 
+            (provider.productivity && provider.productivity.percentile) || 0));
+          const compPercentile = Math.min(100, Math.max(0, provider.compPercentile || 0));
           
-          // Safely access percentiles with fallbacks
-          const wrvuPercentile = provider.wrvuPercentile || 
-            (provider.productivity && provider.productivity.percentile) || 0;
-          const compPercentile = provider.compPercentile || 0;
-          
-          const processed = {
+          return {
             id: provider.id || provider.employeeId,
             name: provider.name || provider.providerName,
             specialty: provider.specialty,
@@ -264,16 +380,14 @@ const ProductivityPage: FC = () => {
             color: getColorForCategory(wrvuPercentile, compPercentile),
             size: 6,
             previousPosition: provider.previousMonth ? {
-              wrvuPercentile: provider.previousMonth.wrvuPercentile || 0,
-              compPercentile: provider.previousMonth.compPercentile || 0
+              wrvuPercentile: Math.min(100, Math.max(0, provider.previousMonth.wrvuPercentile || 0)),
+              compPercentile: Math.min(100, Math.max(0, provider.previousMonth.compPercentile || 0))
             } : undefined,
             analysis: {
               category: getPerformanceCategory(wrvuPercentile, compPercentile),
               gap: compPercentile - wrvuPercentile
             }
           };
-          
-          return processed;
         });
 
         console.log('Final processed data:', processedData);
@@ -301,20 +415,49 @@ const ProductivityPage: FC = () => {
       status: 'Active',
       searchQuery: '',
       compModel: 'Select All',
-      wrvuPercentileMin: '0',
-      wrvuPercentileMax: '100',
-      compPercentileMin: '0',
-      compPercentileMax: '100',
-      planProgressMin: '',
-      planProgressMax: '',
-      missingBenchmarks: false,
-      missingWRVUs: false,
-      nonClinicalOnly: false,
-      inactiveOnly: false,
-      fteRange: [0, 1.0],
-      baseSalaryRange: [0, 2000000],
-      analysisRange: 'All Providers'
+      wrvuPercentileMin: '',
+      wrvuPercentileMax: '',
+      compPercentileMin: '',
+      compPercentileMax: '',
+      analysisRange: 'All Providers',
     });
+  };
+
+  // Update ScatterPlot props type
+  interface ScatterPlotProps {
+    data: Provider[];
+    xAxisKey: string;
+    yAxisKey: string;
+    xAxisLabel: string;
+    yAxisLabel: string;
+    hideRightLabel: boolean;
+    hideMedianLabel: boolean;
+    xAxisLabelOffset: number;
+    medianXLabel: string;
+    medianYLabel: string;
+    medianLabelsPosition: string;
+    minValue: number;
+    maxValue: number;
+    tickFormatter: (value: number) => string;
+  }
+
+  // Clean up filter validation
+  const validateFilters = (filters: FilterState) => {
+    const { wrvuPercentileMin, wrvuPercentileMax, compPercentileMin, compPercentileMax } = filters;
+    
+    if (wrvuPercentileMin && wrvuPercentileMax) {
+      if (parseInt(wrvuPercentileMin) > parseInt(wrvuPercentileMax)) {
+        return false;
+      }
+    }
+
+    if (compPercentileMin && compPercentileMax) {
+      if (parseInt(compPercentileMin) > parseInt(compPercentileMax)) {
+        return false;
+      }
+    }
+
+    return true;
   };
 
   return (
@@ -348,158 +491,265 @@ const ProductivityPage: FC = () => {
           </div>
         </div>
 
-        {/* Filter Bar */}
-        <div className="flex items-center gap-6">
-          <div className="flex-1 grid grid-cols-5 gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">YTD Month</label>
-              <Select
-                value={filters.month.toString()}
-                onValueChange={(value) => setFilters({ ...filters, month: parseInt(value) })}
-              >
-                <SelectTrigger className="h-9 bg-white/50 border-muted">
-                  <SelectValue placeholder="Select month" />
-                </SelectTrigger>
-                <SelectContent>
-                  {months.map((month, index) => (
-                    <SelectItem key={index + 1} value={(index + 1).toString()}>
-                      {month}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        {/* Filter Controls */}
+        <div className="bg-white rounded-lg border shadow-sm">
+          <button
+            className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium"
+            onClick={() => setIsFiltersVisible(!isFiltersVisible)}
+          >
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span>Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="ml-1 bg-primary/10 text-primary rounded-full px-1.5 py-0.5 text-xs font-medium">
+                  {activeFilterCount}
+                </span>
+              )}
             </div>
+            <ChevronDown 
+              className={cn(
+                "h-4 w-4 text-muted-foreground transition-transform duration-200",
+                isFiltersVisible ? "transform rotate-180" : ""
+              )}
+            />
+          </button>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Specialty</label>
-              <Select
-                value={filters.specialty}
-                onValueChange={(value) => setFilters({ ...filters, specialty: value })}
-              >
-                <SelectTrigger className="h-9 bg-white/50 border-muted">
-                  <SelectValue placeholder="All Specialties" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Specialties</SelectItem>
-                  {specialties.map((specialty) => (
-                    <SelectItem key={specialty} value={specialty}>
-                      {specialty}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Collapsible Filter Section */}
+          {isFiltersVisible && (
+            <div className="px-4 pb-4 border-t">
+              <div className="grid grid-cols-5 gap-6 pt-4">
+                {/* YTD Month Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground">YTD Month</label>
+                  <Select
+                    value={filters.month.toString()}
+                    onValueChange={(value) => setFilters({ ...filters, month: parseInt(value) })}
+                  >
+                    <SelectTrigger className="h-9 bg-white/50 border-muted">
+                      <SelectValue placeholder="Select month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {months.map((month, index) => (
+                        <SelectItem key={index + 1} value={(index + 1).toString()}>
+                          {month}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Department</label>
-              <Select
-                value={filters.department}
-                onValueChange={(value) => setFilters({ ...filters, department: value })}
-              >
-                <SelectTrigger className="h-9 bg-white/50 border-muted">
-                  <SelectValue placeholder="All Departments" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  {departments.map((department) => (
-                    <SelectItem key={department} value={department}>
-                      {department}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                {/* Specialty Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground">Specialty</label>
+                  <Select
+                    value={filters.specialty}
+                    onValueChange={(value) => setFilters({ ...filters, specialty: value })}
+                  >
+                    <SelectTrigger className="h-9 bg-white/50 border-muted">
+                      <SelectValue placeholder="All Specialties" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Specialties</SelectItem>
+                      {specialties.map((specialty) => (
+                        <SelectItem key={specialty} value={specialty}>
+                          {specialty}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Comp Model</label>
-              <Select
-                value={filters.compModel}
-                onValueChange={(value) => setFilters({ ...filters, compModel: value })}
-              >
-                <SelectTrigger className="h-9 bg-white/50 border-muted">
-                  <SelectValue placeholder="All Comp Models" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Select All">All Comp Models</SelectItem>
-                  {compModels.filter(model => model !== 'Select All').map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                {/* Department Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground">Department</label>
+                  <Select
+                    value={filters.department}
+                    onValueChange={(value) => setFilters({ ...filters, department: value })}
+                  >
+                    <SelectTrigger className="h-9 bg-white/50 border-muted">
+                      <SelectValue placeholder="All Departments" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      {departments.map((department) => (
+                        <SelectItem key={department} value={department}>
+                          {department}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">Analysis Range</label>
-              <Select
-                value={filters.analysisRange}
-                onValueChange={(value) => {
-                  if (value === 'Custom') return;
-                  const preset = PERCENTILE_PRESETS.find(p => p.label === value);
-                  if (preset) {
-                    setFilters({
-                      ...filters,
-                      analysisRange: value,
-                      wrvuPercentileMin: preset.wrvu[0].toString(),
-                      wrvuPercentileMax: preset.wrvu[1].toString(),
-                      compPercentileMin: preset.comp[0].toString(),
-                      compPercentileMax: preset.comp[1].toString(),
-                    });
-                  }
-                }}
-              >
-                <SelectTrigger className="h-9 bg-white/50 border-muted">
-                  <SelectValue placeholder="Performance Range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>Range Based</SelectLabel>
-                    <SelectItem value="All Providers">All Providers</SelectItem>
-                    <SelectItem value="Top Quartile (75th-100th)">Top Quartile (75th-100th)</SelectItem>
-                    <SelectItem value="Middle Half (25th-75th)">Middle Half (25th-75th)</SelectItem>
-                    <SelectItem value="Bottom Quartile (0-25th)">Bottom Quartile (0-25th)</SelectItem>
-                    <SelectItem value="High Performers (>50th)">High Performers ({'>'}50th)</SelectItem>
-                    <SelectItem value="Low Performers (<50th)">Low Performers ({'<'}50th)</SelectItem>
-                    <SelectItem value="Market Competitive (40th-60th)">Market Competitive (40th-60th)</SelectItem>
-                  </SelectGroup>
-                  <SelectSeparator />
-                  <SelectGroup>
-                    <SelectLabel>Alignment Based</SelectLabel>
-                    <SelectItem value="Aligned Only">Aligned Only</SelectItem>
-                    <SelectItem value="Over Compensated Only">Over Compensated Only</SelectItem>
-                    <SelectItem value="Under Compensated Only">Under Compensated Only</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
+                {/* Comp Model Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground">Comp Model</label>
+                  <Select
+                    value={filters.compModel}
+                    onValueChange={(value) => setFilters({ ...filters, compModel: value })}
+                  >
+                    <SelectTrigger className="h-9 bg-white/50 border-muted">
+                      <SelectValue placeholder="All Comp Models" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Select All">All Comp Models</SelectItem>
+                      {compModels.filter(model => model !== 'Select All').map((model) => (
+                        <SelectItem key={model} value={model}>
+                          {model}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="flex items-center gap-3">
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={handleResetFilters}
-                className="h-9 px-3 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+                {/* Analysis Range Filter */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground">Analysis Range</label>
+                  <Select
+                    value={filters.analysisRange}
+                    onValueChange={(value) => {
+                      if (value === 'Custom') return;
+                      const preset = PERCENTILE_PRESETS.find(p => p.label === value);
+                      if (preset) {
+                        setFilters({
+                          ...filters,
+                          analysisRange: value,
+                          wrvuPercentileMin: preset.wrvu[0].toString(),
+                          wrvuPercentileMax: preset.wrvu[1].toString(),
+                          compPercentileMin: preset.comp[0].toString(),
+                          compPercentileMax: preset.comp[1].toString(),
+                        });
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-9 bg-white/50 border-muted">
+                      <SelectValue placeholder="Performance Range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PERCENTILE_PRESETS.map((preset) => (
+                        preset.label === "Market Competitive (40th-60th)" ? (
+                          <React.Fragment key={preset.label}>
+                            <SelectItem value={preset.label}>
+                              {preset.label}
+                            </SelectItem>
+                            <SelectSeparator className="my-2" />
+                            <div className="px-2 text-sm text-muted-foreground">Alignment Analysis</div>
+                          </React.Fragment>
+                        ) : (
+                          <SelectItem key={preset.label} value={preset.label}>
+                            {preset.label}
+                          </SelectItem>
+                        )
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              {activeFilterCount > 0 && (
+                <div className="mt-4 flex justify-end">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={handleResetFilters}
+                    className="h-8 text-muted-foreground hover:text-foreground"
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="p-6">
-        {/* Performance Distribution */}
+      {/* Performance Timeline and Scatter Plot Combined */}
+      <div className="px-6">
         <Card className="overflow-hidden">
-          <CardHeader className="py-3 px-6 border-b bg-muted/40">
+          {/* Timeline Header */}
+          <CardHeader className="py-2 px-6 border-b bg-muted/40">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-medium">Performance Timeline</CardTitle>
+                <CardDescription className="text-xs">
+                  {isPlaying 
+                    ? `Analyzing ${currentMonth} 2025`
+                    : 'Analyze provider performance trends over time'
+                  }
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-4">
+                <Select
+                  value={selectedProvider}
+                  onValueChange={(value) => {
+                    setSelectedProvider(value);
+                    setIsPlaying(false);
+                  }}
+                >
+                  <SelectTrigger className="w-[240px] h-9">
+                    <SelectValue placeholder="Select a provider..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <div className="p-2">
+                      <Input
+                        placeholder="Search providers..."
+                        className="h-8 mb-2"
+                        onChange={(e) => {
+                          const searchInput = e.target.value.toLowerCase();
+                          const filteredProviders = data.filter(provider =>
+                            provider.name.toLowerCase().includes(searchInput)
+                          );
+                          // Update the visible options
+                          e.currentTarget.closest('.select-content')
+                            ?.querySelectorAll('.select-item')
+                            ?.forEach(item => {
+                              const shouldShow = filteredProviders.some(
+                                p => p.id === item.getAttribute('data-value')
+                              );
+                              (item as HTMLElement).style.display = shouldShow ? 'block' : 'none';
+                            });
+                        }}
+                      />
+                    </div>
+                    <SelectGroup className="max-h-[200px] overflow-auto">
+                      {data.map((provider) => (
+                        <SelectItem
+                          key={provider.id}
+                          value={provider.id}
+                          className="cursor-pointer"
+                        >
+                          {provider.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                {selectedProvider && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => setIsPlaying(!isPlaying)}
+                  >
+                    {isPlaying ? (
+                      <Pause className="h-4 w-4" />
+                    ) : (
+                      <Play className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+
+          {/* Range Controls and Legend */}
+          <div className="py-3 px-6 border-b bg-muted/40">
             <div className="flex items-center justify-between">
               {/* Range Controls */}
               <div className="flex gap-8">
                 <div className="w-[240px] space-y-1.5">
                   <div className="flex justify-between items-center">
-                    <label className="text-[11px] font-medium text-muted-foreground">wRVU Range</label>
-                    <span className="text-[11px] text-muted-foreground">
+                    <label className="text-xs font-medium text-muted-foreground">wRVU Range</label>
+                    <span className="text-xs text-muted-foreground">
                       {filters.wrvuPercentileMin}-{filters.wrvuPercentileMax}%
                     </span>
                   </div>
@@ -525,8 +775,8 @@ const ProductivityPage: FC = () => {
 
                 <div className="w-[240px] space-y-1.5">
                   <div className="flex justify-between items-center">
-                    <label className="text-[11px] font-medium text-muted-foreground">Compensation Range</label>
-                    <span className="text-[11px] text-muted-foreground">
+                    <label className="text-xs font-medium text-muted-foreground">Compensation Range</label>
+                    <span className="text-xs text-muted-foreground">
                       {filters.compPercentileMin}-{filters.compPercentileMax}%
                     </span>
                   </div>
@@ -552,7 +802,7 @@ const ProductivityPage: FC = () => {
               </div>
 
               {/* Legend */}
-              <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 <Popover>
                   <PopoverTrigger asChild>
                     <button className="flex items-center gap-1.5 cursor-help">
@@ -599,10 +849,10 @@ const ProductivityPage: FC = () => {
                 </Popover>
               </div>
             </div>
-          </CardHeader>
-          
+          </div>
+
+          {/* Scatter Plot */}
           <CardContent className="p-6">
-            {/* Scatter Plot Container - Even more compact size */}
             <div className="relative w-full" style={{ paddingBottom: '55%', maxHeight: 'calc(100vh - 28rem)' }}>
               <div className="absolute inset-0">
                 {loading ? (
@@ -622,109 +872,117 @@ const ProductivityPage: FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <ScatterPlot 
-                    data={data}
-                    xAxisKey="wrvuPercentile"
-                    yAxisKey="compPercentile"
-                    xAxisLabel="YTD Productivity Percentile"
-                    yAxisLabel="Compensation Percentile"
-                    tooltipLabel="Provider Details"
-                    hideRightLabel={true}
-                    hideMedianLabel={true}
-                    xAxisLabelOffset={40}
-                    medianXLabel="Median Productivity"
-                    medianYLabel="Median Compensation"
-                    medianLabelsPosition="top"
-                  />
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ScatterPlot 
+                      data={displayData}
+                      xAxisKey="wrvuPercentile"
+                      yAxisKey="compPercentile"
+                      xAxisLabel="YTD Productivity Percentile"
+                      yAxisLabel="Compensation Percentile"
+                      tooltipLabel="Provider Details"
+                      hideRightLabel={true}
+                      hideMedianLabel={true}
+                      xAxisLabelOffset={40}
+                      medianXLabel="Median Productivity"
+                      medianYLabel="Median Compensation"
+                      medianLabelsPosition="top"
+                      minValue={0}
+                      maxValue={100}
+                      tickFormatter={(value: number) => `${Math.round(value)}%`}
+                      domain={[0, 100]}
+                      ticks={[0, 25, 50, 75, 100]}
+                    />
+                  </ResponsiveContainer>
                 )}
               </div>
             </div>
           </CardContent>
         </Card>
-
-        {/* Provider Details */}
-        <Card className="mt-4 overflow-hidden">
-          <CardHeader className="py-2 px-6 border-b bg-muted/40">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-medium">Provider Details</CardTitle>
-                <CardDescription className="text-xs">Detailed performance metrics by provider</CardDescription>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="relative w-[300px]">
-                  <Input
-                    type="text"
-                    placeholder="Search providers..."
-                    value={filters.searchQuery}
-                    onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
-                    className="h-9 pl-9"
-                  />
-                  <svg
-                    className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                </div>
-                <span className="text-xs text-muted-foreground">{data.length} providers</span>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-[400px] overflow-y-auto">
-              <table className="w-full border-collapse">
-                <thead className="border-b sticky top-0 bg-white">
-                  <tr>
-                    <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 pl-6 bg-gray-50/80">Provider</th>
-                    <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Specialty</th>
-                    <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Comp Model</th>
-                    <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">FTE</th>
-                    <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">WRVU %</th>
-                    <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Comp %</th>
-                    <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Gap</th>
-                    <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 pr-6 bg-gray-50/80">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {data.map((provider) => (
-                    <tr key={provider.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="p-4 pl-6 text-[13px] font-medium text-gray-900 whitespace-nowrap">{provider.name}</td>
-                      <td className="p-4 text-[13px] text-gray-500 whitespace-nowrap">{provider.specialty}</td>
-                      <td className="p-4 text-[13px] text-gray-500 whitespace-nowrap">{provider.compModel}</td>
-                      <td className="p-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{provider.fte.toFixed(2)}</td>
-                      <td className="p-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.wrvuPercentile)}%</td>
-                      <td className="p-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.compPercentile)}%</td>
-                      <td className="p-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.analysis.gap)}%</td>
-                      <td className="p-4 pr-6 whitespace-nowrap">
-                        <span 
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium"
-                          style={{ 
-                            backgroundColor: `${provider.color}12`,
-                            color: provider.color,
-                            boxShadow: `0 0 0 1px ${provider.color}25`
-                          }}
-                        >
-                          {provider.analysis.category}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Provider Details */}
+      <Card className="mt-4 overflow-hidden">
+        <CardHeader className="py-2 px-6 border-b bg-muted/40">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-medium">
+                Provider Details <span className="text-primary/70 ml-1.5">({data.length} providers)</span>
+              </CardTitle>
+              <CardDescription className="text-xs">Detailed performance metrics by provider</CardDescription>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="relative w-[300px]">
+                <Input
+                  type="text"
+                  placeholder="Search providers..."
+                  value={filters.searchQuery}
+                  onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
+                  className="h-9 pl-9"
+                />
+                <svg
+                  className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="max-h-[400px] overflow-y-auto">
+            <table className="w-full border-collapse">
+              <thead className="border-b sticky top-0 bg-white">
+                <tr>
+                  <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 pl-6 bg-gray-50/80">Provider</th>
+                  <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Specialty</th>
+                  <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Comp Model</th>
+                  <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">FTE</th>
+                  <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">WRVU %</th>
+                  <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Comp %</th>
+                  <th className="text-right text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 bg-gray-50/80">Gap</th>
+                  <th className="text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 p-4 pr-6 bg-gray-50/80">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {data.map((provider) => (
+                  <tr key={provider.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="py-2.5 px-4 pl-6 text-[13px] font-medium text-gray-900 whitespace-nowrap">{provider.name}</td>
+                    <td className="py-2.5 px-4 text-[13px] text-gray-500 whitespace-nowrap">{provider.specialty}</td>
+                    <td className="py-2.5 px-4 text-[13px] text-gray-500 whitespace-nowrap">{provider.compModel}</td>
+                    <td className="py-2.5 px-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{provider.fte.toFixed(2)}</td>
+                    <td className="py-2.5 px-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.wrvuPercentile)}%</td>
+                    <td className="py-2.5 px-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.compPercentile)}%</td>
+                    <td className="py-2.5 px-4 text-[13px] text-gray-900 font-medium text-right tabular-nums whitespace-nowrap">{formatNumber(provider.analysis.gap)}%</td>
+                    <td className="py-2.5 px-4 pr-6 whitespace-nowrap">
+                      <span 
+                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium"
+                        style={{ 
+                          backgroundColor: `${provider.color}12`,
+                          color: provider.color,
+                          boxShadow: `0 0 0 1px ${provider.color}`,
+                        }}
+                      >
+                        {provider.analysis.category}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-export default ProductivityPage; 
+export default ProductivityPage;

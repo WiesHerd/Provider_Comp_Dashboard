@@ -167,11 +167,11 @@ const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
       <div ref={ref} className="h-full flex flex-col">
         <div className="relative flex-1">
           <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart margin={{ top: 40, right: 40, bottom: 40, left: 40 }}>
+            <ScatterChart margin={{ top: 40, right: 40, bottom: 56, left: 56 }}>
               {/* Background grid */}
               <CartesianGrid 
                 strokeDasharray="2 2" 
-                stroke="#f1f5f9" 
+                stroke="#f8fafc"
                 horizontal={true}
                 vertical={true}
                 horizontalPoints={[0, 50, 100]}
@@ -187,7 +187,7 @@ const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
                   value: "Median Compensation",
                   position: "top",
                   fill: "#64748b",
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: 500
                 }}
               />
@@ -199,7 +199,7 @@ const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
                   value: "Median Productivity",
                   position: "top",
                   fill: "#64748b",
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: 500
                 }}
               />
@@ -216,25 +216,25 @@ const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
                   value: "Perfect Alignment",
                   position: "insideTopRight",
                   fill: "#64748b",
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: 500
                 }}
               />
 
               {/* Quadrant labels */}
-              <text x="25%" y="25%" textAnchor="middle" fill="#94a3b8" fontSize={13} fontWeight={500}>
+              <text x="25%" y="25%" textAnchor="middle" fill="#64748b" fontSize={13} fontWeight={500}>
                 <tspan x="25%" dy="-12">Low Productivity</tspan>
                 <tspan x="25%" dy="24">Low Compensation</tspan>
               </text>
-              <text x="75%" y="25%" textAnchor="middle" fill="#94a3b8" fontSize={13} fontWeight={500}>
+              <text x="75%" y="25%" textAnchor="middle" fill="#64748b" fontSize={13} fontWeight={500}>
                 <tspan x="75%" dy="-12">High Productivity</tspan>
                 <tspan x="75%" dy="24">Low Compensation</tspan>
               </text>
-              <text x="25%" y="75%" textAnchor="middle" fill="#94a3b8" fontSize={13} fontWeight={500}>
+              <text x="25%" y="75%" textAnchor="middle" fill="#64748b" fontSize={13} fontWeight={500}>
                 <tspan x="25%" dy="-12">Low Productivity</tspan>
                 <tspan x="25%" dy="24">High Compensation</tspan>
               </text>
-              <text x="75%" y="75%" textAnchor="middle" fill="#94a3b8" fontSize={13} fontWeight={500}>
+              <text x="75%" y="75%" textAnchor="middle" fill="#64748b" fontSize={13} fontWeight={500}>
                 <tspan x="75%" dy="-12">High Productivity</tspan>
                 <tspan x="75%" dy="24">High Compensation</tspan>
               </text>
@@ -252,9 +252,9 @@ const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
                 label={{
                   value: xAxisLabel,
                   position: "bottom",
-                  offset: 28,
+                  offset: 44,
                   fill: "#64748b",
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: 500
                 }}
               />
@@ -272,9 +272,9 @@ const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
                   value: yAxisLabel,
                   angle: -90,
                   position: "left",
-                  offset: 32,
+                  offset: 44,
                   fill: "#64748b",
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: 500
                 }}
               />
