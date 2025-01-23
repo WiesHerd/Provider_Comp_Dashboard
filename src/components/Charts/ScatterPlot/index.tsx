@@ -165,10 +165,6 @@ const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
 
     return (
       <div ref={ref} className="h-full flex flex-col">
-        <p className="text-sm text-muted-foreground mb-4">
-          Compare annualized YTD productivity percentiles against compensation percentiles to identify alignment
-        </p>
-
         <div className="relative flex-1">
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{ top: 40, right: 40, bottom: 40, left: 40 }}>
@@ -191,7 +187,7 @@ const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
                   value: "Median Compensation",
                   position: "top",
                   fill: "#64748b",
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: 500
                 }}
               />
@@ -203,7 +199,7 @@ const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
                   value: "Median Productivity",
                   position: "top",
                   fill: "#64748b",
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: 500
                 }}
               />
@@ -220,27 +216,27 @@ const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
                   value: "Perfect Alignment",
                   position: "insideTopRight",
                   fill: "#64748b",
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: 500
                 }}
               />
 
               {/* Quadrant labels */}
-              <text x="25%" y="25%" textAnchor="middle" fill="#94a3b8" fontSize={11} fontWeight={500}>
-                <tspan x="25%" dy="-10">Low Productivity</tspan>
-                <tspan x="25%" dy="20">Low Compensation</tspan>
+              <text x="25%" y="25%" textAnchor="middle" fill="#94a3b8" fontSize={13} fontWeight={500}>
+                <tspan x="25%" dy="-12">Low Productivity</tspan>
+                <tspan x="25%" dy="24">Low Compensation</tspan>
               </text>
-              <text x="75%" y="25%" textAnchor="middle" fill="#94a3b8" fontSize={11} fontWeight={500}>
-                <tspan x="75%" dy="-10">High Productivity</tspan>
-                <tspan x="75%" dy="20">Low Compensation</tspan>
+              <text x="75%" y="25%" textAnchor="middle" fill="#94a3b8" fontSize={13} fontWeight={500}>
+                <tspan x="75%" dy="-12">High Productivity</tspan>
+                <tspan x="75%" dy="24">Low Compensation</tspan>
               </text>
-              <text x="25%" y="75%" textAnchor="middle" fill="#94a3b8" fontSize={11} fontWeight={500}>
-                <tspan x="25%" dy="-10">Low Productivity</tspan>
-                <tspan x="25%" dy="20">High Compensation</tspan>
+              <text x="25%" y="75%" textAnchor="middle" fill="#94a3b8" fontSize={13} fontWeight={500}>
+                <tspan x="25%" dy="-12">Low Productivity</tspan>
+                <tspan x="25%" dy="24">High Compensation</tspan>
               </text>
-              <text x="75%" y="75%" textAnchor="middle" fill="#94a3b8" fontSize={11} fontWeight={500}>
-                <tspan x="75%" dy="-10">High Productivity</tspan>
-                <tspan x="75%" dy="20">High Compensation</tspan>
+              <text x="75%" y="75%" textAnchor="middle" fill="#94a3b8" fontSize={13} fontWeight={500}>
+                <tspan x="75%" dy="-12">High Productivity</tspan>
+                <tspan x="75%" dy="24">High Compensation</tspan>
               </text>
 
               <XAxis
@@ -250,15 +246,15 @@ const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
                 unit="%"
                 domain={[0, 100]}
                 tickCount={5}
-                tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }}
+                tick={{ fontSize: 12, fill: "#64748b", fontWeight: 500 }}
                 tickFormatter={(value) => `${value}%`}
                 stroke="#e2e8f0"
                 label={{
                   value: xAxisLabel,
                   position: "bottom",
-                  offset: 24,
+                  offset: 28,
                   fill: "#64748b",
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: 500
                 }}
               />
@@ -269,16 +265,16 @@ const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
                 unit="%"
                 domain={[0, 100]}
                 tickCount={5}
-                tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }}
+                tick={{ fontSize: 12, fill: "#64748b", fontWeight: 500 }}
                 tickFormatter={(value) => `${value}%`}
                 stroke="#e2e8f0"
                 label={{
                   value: yAxisLabel,
                   angle: -90,
                   position: "left",
-                  offset: 28,
+                  offset: 32,
                   fill: "#64748b",
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: 500
                 }}
               />
@@ -286,13 +282,17 @@ const ScatterPlot = React.forwardRef<HTMLDivElement, ScatterPlotProps>(
                 content={<CustomTooltip />}
                 cursor={{ stroke: '#e2e8f0', strokeWidth: 1, strokeDasharray: '4 4' }}
               />
-              <Scatter 
-                data={data} 
+              <Scatter
+                data={data}
+                fill="#fff"
+                stroke={(entry) => getColorForCategory(entry.wrvuPercentile, entry.compPercentile)}
+                strokeWidth={2}
+                fillOpacity={0.1}
                 shape={(props: any) => {
                   const { cx, cy, payload } = props;
                   const isHovered = hoveredPoint === payload.id;
-                  const baseRadius = 4;
-                  const hoverRadius = 8;
+                  const baseRadius = 6;  // Increased from 4
+                  const hoverRadius = 10;  // Increased from 8
                   const radius = isHovered ? hoverRadius : baseRadius;
                   
                   return (
