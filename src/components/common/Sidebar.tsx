@@ -14,6 +14,8 @@ import {
   PresentationChartLineIcon,
   CalculatorIcon,
   Cog6ToothIcon,
+  DocumentChartBarIcon,
+  CircleStackIcon,
 } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 
@@ -31,18 +33,18 @@ export default function Sidebar({ isCollapsed, onCollapse }: SidebarProps) {
     } shadow-xl`}>
       <div className="flex flex-col h-full">
         {/* Logo */}
-        <div className="flex items-center gap-3 p-4">
+        <div className="flex items-center gap-3 p-6">
           <Link href="/" className="flex items-center">
             <div className="relative flex items-center">
               <Image 
                 src="/images/icon.svg"
                 alt="ClarityPay360"
-                width={32}
-                height={32}
+                width={40}
+                height={40}
               />
               {!isCollapsed && (
-                <div className="ml-2">
-                  <span className="text-lg font-semibold text-white tracking-tight">
+                <div className="ml-3">
+                  <span className="text-xl font-semibold text-white tracking-tight">
                     Clarity<span className="text-indigo-400">Pay</span><span className="text-indigo-300">360</span>
                   </span>
                 </div>
@@ -123,7 +125,7 @@ export default function Sidebar({ isCollapsed, onCollapse }: SidebarProps) {
                   pathname.startsWith('/admin/reports') ? 'text-white' : 'text-gray-400 hover:text-white'
                 }`}
               >
-                <ChartBarIcon className="h-5 w-5" />
+                <DocumentChartBarIcon className="h-5 w-5" />
                 {!isCollapsed && <span>Reports</span>}
               </Link>
               <Link
@@ -154,6 +156,15 @@ export default function Sidebar({ isCollapsed, onCollapse }: SidebarProps) {
               >
                 <Cog6ToothIcon className="h-5 w-5" />
                 {!isCollapsed && <span>Settings</span>}
+              </Link>
+              <Link
+                href="/admin/schema"
+                className={`flex items-center gap-3 px-2 py-2 text-sm font-medium transition-colors ${
+                  pathname.startsWith('/admin/schema') ? 'text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <CircleStackIcon className="h-5 w-5" />
+                {!isCollapsed && <span>Database Schema</span>}
               </Link>
             </div>
           </div>
