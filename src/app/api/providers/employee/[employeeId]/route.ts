@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: { employeeId: string } }
 ) {
   try {
-    const { employeeId } = params;
+    const employeeId = await params.employeeId;
     
     // Get current date info for metrics
     const now = new Date();
@@ -35,7 +35,7 @@ export async function GET(
           },
           take: 1
         },
-        additionalPayments: {
+        AdditionalPay: {
           where: {
             year: currentYear,
             month: {
