@@ -971,6 +971,28 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   const monthlyBaseSalary = provider.baseSalary / 12;
 
   const getCompensationData = () => {
+    // For base pay providers, only show Base Salary and Total Comp
+    if (provider.compensationModel.toLowerCase() === 'base pay' && additionalPayments.length === 0) {
+      const baseSalaryRow = {
+        component: 'Base Salary',
+        isSystem: true,
+        ...monthlySalaries,
+        ytd: Object.values(monthlySalaries).reduce((sum: number, val) => sum + (Number(val) || 0), 0),
+      };
+
+      return [
+        baseSalaryRow,
+        {
+          component: 'Total Comp.',
+          isSystem: true,
+          ...monthlySalaries, // Same as base salary since there are no additions
+          ytd: baseSalaryRow.ytd,
+          percentile: calculateTotalCompPercentile(baseSalaryRow.ytd, marketData).percentile
+        }
+      ];
+    }
+
+    // Original logic for other cases
     const baseData = [
       {
         component: 'Base Salary',
@@ -1034,8 +1056,9 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       );
     }
 
-    // Add "Other Compensation" header if there are additional payments
+    // Only add additional payments section if there are actual additional payments
     if (additionalPayments.length > 0) {
+      // Add "Other Compensation" header
       baseData.push({
         component: 'Other Compensation',
         isSystem: true,
@@ -1043,17 +1066,17 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         ...months.reduce((acc, month) => ({ ...acc, [month.toLowerCase()]: '' }), {}),
         ytd: ''
       });
-    }
 
-    // Add additional payments after Other Compensation header
-    const additionalPayRows = additionalPayments.map(pay => ({
-      ...pay,
-      component: pay.name,
-      isSystem: false,
-      type: 'additionalPay',
-      ytd: months.reduce((sum, month) => sum + (Number(pay[month.toLowerCase()]) || 0), 0)
-    }));
-    baseData.push(...additionalPayRows);
+      // Add additional payments after Other Compensation header
+      const additionalPayRows = additionalPayments.map(pay => ({
+        ...pay,
+        component: pay.name,
+        isSystem: false,
+        type: 'additionalPay',
+        ytd: months.reduce((sum, month) => sum + (Number(pay[month.toLowerCase()]) || 0), 0)
+      }));
+      baseData.push(...additionalPayRows);
+    }
 
     // Calculate totals
     const totals = months.reduce((acc, month) => {
@@ -2392,18 +2415,51 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
                             );
                           })()}
                         </div>
-                        <div className="ag-theme-alpine w-full">
+                        <div className="ag-theme-alpine w-full" style={{ overflow: 'hidden' }}>
+                          <style>
+                            {`
+                              .ag-theme-alpine {
+                                --ag-row-height: 40px !important;
+                                --ag-header-height: 40px !important;
+                              }
+                              .ag-theme-alpine .ag-root-wrapper {
+                                border: none;
+                              }
+                              .ag-theme-alpine .ag-root {
+                                border: none;
+                              }
+                              .ag-theme-alpine .ag-center-cols-container {
+                                min-height: unset !important;
+                              }
+                              .ag-theme-alpine .ag-center-cols-viewport {
+                                min-height: unset !important;
+                              }
+                              .ag-theme-alpine .ag-body-viewport {
+                                min-height: unset !important;
+                              }
+                              .ag-theme-alpine .ag-body-horizontal-scroll {
+                                min-height: 0 !important;
+                              }
+                            `}
+                          </style>
                           <AgGridReact
                             context={{ monthlyDetails }}
                             domLayout="autoHeight"
                             rowHeight={40}
                             headerHeight={40}
+                            suppressRowHoverHighlight={true}
                             defaultColDef={{
                               resizable: true,
                               sortable: false,
                               suppressMenu: true,
                               flex: 1,
                               minWidth: 82
+                            }}
+                            getRowStyle={(params) => {
+                              if (params.node.rowIndex === params.api.getDisplayedRowCount() - 1) {
+                                return { borderBottom: '1px solid #e2e8f0' };
+                              }
+                              return {};
                             }}
                             columnDefs={compensationColumnDefs}
                             rowData={getCompensationData()}
