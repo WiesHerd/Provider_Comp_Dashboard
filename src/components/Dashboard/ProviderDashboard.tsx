@@ -889,7 +889,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   const targetMonthlyData = useMemo(() => {
     const salariesRecord = months.reduce((acc, month) => {
       acc[month.toLowerCase()] = Number(monthlySalaries[month.toLowerCase()] || 0);
-      return acc;
+      return acc as Record<string, number>;
     }, {} as Record<string, number>);
     
     return calculateMonthlyTarget(salariesRecord, getConversionFactor());
@@ -1408,31 +1408,100 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     reason?: string;
   }) => {
     try {
+      // Validate required fields
+      if (!data.effectiveDate || !data.newSalary || !data.newFTE || !data.previousConversionFactor || !data.newConversionFactor) {
+        throw new Error('Missing required fields');
+      }
+
+      // Ensure all numeric fields are numbers and construct the payload
+      const payload = {
+        effectiveDate: new Date(data.effectiveDate).toISOString(),
+        previousSalary: Number(data.previousSalary),
+        newSalary: Number(data.newSalary),
+        previousFTE: Number(data.previousFTE),
+        newFTE: Number(data.newFTE),
+        previousConversionFactor: Number(data.previousConversionFactor),
+        newConversionFactor: Number(data.newConversionFactor),
+        reason: data.reason
+      };
+
+      // Log the payload for debugging
+      console.log('Sending compensation change request:', {
+        url: `/api/providers/${provider.employeeId}/compensation-changes`,
+        payload
+      });
+
       const response = await fetch(`/api/providers/${provider.employeeId}/compensation-changes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...data,
-          providerId: provider.id,
-          newConversionFactor: data.newConversionFactor,
-        }),
+        body: JSON.stringify(payload),
       });
 
+      const contentType = response.headers.get("content-type");
+      console.log('Response status:', response.status);
+      console.log('Response content type:', contentType);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Server error response:', errorData);
-        throw new Error(`Failed to save compensation change: ${response.status} - ${errorData?.error || 'Unknown error'}`);
+        let errorMessage = 'Failed to save compensation change';
+        let errorDetails = '';
+        
+        try {
+          if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            errorMessage = errorData?.error || errorMessage;
+            errorDetails = JSON.stringify(errorData, null, 2);
+          } else {
+            errorDetails = await response.text();
+          }
+        } catch (parseError) {
+          console.error('Error parsing error response:', parseError);
+          errorDetails = 'Could not parse error response';
+        }
+
+        console.error('Error details:', errorDetails);
+        throw new Error(`${errorMessage}: ${response.status}\nDetails: ${errorDetails}`);
       }
 
-      const savedChange = await response.json();
+      let savedChange;
+      try {
+        if (contentType && contentType.includes("application/json")) {
+          savedChange = await response.json();
+          console.log('Parsed response:', savedChange);
+        } else {
+          // If no JSON response, create a local object
+          savedChange = {
+            ...payload,
+            id: Date.now().toString(), // Temporary ID
+            createdAt: new Date().toISOString()
+          };
+          console.log('Created local object:', savedChange);
+        }
+      } catch (parseError) {
+        console.error('Error parsing success response:', parseError);
+        throw new Error('Failed to parse server response');
+      }
+
       console.log('Saved compensation change:', savedChange);
       setCompensationHistory(prev => [...prev, savedChange]);
       setIsCompChangeModalOpen(false);
       setEditingChangeId(null);
+      
+      // Show success message
+      toast({
+        title: "Success",
+        description: "Compensation change recorded successfully",
+        variant: "default"
+      });
     } catch (error) {
       console.error('Error saving compensation change:', error);
+      // Show error message
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save compensation change",
+        variant: "destructive"
+      });
       throw error;
     }
   };
