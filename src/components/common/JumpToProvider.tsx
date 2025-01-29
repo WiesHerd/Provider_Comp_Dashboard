@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronDownIcon } from '@heroicons/react/20/solid';
+import Loading from '@/app/loading';
 
 interface Provider {
   id: string;
@@ -104,6 +105,10 @@ export default function JumpToProvider({ className = '' }: JumpToProviderProps) 
     setSearchTerm('');
   };
 
+  if (isLoading) {
+    return <Loading />;
+  }
+
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       <button
@@ -128,11 +133,7 @@ export default function JumpToProvider({ className = '' }: JumpToProviderProps) 
           </div>
 
           <div className="max-h-60 overflow-y-auto">
-            {isLoading ? (
-              <div className="px-4 py-2 text-sm text-gray-500">
-                Loading providers...
-              </div>
-            ) : error ? (
+            {error ? (
               <div className="px-4 py-2 text-sm text-red-500">
                 {error}
               </div>

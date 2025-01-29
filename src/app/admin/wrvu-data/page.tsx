@@ -11,6 +11,7 @@ import { WRVUData } from '@/types/wrvu';
 import { WRVUFormData, WRVUDataWithHistory } from '@/components/WRVU/EditWRVUModal';
 import Pagination from '@/components/common/Pagination';
 import { Dialog, Transition } from '@headlessui/react';
+import Loading from '@/app/loading';
 
 function classNames(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ');
@@ -337,14 +338,7 @@ export default function WRVUDataPage() {
   }, [data]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="flex flex-col justify-center items-center h-64 space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <p className="text-sm text-gray-600">Loading wRVU data...</p>
-        </div>
-      </div>
-    );
+    return <Loading />;
   }
 
   if (error) {

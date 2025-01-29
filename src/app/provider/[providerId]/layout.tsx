@@ -12,7 +12,7 @@ export default function ProviderLayout({
   children: React.ReactNode;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isNavExpanded, setIsNavExpanded] = useState(true);
+  const [isNavExpanded, setIsNavExpanded] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-50">

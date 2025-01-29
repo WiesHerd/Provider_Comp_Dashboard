@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { BuildingOffice2Icon, ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import Loading from '@/app/loading';
 
 interface Provider {
   id: string;
@@ -85,11 +86,7 @@ export default function DepartmentsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-48">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-600"></div>
-      </div>
-    );
+    return <Loading />;
   }
 
   return (
