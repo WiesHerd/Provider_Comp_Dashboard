@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Link from 'next/link';
+import Loading from '@/app/loading';
 
 interface MonthlyPerformanceTableProps {
   onBack: () => void;
@@ -149,6 +150,10 @@ export default function MonthlyPerformanceTable({ onBack }: MonthlyPerformanceTa
     return 0;
   };
 
+  if (loading) {
+    return <Loading />;
+  }
+
   return (
     <div>
       <Button
@@ -230,13 +235,7 @@ export default function MonthlyPerformanceTable({ onBack }: MonthlyPerformanceTa
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {loading ? (
-                <tr>
-                  <td colSpan={11} className="px-6 py-4 text-center text-sm text-gray-500">
-                    Loading...
-                  </td>
-                </tr>
-              ) : providers.length === 0 ? (
+              {providers.length === 0 ? (
                 <tr>
                   <td colSpan={11} className="px-6 py-4 text-center text-sm text-gray-500">
                     No providers found

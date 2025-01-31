@@ -4,6 +4,7 @@ import { Dialog, Transition, Combobox } from '@headlessui/react';
 import { Fragment, useState, useEffect, useMemo } from 'react';
 import { XMarkIcon, CheckIcon, ChevronUpDownIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
+import Loading from '@/app/loading';
 
 export interface Provider {
   id: string;
@@ -97,6 +98,8 @@ export default function EditWRVUModal({ isOpen, onClose, onSubmit, editingData, 
     dec: 0
   });
 
+  const [isLoading, setIsLoading] = useState(false);
+
   // Reset form when modal opens/closes or editing data changes
   useEffect(() => {
     if (isOpen && editingData) {
@@ -179,7 +182,6 @@ export default function EditWRVUModal({ isOpen, onClose, onSubmit, editingData, 
 
   const [providers, setProviders] = useState<Provider[]>([]);
   const [query, setQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     // Only fetch providers when modal opens in add mode
@@ -248,6 +250,10 @@ export default function EditWRVUModal({ isOpen, onClose, onSubmit, editingData, 
       [month]: numValue
     }));
   };
+
+  if (isLoading) {
+    return <Loading />;
+  }
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
@@ -318,11 +324,7 @@ export default function EditWRVUModal({ isOpen, onClose, onSubmit, editingData, 
                                   afterLeave={() => setQuery('')}
                                 >
                                   <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                    {isLoading ? (
-                                      <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
-                                        Loading providers...
-                                      </div>
-                                    ) : filteredProviders.length === 0 ? (
+                                    {filteredProviders.length === 0 ? (
                                       <div className="relative cursor-default select-none py-2 px-4 text-gray-700">
                                         {query === '' ? 'Start typing to search providers...' : 'No providers found.'}
                                       </div>

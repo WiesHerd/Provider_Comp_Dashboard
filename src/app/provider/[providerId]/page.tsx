@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import ProviderDashboard from '@/components/Dashboard/ProviderDashboard';
 import type { WRVUAdjustment, TargetAdjustment } from '@/types';
+import Loading from '@/app/loading';
 
 export default function ProviderPage() {
   const params = useParams();
@@ -33,13 +34,7 @@ export default function ProviderPage() {
   }, [params?.providerId]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-medium text-gray-900">Loading...</h2>
-        </div>
-      </div>
-    );
+    return <Loading />;
   }
 
   if (!provider) {

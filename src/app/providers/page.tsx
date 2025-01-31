@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { FiltersPanel } from '@/components/Filters/FiltersPanel';
+import Loading from '@/app/loading';
 
 interface Provider {
   id: string;
@@ -152,13 +153,7 @@ const ProvidersPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">Loading providers...</div>
-        </div>
-      </div>
-    );
+    return <Loading />;
   }
 
   if (error) {
