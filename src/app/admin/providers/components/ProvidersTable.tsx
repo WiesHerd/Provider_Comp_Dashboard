@@ -131,7 +131,7 @@ export default function ProvidersTable() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Link 
-                    href={`/admin/providers/${provider.id}`}
+                    href={`/provider/${provider.employeeId}`}
                     className="text-blue-600 hover:text-blue-900"
                   >
                     {provider.firstName} {provider.lastName}
