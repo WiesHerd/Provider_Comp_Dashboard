@@ -77,13 +77,25 @@ export default function UploadSection({ onFileSelect, accept, maxSize }: UploadS
   return (
     <div
       className={`
-        relative border-2 border-dashed rounded-lg
-        ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-white hover:bg-gray-50'}
-        transition-colors
+        relative border-2 border-dashed rounded-lg cursor-pointer
+        ${isDragging 
+          ? 'border-blue-500 bg-blue-50' 
+          : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50'
+        }
+        transition-all duration-200 ease-in-out
       `}
       onDrop={handleDrop}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
+      onClick={() => fileInputRef.current?.click()}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          fileInputRef.current?.click();
+        }
+      }}
     >
       <input
         type="file"
@@ -92,21 +104,18 @@ export default function UploadSection({ onFileSelect, accept, maxSize }: UploadS
         onChange={handleFileChange}
         accept={accept}
       />
-      <div className="p-4 text-center">
+      <div className="p-6 text-center">
         <div className="flex justify-center">
-          <CloudArrowUpIcon className={`h-10 w-10 ${isDragging ? 'text-blue-500' : 'text-gray-400'}`} />
+          <CloudArrowUpIcon 
+            className={`h-12 w-12 ${
+              isDragging ? 'text-blue-500' : 'text-gray-400'
+            } transition-colors duration-200`} 
+          />
         </div>
-        <p className="mt-2 text-sm text-gray-600">
-          Drag and drop your file here, or{' '}
-          <button
-            type="button"
-            className="text-blue-600 hover:text-blue-700 focus:outline-none focus:underline"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            click to select
-          </button>
+        <p className="mt-3 text-sm text-gray-600">
+          Drag and drop your file here, or click anywhere in this area to select
         </p>
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-gray-500">
           CSV or Excel files only (max {maxSize / (1024 * 1024)}MB)
         </p>
       </div>

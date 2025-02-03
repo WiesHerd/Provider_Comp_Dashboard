@@ -6,6 +6,7 @@ import { ChevronLeftIcon, ChevronRightIcon, DocumentArrowDownIcon } from '@heroi
 import ProviderUpload from '@/components/Upload/ProviderUpload';
 import MarketUpload from '@/components/Upload/MarketUpload';
 import WRVUUpload from '@/components/Upload/WRVUUpload';
+import UploadAlert from '@/components/Alert/UploadAlert';
 
 interface PreviewData {
   data: any[];
@@ -23,6 +24,12 @@ export default function UploadPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    title: string;
+    message: string;
+    type: 'success' | 'error';
+  }>({ title: '', message: '', type: 'success' });
 
   const handleClearProviderData = async () => {
     if (confirm('Are you sure you want to clear all provider data?')) {
@@ -91,11 +98,44 @@ export default function UploadPage() {
       }
 
       const result = await response.json();
-      alert(`Successfully uploaded ${result.providers} providers with ${result.records} monthly records`);
+      
+      let title = '';
+      let message = '';
+      
+      if (previewData.type === 'provider') {
+        title = 'Provider Data Upload Complete';
+        message = `Successfully processed ${result.successCount} out of ${result.totalRows} provider records${
+          result.errorCount > 0 ? `\n\nThere were ${result.errorCount} errors during upload. Check the console for details.` : ''
+        }`;
+      } else if (previewData.type === 'market') {
+        title = 'Market Data Upload Complete';
+        message = `Successfully processed ${result.successCount} out of ${result.totalRows} market data records${
+          result.errorCount > 0 ? `\n\nThere were ${result.errorCount} errors during upload.` : ''
+        } (${result.mode} mode)`;
+      } else if (previewData.type === 'wrvu') {
+        title = 'wRVU Data Upload Complete';
+        message = `Successfully processed ${result.successCount} providers with ${result.recordsCreated} monthly records${
+          result.errorCount > 0 ? `\n\nThere were ${result.errorCount} errors during upload.` : ''
+        }`;
+      }
+      
+      setAlertConfig({
+        title,
+        message,
+        type: 'success'
+      });
+      setAlertOpen(true);
       setPreviewData(null);
       router.refresh();
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : 'Upload failed');
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+      setAlertConfig({
+        title: 'Upload Failed',
+        message: errorMessage,
+        type: 'error'
+      });
+      setAlertOpen(true);
+      setUploadError(errorMessage);
     } finally {
       setIsUploading(false);
     }
@@ -112,78 +152,78 @@ export default function UploadPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 mb-8">
-        <div className="bg-white rounded-lg shadow p-6 relative">
+        <div className="bg-white rounded-lg shadow-md border border-gray-100 p-6 relative hover:shadow-lg transition-shadow duration-200">
           <div className="flex justify-between items-start mb-4">
-            <h2 className="text-lg font-semibold">Provider Data</h2>
-            <div className="flex gap-2">
+            <h2 className="text-lg font-semibold text-gray-900">Provider Data</h2>
+            <div className="flex gap-3">
               <button
                 onClick={handleClearProviderData}
-                className="text-red-600 hover:text-red-800 text-sm"
+                className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors duration-200"
               >
                 Clear Data
               </button>
               <a
                 href="/templates/provider_template.xlsx"
                 download
-                className="text-gray-600 hover:text-gray-800 inline-flex items-center text-sm"
+                className="text-blue-600 hover:text-blue-800 inline-flex items-center text-sm font-medium transition-colors duration-200"
               >
                 <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
                 Template
               </a>
             </div>
           </div>
-          <p className="text-gray-600 text-sm mb-4">
-            Upload provider data including employee IDs, names, specialties, and other relevant information.
+          <p className="text-gray-600 text-sm mb-6 h-12">
+            Upload provider information including employee data, specialties, and department details.
           </p>
           <ProviderUpload onPreview={handlePreview} />
         </div>
-        <div className="bg-white rounded-lg shadow p-6 relative">
+        <div className="bg-white rounded-lg shadow-md border border-gray-100 p-6 relative hover:shadow-lg transition-shadow duration-200">
           <div className="flex justify-between items-start mb-4">
-            <h2 className="text-lg font-semibold">Market Data</h2>
-            <div className="flex gap-2">
+            <h2 className="text-lg font-semibold text-gray-900">Market Data</h2>
+            <div className="flex gap-3">
               <button
                 onClick={handleClearMarketData}
-                className="text-red-600 hover:text-red-800 text-sm"
+                className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors duration-200"
               >
                 Clear Data
               </button>
               <a
                 href="/templates/market_template.xlsx"
                 download
-                className="text-gray-600 hover:text-gray-800 inline-flex items-center text-sm"
+                className="text-blue-600 hover:text-blue-800 inline-flex items-center text-sm font-medium transition-colors duration-200"
               >
                 <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
                 Template
               </a>
             </div>
           </div>
-          <p className="text-gray-600 text-sm mb-4">
-            Upload market data for specialties. Contains benchmarking data from SullivanCotter, Gallagher, and MGMA.
+          <p className="text-gray-600 text-sm mb-6 h-12">
+            Upload benchmarking data for specialties from industry-standard sources.
           </p>
           <MarketUpload onPreview={handlePreview} />
         </div>
-        <div className="bg-white rounded-lg shadow p-6 relative">
+        <div className="bg-white rounded-lg shadow-md border border-gray-100 p-6 relative hover:shadow-lg transition-shadow duration-200">
           <div className="flex justify-between items-start mb-4">
-            <h2 className="text-lg font-semibold">wRVU Data</h2>
-            <div className="flex gap-2">
+            <h2 className="text-lg font-semibold text-gray-900">wRVU Data</h2>
+            <div className="flex gap-3">
               <button
                 onClick={handleClearWRVUData}
-                className="text-red-600 hover:text-red-800 text-sm"
+                className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors duration-200"
               >
                 Clear Data
               </button>
               <a
                 href="/templates/wrvu_template.xlsx"
                 download
-                className="text-gray-600 hover:text-gray-800 inline-flex items-center text-sm"
+                className="text-blue-600 hover:text-blue-800 inline-flex items-center text-sm font-medium transition-colors duration-200"
               >
                 <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
                 Template
               </a>
             </div>
           </div>
-          <p className="text-gray-600 text-sm mb-4">
-            Upload monthly wRVU data including actual wRVUs, targets, and adjustments.
+          <p className="text-gray-600 text-sm mb-6 h-12">
+            Upload monthly work RVU data with targets and adjustments for providers.
           </p>
           <WRVUUpload onPreview={handlePreview} />
         </div>
@@ -301,6 +341,14 @@ export default function UploadPage() {
           </div>
         </div>
       )}
+
+      <UploadAlert
+        open={alertOpen}
+        onClose={() => setAlertOpen(false)}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
     </div>
   );
 } 
