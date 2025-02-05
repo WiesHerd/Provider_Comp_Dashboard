@@ -7,6 +7,7 @@ import ProviderUpload from '@/components/Upload/ProviderUpload';
 import MarketUpload from '@/components/Upload/MarketUpload';
 import WRVUUpload from '@/components/Upload/WRVUUpload';
 import UploadAlert from '@/components/Alert/UploadAlert';
+import ConfirmationDialog from '@/components/Alert/ConfirmationDialog';
 
 interface PreviewData {
   data: any[];
@@ -31,43 +32,105 @@ export default function UploadPage() {
     type: 'success' | 'error';
   }>({ title: '', message: '', type: 'success' });
 
+  // State for confirmation dialogs
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => Promise<void>;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: async () => {}
+  });
+
   const handleClearProviderData = async () => {
-    if (confirm('Are you sure you want to clear all provider data?')) {
-      try {
-        const response = await fetch('/api/clear/provider', { method: 'POST' });
-        if (!response.ok) throw new Error('Failed to clear provider data');
-        alert('Provider data cleared successfully');
-      } catch (error) {
-        console.error('Error clearing provider data:', error);
-        alert('Failed to clear provider data');
-      }
+    try {
+      const response = await fetch('/api/clear/provider', { method: 'POST' });
+      if (!response.ok) throw new Error('Failed to clear provider data');
+      setAlertConfig({
+        title: 'Success',
+        message: 'Provider data cleared successfully',
+        type: 'success'
+      });
+      setAlertOpen(true);
+    } catch (error) {
+      console.error('Error clearing provider data:', error);
+      setAlertConfig({
+        title: 'Error',
+        message: 'Failed to clear provider data',
+        type: 'error'
+      });
+      setAlertOpen(true);
     }
   };
 
   const handleClearMarketData = async () => {
-    if (confirm('Are you sure you want to clear all market data?')) {
-      try {
-        const response = await fetch('/api/clear/market', { method: 'POST' });
-        if (!response.ok) throw new Error('Failed to clear market data');
-        alert('Market data cleared successfully');
-      } catch (error) {
-        console.error('Error clearing market data:', error);
-        alert('Failed to clear market data');
-      }
+    try {
+      const response = await fetch('/api/clear/market', { method: 'POST' });
+      if (!response.ok) throw new Error('Failed to clear market data');
+      setAlertConfig({
+        title: 'Success',
+        message: 'Market data cleared successfully',
+        type: 'success'
+      });
+      setAlertOpen(true);
+    } catch (error) {
+      console.error('Error clearing market data:', error);
+      setAlertConfig({
+        title: 'Error',
+        message: 'Failed to clear market data',
+        type: 'error'
+      });
+      setAlertOpen(true);
     }
   };
 
   const handleClearWRVUData = async () => {
-    if (confirm('Are you sure you want to clear all wRVU data?')) {
-      try {
-        const response = await fetch('/api/clear/wrvu', { method: 'POST' });
-        if (!response.ok) throw new Error('Failed to clear wRVU data');
-        alert('wRVU data cleared successfully');
-      } catch (error) {
-        console.error('Error clearing wRVU data:', error);
-        alert('Failed to clear wRVU data');
-      }
+    try {
+      const response = await fetch('/api/clear/wrvu', { method: 'POST' });
+      if (!response.ok) throw new Error('Failed to clear wRVU data');
+      setAlertConfig({
+        title: 'Success',
+        message: 'wRVU data cleared successfully',
+        type: 'success'
+      });
+      setAlertOpen(true);
+    } catch (error) {
+      console.error('Error clearing wRVU data:', error);
+      setAlertConfig({
+        title: 'Error',
+        message: 'Failed to clear wRVU data',
+        type: 'error'
+      });
+      setAlertOpen(true);
     }
+  };
+
+  const showConfirmDialog = (type: 'provider' | 'market' | 'wrvu') => {
+    const config = {
+      provider: {
+        title: 'Clear Provider Data',
+        message: 'Are you sure you want to clear all provider data? This action cannot be undone.',
+        onConfirm: handleClearProviderData
+      },
+      market: {
+        title: 'Clear Market Data',
+        message: 'Are you sure you want to clear all market data? This action cannot be undone.',
+        onConfirm: handleClearMarketData
+      },
+      wrvu: {
+        title: 'Clear wRVU Data',
+        message: 'Are you sure you want to clear all wRVU data? This action cannot be undone.',
+        onConfirm: handleClearWRVUData
+      }
+    }[type];
+
+    setConfirmDialog({
+      isOpen: true,
+      ...config
+    });
   };
 
   const handlePreview = (data: any[], columns: any[], mode: 'append' | 'clear', type: 'provider' | 'market' | 'wrvu', file: File) => {
@@ -157,7 +220,7 @@ export default function UploadPage() {
             <h2 className="text-lg font-semibold text-gray-900">Provider Data</h2>
             <div className="flex gap-3">
               <button
-                onClick={handleClearProviderData}
+                onClick={() => showConfirmDialog('provider')}
                 className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors duration-200"
               >
                 Clear Data
@@ -182,7 +245,7 @@ export default function UploadPage() {
             <h2 className="text-lg font-semibold text-gray-900">Market Data</h2>
             <div className="flex gap-3">
               <button
-                onClick={handleClearMarketData}
+                onClick={() => showConfirmDialog('market')}
                 className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors duration-200"
               >
                 Clear Data
@@ -207,7 +270,7 @@ export default function UploadPage() {
             <h2 className="text-lg font-semibold text-gray-900">wRVU Data</h2>
             <div className="flex gap-3">
               <button
-                onClick={handleClearWRVUData}
+                onClick={() => showConfirmDialog('wrvu')}
                 className="text-red-600 hover:text-red-800 text-sm font-medium transition-colors duration-200"
               >
                 Clear Data
@@ -348,6 +411,16 @@ export default function UploadPage() {
         title={alertConfig.title}
         message={alertConfig.message}
         type={alertConfig.type}
+      />
+
+      <ConfirmationDialog
+        isOpen={confirmDialog.isOpen}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDialog.onConfirm}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmButtonText="Clear Data"
+        cancelButtonText="Cancel"
       />
     </div>
   );
