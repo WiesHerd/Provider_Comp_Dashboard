@@ -9,6 +9,8 @@ export interface CompensationChange {
   newConversionFactor: number;
   reason?: string;
   providerId?: string;
+  compensationModel?: string;
+  tieredCFConfigId?: string;
   createdAt?: Date;
   updatedAt?: Date;
 } 

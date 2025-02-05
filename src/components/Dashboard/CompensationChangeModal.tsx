@@ -3,10 +3,20 @@ import { Dialog, Transition } from '@headlessui/react';
 import { CompensationChange } from '@/types/compensation';
 import { formatCurrency } from '@/utils/formatters';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { toast } from 'sonner';
 
 interface Position {
   x: number;
   y: number;
+}
+
+interface TierConfig {
+  id: string;
+  name: string;
+  tiers?: {
+    wrvuThreshold: number;
+    conversionFactor: number;
+  }[];
 }
 
 interface CompensationChangeModalProps {
@@ -24,6 +34,8 @@ interface CompensationChangeModalProps {
     previousConversionFactor: number;
     newConversionFactor: number;
     reason?: string;
+    compensationModel?: string;
+    tieredCFConfigId?: string;
   }) => void;
   editingData?: CompensationChange;
 }
@@ -37,30 +49,72 @@ export default function CompensationChangeModal({
   onSave,
   editingData
 }: CompensationChangeModalProps) {
-  const [newSalary, setNewSalary] = useState(editingData?.newSalary || currentSalary);
-  const [newFTE, setNewFTE] = useState(editingData?.newFTE || currentFTE);
-  const [effectiveDate, setEffectiveDate] = useState(editingData?.effectiveDate || '');
-  const [changeReason, setChangeReason] = useState(editingData?.reason || '');
-  const [newConversionFactor, setNewConversionFactor] = useState(editingData?.newConversionFactor || conversionFactor);
+  const [formData, setFormData] = useState({
+    effectiveDate: editingData?.effectiveDate || '',
+    newSalary: editingData?.newSalary || currentSalary,
+    newFTE: editingData?.newFTE || currentFTE,
+    newConversionFactor: editingData?.newConversionFactor || conversionFactor,
+    reason: editingData?.reason || '',
+    compensationModel: editingData?.compensationModel || 'Standard',
+    tieredCFConfigId: editingData?.tieredCFConfigId || ''
+  });
+  const [tierConfigs, setTierConfigs] = useState<TierConfig[]>([]);
+  const [selectedTierDetails, setSelectedTierDetails] = useState<TierConfig | null>(null);
   const [position, setPosition] = useState<Position>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<Position>({ x: 0, y: 0 });
 
   useEffect(() => {
     if (editingData) {
-      setNewSalary(editingData.newSalary);
-      setNewFTE(editingData.newFTE);
-      setEffectiveDate(editingData.effectiveDate);
-      setChangeReason(editingData.reason || '');
-      setNewConversionFactor(editingData.newConversionFactor || conversionFactor);
+      setFormData({
+        effectiveDate: editingData.effectiveDate,
+        newSalary: editingData.newSalary,
+        newFTE: editingData.newFTE,
+        newConversionFactor: editingData.newConversionFactor || conversionFactor,
+        reason: editingData.reason || '',
+        compensationModel: editingData.compensationModel || 'Standard',
+        tieredCFConfigId: editingData.tieredCFConfigId || ''
+      });
     }
   }, [editingData, conversionFactor]);
 
   useEffect(() => {
     if (isOpen) {
       setPosition({ x: 0, y: 0 });
+      // Fetch tier configurations when modal opens
+      fetch('/api/compensation/tier-configs')
+        .then(res => {
+          if (!res.ok) {
+            throw new Error('Failed to fetch tier configurations');
+          }
+          return res.json();
+        })
+        .then(data => setTierConfigs(data))
+        .catch(err => {
+          console.error('Error fetching tier configs:', err);
+          toast.error('Failed to fetch tier configurations');
+        });
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (formData.tieredCFConfigId) {
+      fetch(`/api/compensation/tier-configs/${formData.tieredCFConfigId}`)
+        .then(res => {
+          if (!res.ok) {
+            throw new Error('Failed to fetch tier details');
+          }
+          return res.json();
+        })
+        .then(data => setSelectedTierDetails(data))
+        .catch(err => {
+          console.error('Error fetching tier details:', err);
+          toast.error('Failed to fetch tier details');
+        });
+    } else {
+      setSelectedTierDetails(null);
+    }
+  }, [formData.tieredCFConfigId]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.modal-header')) {
@@ -99,21 +153,27 @@ export default function CompensationChangeModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
-      effectiveDate,
+      effectiveDate: formData.effectiveDate,
       previousSalary: currentSalary,
-      newSalary,
+      newSalary: formData.newSalary,
       previousFTE: currentFTE,
-      newFTE,
+      newFTE: formData.newFTE,
       previousConversionFactor: conversionFactor,
-      newConversionFactor,
-      reason: changeReason
+      newConversionFactor: formData.newConversionFactor,
+      reason: formData.reason,
+      compensationModel: formData.compensationModel,
+      tieredCFConfigId: formData.compensationModel === 'Tiered CF' ? formData.tieredCFConfigId : undefined
     });
     // Reset form
-    setNewSalary(currentSalary);
-    setNewFTE(currentFTE);
-    setEffectiveDate('');
-    setChangeReason('');
-    setNewConversionFactor(conversionFactor);
+    setFormData({
+      effectiveDate: '',
+      newSalary: currentSalary,
+      newFTE: currentFTE,
+      newConversionFactor: conversionFactor,
+      reason: '',
+      compensationModel: 'Standard',
+      tieredCFConfigId: ''
+    });
     onClose();
   };
 
@@ -154,11 +214,49 @@ export default function CompensationChangeModal({
                     </label>
                     <input
                       type="date"
-                      value={effectiveDate}
-                      onChange={(e) => setEffectiveDate(e.target.value)}
+                      value={formData.effectiveDate}
+                      onChange={(e) => setFormData({ ...formData, effectiveDate: e.target.value })}
                       required
                       className="block w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
                     />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-8 mb-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Compensation Model <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={formData.compensationModel}
+                        onChange={(e) => setFormData({ ...formData, compensationModel: e.target.value })}
+                        required
+                        className="block w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="Standard">Standard</option>
+                        <option value="Base Pay">Base Pay</option>
+                        <option value="Custom">Custom</option>
+                        <option value="Tiered CF">Tiered CF</option>
+                      </select>
+                    </div>
+
+                    {formData.compensationModel === 'Tiered CF' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Tier Configuration <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={formData.tieredCFConfigId}
+                          onChange={(e) => setFormData({ ...formData, tieredCFConfigId: e.target.value })}
+                          required
+                          className="block w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          <option value="">Select a tier configuration</option>
+                          {tierConfigs.map(config => (
+                            <option key={config.id} value={config.id}>{config.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-8 mb-6">
@@ -186,8 +284,8 @@ export default function CompensationChangeModal({
                         </div>
                         <input
                           type="number"
-                          value={newSalary}
-                          onChange={(e) => setNewSalary(Number(e.target.value))}
+                          value={formData.newSalary}
+                          onChange={(e) => setFormData({ ...formData, newSalary: Number(e.target.value) })}
                           required
                           className="block w-full pl-8 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
                         />
@@ -211,8 +309,8 @@ export default function CompensationChangeModal({
                       </label>
                       <input
                         type="number"
-                        value={newFTE}
-                        onChange={(e) => setNewFTE(Number(e.target.value))}
+                        value={formData.newFTE}
+                        onChange={(e) => setFormData({ ...formData, newFTE: Number(e.target.value) })}
                         required
                         step="0.01"
                         min="0"
@@ -223,7 +321,7 @@ export default function CompensationChangeModal({
                   </div>
 
                   <div className="grid grid-cols-2 gap-8 mb-6">
-                    <div>
+                    <div className="space-y-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">Current CF</label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -233,38 +331,77 @@ export default function CompensationChangeModal({
                           type="number"
                           value={conversionFactor}
                           disabled
-                          step="0.01"
                           className="block w-full pl-8 pr-4 py-3 rounded-lg border border-gray-300 bg-gray-50 text-gray-500"
                         />
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        New CF <span className="text-red-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <span className="text-gray-500 sm:text-sm">$</span>
+
+                    {formData.compensationModel !== 'Tiered CF' && (
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          New CF <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span className="text-gray-500 sm:text-sm">$</span>
+                          </div>
+                          <input
+                            type="number"
+                            value={formData.newConversionFactor}
+                            onChange={(e) => setFormData({ ...formData, newConversionFactor: Number(e.target.value) })}
+                            required
+                            step="0.01"
+                            className="block w-full pl-8 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                          />
                         </div>
-                        <input
-                          type="number"
-                          value={newConversionFactor}
-                          onChange={(e) => setNewConversionFactor(Number(e.target.value))}
-                          required
-                          step="0.01"
-                          className="block w-full pl-8 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {formData.compensationModel === 'Tiered CF' && formData.tieredCFConfigId && selectedTierDetails && (
+                    <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50/50 shadow-sm">
+                      <div className="border-b border-gray-200 bg-white px-6 py-4 rounded-t-lg">
+                        <h4 className="text-base font-semibold text-gray-900">Selected Configuration: {selectedTierDetails.name}</h4>
+                      </div>
+                      <div className="p-6">
+                        {selectedTierDetails.tiers && selectedTierDetails.tiers.length > 0 ? (
+                          <div className="space-y-4">
+                            {selectedTierDetails.tiers.map((tier, index) => (
+                              <div 
+                                key={index} 
+                                className="flex items-center justify-between rounded-md bg-white p-4 shadow-sm border border-gray-100"
+                              >
+                                <div className="space-y-1">
+                                  <span className="text-base font-medium text-gray-900">
+                                    {index === 0 ? 'Base' : `Tier ${index}`}
+                                  </span>
+                                  <p className="text-base text-gray-600">
+                                    {index === selectedTierDetails.tiers!.length - 1 
+                                      ? `${tier.wrvuThreshold}+ wRVUs` 
+                                      : `${tier.wrvuThreshold}-${selectedTierDetails.tiers![index + 1].wrvuThreshold} wRVUs`}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-lg font-semibold text-blue-600">${tier.conversionFactor.toFixed(2)}</span>
+                                  <p className="text-base text-gray-600">per wRVU</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-base text-gray-600 text-center py-4">No tiers configured</p>
+                        )}
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Reason for Change <span className="text-red-500">*</span>
                     </label>
                     <textarea
-                      value={changeReason}
-                      onChange={(e) => setChangeReason(e.target.value)}
+                      value={formData.reason}
+                      onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                       required
                       rows={3}
                       className="block w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500"

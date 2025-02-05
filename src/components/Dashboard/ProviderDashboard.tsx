@@ -32,7 +32,15 @@ import html2canvas from 'html2canvas';
 import CompensationHistory from './CompensationHistory';
 import CompensationChangeModalComponent from './CompensationChangeModal';
 import { CompensationChange } from '@/types/compensation';
-import { MarketData } from '@/types/market-data';
+import { 
+  Provider, 
+  MarketData, 
+  CompensationModel, 
+  TierConfig, 
+  Tier, 
+  Benchmark,
+  MonthlyDetail 
+} from '@/types/dashboard';
 import { 
   ColDef, 
   GridApi, 
@@ -53,55 +61,11 @@ import type { WRVUAdjustment, TargetAdjustment } from '@/types';
 import type { AdditionalPay, AdditionalPayFormData, MonthlyValues } from '@/types/additional-pay';
 import AdditionalPayModal from '@/components/AdditionalPay/AdditionalPayModal';
 import { PrismaClient } from '@prisma/client';
+import { toast } from 'sonner';
 
 const prisma = new PrismaClient();
 
-interface Provider {
-  id: string;
-  employeeId: string;
-  firstName: string;
-  lastName: string;
-  suffix?: string;
-  specialty: string;
-  fte: number;
-  baseSalary: number;
-  compensationModel: string;
-  clinicalFte: number;
-  nonClinicalFte: number;
-  clinicalSalary: number;
-  nonClinicalSalary: number;
-  currentMetrics?: {
-    actualWRVUs: number;
-    targetWRVUs: number;
-    baseSalary: number;
-    totalCompensation: number;
-    wrvuPercentile: number;
-    compPercentile: number;
-    incentivesEarned: number;
-    holdbackAmount: number;
-    planProgress: number;
-  };
-}
-
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-interface MonthlyDetail {
-  changed: boolean;
-  prorated: boolean;
-  oldAnnual?: number;
-  newAnnual?: number;
-  oldFTE?: number;
-  newFTE?: number;
-  oldDays?: number;
-  newDays?: number;
-  oldMonthly?: number;
-  newMonthly?: number;
-  total?: number;
-}
-
-interface ProviderDashboardProps {
-  provider: Provider;
-}
 
 // Proration logic updated for clarity:
 // - If no change in a month: full old/current salary/FTE.
@@ -595,7 +559,103 @@ interface MonthlyMetric {
   totalCompensation: number;
 }
 
-export default function ProviderDashboard({ provider }: ProviderDashboardProps) {
+// Add these interfaces near the top with other interfaces
+interface Tier {
+  threshold: number;
+  conversionFactor: number;
+}
+
+interface TierConfig {
+  id: string;
+  name: string;
+  tiers: Tier[];
+}
+
+// Add this function before getMonthlyIncentive
+const calculateTieredConversionFactor = (percentile: number, tiers: Tier[]): number => {
+  if (!tiers || tiers.length === 0) return 0;
+  
+  // Sort tiers by threshold ascending
+  const sortedTiers = [...tiers].sort((a, b) => a.threshold - b.threshold);
+  
+  // Find the highest tier that the provider has reached
+  let applicableTier = sortedTiers[0]; // Default to first tier
+  
+  for (const tier of sortedTiers) {
+    if (percentile >= tier.threshold) {
+      applicableTier = tier;
+    } else {
+      break;
+    }
+  }
+  
+  return applicableTier.conversionFactor;
+};
+
+const calculateWRVUPercentile = (
+  actualWRVUs: number,
+  fte: number,
+  marketData: MarketData | MarketData[],
+  monthsCompleted: number
+): { percentile: number; nearestBenchmark: string } => {
+  // Ensure marketData is an array
+  const marketDataArray = Array.isArray(marketData) ? marketData : [marketData];
+  
+  // Find relevant market data for provider's specialty
+  const relevantMarketData = marketDataArray[0];
+  if (!relevantMarketData) {
+    return { percentile: 0, nearestBenchmark: 'N/A' };
+  }
+
+  // Annualize and adjust WRVUs for FTE
+  const annualizedWRVUs = (actualWRVUs / monthsCompleted) * 12;
+  const adjustedWRVUs = annualizedWRVUs / fte;
+
+  const benchmarks: Benchmark[] = [
+    { percentile: 25, value: relevantMarketData.p25_wrvu },
+    { percentile: 50, value: relevantMarketData.p50_wrvu },
+    { percentile: 75, value: relevantMarketData.p75_wrvu },
+    { percentile: 90, value: relevantMarketData.p90_wrvu }
+  ];
+
+  // If below 25th percentile
+  if (adjustedWRVUs < benchmarks[0].value) {
+    const percentile = (adjustedWRVUs / benchmarks[0].value) * 25;
+    return {
+      percentile,
+      nearestBenchmark: 'Below 25th'
+    };
+  }
+
+  // If above 90th percentile
+  if (adjustedWRVUs > benchmarks[3].value) {
+    const extraPercentile = ((adjustedWRVUs - benchmarks[3].value) / benchmarks[3].value) * 10;
+    return {
+      percentile: Math.min(100, 90 + extraPercentile),
+      nearestBenchmark: 'Above 90th'
+    };
+  }
+
+  // Find which benchmarks we're between and interpolate
+  for (let i = 0; i < benchmarks.length - 1; i++) {
+    const lower = benchmarks[i];
+    const upper = benchmarks[i + 1];
+    if (adjustedWRVUs >= lower.value && adjustedWRVUs <= upper.value) {
+      const range = upper.value - lower.value;
+      const position = adjustedWRVUs - lower.value;
+      const percentileRange = upper.percentile - lower.percentile;
+      const percentile = lower.percentile + (position / range) * percentileRange;
+      return {
+        percentile,
+        nearestBenchmark: `${lower.percentile}th-${upper.percentile}th`
+      };
+    }
+  }
+
+  return { percentile: 0, nearestBenchmark: 'N/A' };
+};
+
+export default function ProviderDashboard({ provider }: { provider: Provider }) {
   const router = useRouter();
   const [providers, setProviders] = useState<any[]>([]);
   const [isProviderSelectorOpen, setIsProviderSelectorOpen] = useState(false);
@@ -617,9 +677,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
 
   const [metricsGridApi, setMetricsGridApi] = useState<GridApi | null>(null);
   const [compensationGridApi, setCompensationGridApi] = useState<GridApi | null>(null);
-  const [baseMonthlyData, setBaseMonthlyData] = useState<Record<string, number>>(
-    Object.fromEntries(months.map((m) => [m.toLowerCase(), 0]))
-  );
+  const [baseMonthlyData, setBaseMonthlyData] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   const [activeView, setActiveView] = useState('compensation');
@@ -645,7 +703,7 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
   const [changeReason, setChangeReason] = useState('');
 
   const [holdbackPercentage, setHoldbackPercentage] = useState(5);
-  const [marketData, setMarketData] = useState<any[]>([]);
+  const [marketData, setMarketData] = useState<MarketData[]>([]);
 
   const [editingWRVUAdjustment, setEditingWRVUAdjustment] = useState<any>(null);
   const [editingTargetAdjustment, setEditingTargetAdjustment] = useState<any>(null);
@@ -658,6 +716,27 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
 
   // Add state for selected providers
   const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
+
+  const [selectedTierConfig, setSelectedTierConfig] = useState<any>(null);
+  
+  // Fetch tier config if provider uses tiered compensation
+  useEffect(() => {
+    const fetchTierConfig = async () => {
+      if (provider.compensationModel === 'Tiered CF' && provider.tieredCFConfigId) {
+        try {
+          const response = await fetch(`/api/compensation/tier-configs/${provider.tieredCFConfigId}`);
+          if (!response.ok) throw new Error('Failed to fetch tier config');
+          const config = await response.json();
+          setSelectedTierConfig(config);
+        } catch (error) {
+          console.error('Error fetching tier config:', error);
+          toast.error('Failed to load tier configuration');
+        }
+      }
+    };
+
+    fetchTierConfig();
+  }, [provider.compensationModel, provider.tieredCFConfigId]);
 
   const handleProviderSelect = (employeeId: string) => {
     setIsProviderSelectorOpen(false);
@@ -761,22 +840,28 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     fetchWRVUData();
   }, [provider.employeeId]);
 
-  // Update the calculateTotalCompPercentile function to handle missing market data
-  const calculateTotalCompPercentile = (totalComp: number, marketData: MarketData[]): { percentile: number } => {
-    if (!marketData || marketData.length === 0) return { percentile: 0 };
-    
-    const matchingMarket = marketData.find(data => data.specialty === provider.specialty);
-    if (!matchingMarket) return { percentile: 0 };
+  // Update the toast error call
+  const handleError = (error: unknown) => {
+    console.error('Error:', error);
+    toast('An error occurred', {
+      description: error instanceof Error ? error.message : 'An unexpected error occurred'
+    });
+  };
+
+  // Update the calculateTotalCompPercentile function
+  const calculateTotalCompPercentile = (totalComp: number, marketDataArray: MarketData[]): { percentile: number } => {
+    const marketData = marketDataArray.find(m => m.specialty === provider.specialty);
+    if (!marketData) return { percentile: 0 };
+
+    const benchmarks = [
+      { percentile: 25, value: marketData.p25_comp },
+      { percentile: 50, value: marketData.p50_comp },
+      { percentile: 75, value: marketData.p75_comp },
+      { percentile: 90, value: marketData.p90_comp }
+    ];
 
     // Adjust total comp for FTE if less than 1.0
     const fteAdjustedTotalComp = provider.fte < 1.0 ? totalComp / provider.fte : totalComp;
-
-    const benchmarks = [
-      { percentile: 25, value: matchingMarket.p25_total || 0 },
-      { percentile: 50, value: matchingMarket.p50_total || 0 },
-      { percentile: 75, value: matchingMarket.p75_total || 0 },
-      { percentile: 90, value: matchingMarket.p90_total || 0 }
-    ];
 
     // If below 25th percentile
     if (fteAdjustedTotalComp < benchmarks[0].value) {
@@ -817,68 +902,68 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
     return matchingMarketData ? matchingMarketData.p50_cf : 0;
   };
 
-  // Update the calculateWRVUPercentile function to handle missing market data
-  const calculateWRVUPercentile = (actualWRVUs: number, monthsCompleted: number, fte: number, marketData: MarketData[]): { percentile: number, nearestBenchmark: string } => {
-    if (!marketData || marketData.length === 0) {
-      return { percentile: 0, nearestBenchmark: 'No market data' };
+  // Update the calculateWRVUPercentile function
+  const calculateWRVUPercentile = (
+    actualWRVUs: number,
+    fte: number,
+    marketData: MarketData | MarketData[],
+    monthsCompleted: number
+  ): { percentile: number; nearestBenchmark: string } => {
+    // Ensure marketData is an array
+    const marketDataArray = Array.isArray(marketData) ? marketData : [marketData];
+    
+    // Find relevant market data for provider's specialty
+    const relevantMarketData = marketDataArray[0];
+    if (!relevantMarketData) {
+      return { percentile: 0, nearestBenchmark: 'N/A' };
     }
 
-    const matchingMarket = marketData.find(data => data.specialty === provider.specialty);
-    if (!matchingMarket) {
-      return { percentile: 0, nearestBenchmark: 'No specialty data' };
-    }
+    // Annualize and adjust WRVUs for FTE
+    const annualizedWRVUs = (actualWRVUs / monthsCompleted) * 12;
+    const adjustedWRVUs = annualizedWRVUs / fte;
 
-    // Annualize wRVUs
-    const annualizedWRVUs = monthsCompleted > 0 
-      ? (actualWRVUs / monthsCompleted) * 12 
-      : 0;
-
-    // Adjust for FTE
-    const fteAdjustedWRVUs = fte < 1.0 
-      ? annualizedWRVUs / fte 
-      : annualizedWRVUs;
-
-    const benchmarks = [
-      { percentile: 25, value: matchingMarket.p25_wrvu || 0 },
-      { percentile: 50, value: matchingMarket.p50_wrvu || 0 },
-      { percentile: 75, value: matchingMarket.p75_wrvu || 0 },
-      { percentile: 90, value: matchingMarket.p90_wrvu || 0 }
+    const benchmarks: Benchmark[] = [
+      { percentile: 25, value: relevantMarketData.p25_wrvu },
+      { percentile: 50, value: relevantMarketData.p50_wrvu },
+      { percentile: 75, value: relevantMarketData.p75_wrvu },
+      { percentile: 90, value: relevantMarketData.p90_wrvu }
     ];
 
     // If below 25th percentile
-    if (fteAdjustedWRVUs < benchmarks[0].value) {
-      const percentile = benchmarks[0].value > 0 ? (fteAdjustedWRVUs / benchmarks[0].value) * 25 : 0;
-      return { percentile, nearestBenchmark: '< 25th' };
+    if (adjustedWRVUs < benchmarks[0].value) {
+      const percentile = (adjustedWRVUs / benchmarks[0].value) * 25;
+      return {
+        percentile,
+        nearestBenchmark: 'Below 25th'
+      };
     }
 
     // If above 90th percentile
-    if (fteAdjustedWRVUs > benchmarks[3].value) {
-      const extraPercentile = benchmarks[3].value > 0 
-        ? ((fteAdjustedWRVUs - benchmarks[3].value) / benchmarks[3].value) * 10 
-        : 0;
-      const percentile = Math.min(100, 90 + extraPercentile);
-      return { percentile, nearestBenchmark: '> 90th' };
+    if (adjustedWRVUs > benchmarks[3].value) {
+      const extraPercentile = ((adjustedWRVUs - benchmarks[3].value) / benchmarks[3].value) * 10;
+      return {
+        percentile: Math.min(100, 90 + extraPercentile),
+        nearestBenchmark: 'Above 90th'
+      };
     }
 
     // Find which benchmarks we're between and interpolate
     for (let i = 0; i < benchmarks.length - 1; i++) {
       const lower = benchmarks[i];
       const upper = benchmarks[i + 1];
-      if (fteAdjustedWRVUs >= lower.value && fteAdjustedWRVUs <= upper.value) {
+      if (adjustedWRVUs >= lower.value && adjustedWRVUs <= upper.value) {
         const range = upper.value - lower.value;
-        const position = fteAdjustedWRVUs - lower.value;
+        const position = adjustedWRVUs - lower.value;
         const percentileRange = upper.percentile - lower.percentile;
-        const percentile = range > 0 
-          ? lower.percentile + (position / range) * percentileRange 
-          : lower.percentile;
-        return { 
+        const percentile = lower.percentile + (position / range) * percentileRange;
+        return {
           percentile,
           nearestBenchmark: `${lower.percentile}th-${upper.percentile}th`
         };
       }
     }
 
-    return { percentile: 0, nearestBenchmark: 'Unknown' };
+    return { percentile: 0, nearestBenchmark: 'N/A' };
   };
 
   const { monthlySalaries, monthlyDetails } = useMemo(
@@ -923,8 +1008,13 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       ((baseMonthlyData || {})[m.toLowerCase()] > 0 ? count + 1 : count), 0);
 
     // Calculate wRVU percentile
-    const { percentile: wrvuPercentile, nearestBenchmark: wrvuBenchmark } = 
-      calculateWRVUPercentile(wrvuYTD, monthsWithData, provider.fte, marketData || []);
+    const relevantMarketData = marketData.find(m => m.specialty === provider.specialty);
+    const wrvuPercentileResult = calculateWRVUPercentile(
+      totalWRVUs.ytd || 0,
+      provider.fte,
+      relevantMarketData || marketData[0],
+      monthsWithData
+    );
 
     return [
       { metric: 'wRVU Generation', isHeader: true, section: 'generation' },
@@ -962,17 +1052,39 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
 
   const getMonthlyIncentive = (month: string): number => {
     const monthKey = month.toLowerCase();
-    const monthlyTarget = targetMonthlyData[monthKey] || 0;
-    const monthlyActual = baseMonthlyData[monthKey] || 0;
-    const variance = monthlyActual - monthlyTarget;
-    return calculateIncentive(variance, getConversionFactor());
+    const monthWRVUs = Number(baseMonthlyData[monthKey]) || 0;
+    
+    if (provider.compensationModel === 'Tiered CF' && selectedTierConfig) {
+      const annualizedWRVUs = monthWRVUs * 12;
+      const relevantMarketData = marketData.find(m => m.specialty === provider.specialty);
+      const { percentile } = calculateWRVUPercentile(
+        annualizedWRVUs,
+        provider.fte,
+        marketData,
+        months.length
+      );
+      
+      // Get the tiered conversion factor based on the percentile or wRVUs
+      const threshold = selectedTierConfig.thresholdType === 'WRVU' ? annualizedWRVUs : percentile.percentile;
+      const cf = calculateTieredConversionFactor(threshold, selectedTierConfig.tiers);
+      
+      return monthWRVUs * cf;
+    } else if (provider.compensationModel === 'Standard') {
+      // Original logic for standard compensation
+      const monthlyTarget = targetMonthlyData[monthKey] || 0;
+      const variance = monthWRVUs - monthlyTarget;
+      return calculateIncentive(variance, getConversionFactor());
+    }
+    
+    // Base Pay model returns 0 incentive
+    return 0;
   };
 
   const monthlyBaseSalary = provider.baseSalary / 12;
 
   const getCompensationData = () => {
-    // For base pay providers, only show Base Salary and Total Comp
-    if (provider.compensationModel.toLowerCase() === 'base pay' && additionalPayments.length === 0) {
+    // For base pay providers, keep existing logic exactly as is
+    if (provider.compensationModel === 'Base Pay' && additionalPayments.length === 0) {
       const baseSalaryRow = {
         component: 'Base Salary',
         isSystem: true,
@@ -985,14 +1097,14 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
         {
           component: 'Total Comp.',
           isSystem: true,
-          ...monthlySalaries, // Same as base salary since there are no additions
+          ...monthlySalaries,
           ytd: baseSalaryRow.ytd,
           percentile: calculateTotalCompPercentile(baseSalaryRow.ytd, marketData).percentile
         }
       ];
     }
 
-    // Original logic for other cases
+    // Start with base salary for all models
     const baseData = [
       {
         component: 'Base Salary',
@@ -1002,17 +1114,30 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
       }
     ];
 
-    // Only add incentive-related rows if the provider's compensation model is not "Base Pay"
-    if (provider.compensationModel.toLowerCase() !== 'base pay') {
-      baseData.push(
-        {
-          component: 'Productivity Incentives',
+    // Add productivity section based on compensation model
+    if (provider.compensationModel !== 'Base Pay') {
+      baseData.push({
+        component: 'Productivity Incentives',
+        isSystem: true,
+        isHeader: true,
+        ...months.reduce((acc, month) => ({ ...acc, [month.toLowerCase()]: '' }), {}),
+        ytd: ''
+      });
+
+      if (provider.compensationModel === 'Tiered CF') {
+        // For tiered compensation, show tiered incentives
+        baseData.push({
+          component: 'Tiered wRVU Incentives',
           isSystem: true,
-          isHeader: true,
-          ...months.reduce((acc, month) => ({ ...acc, [month.toLowerCase()]: '' }), {}),
-          ytd: ''
-        },
-        {
+          ...months.reduce((acc, month) => ({
+            ...acc,
+            [month.toLowerCase()]: getMonthlyIncentive(month) || 0,
+          }), {}),
+          ytd: months.reduce((sum, month) => sum + (getMonthlyIncentive(month) || 0), 0)
+        });
+      } else {
+        // For standard compensation, show regular incentives
+        baseData.push({
           component: 'wRVU Incentives',
           isSystem: true,
           ...months.reduce((acc, month) => ({
@@ -1020,41 +1145,48 @@ export default function ProviderDashboard({ provider }: ProviderDashboardProps) 
             [month.toLowerCase()]: getMonthlyIncentive(month) || 0,
           }), {}),
           ytd: months.reduce((sum, month) => sum + (getMonthlyIncentive(month) || 0), 0)
-        },
-        {
-          component: `Holdback (${holdbackPercentage}%)`,
-          isSystem: true,
-          ...months.reduce((acc, month) => {
-            const monthKey = month.toLowerCase();
-            const incentive = getMonthlyIncentive(month) || 0;
-            const holdback = incentive > 0 ? -1 * incentive * (holdbackPercentage / 100) : 0;
-            return { ...acc, [monthKey]: holdback };
-          }, {}),
-          ytd: -1 * months.reduce((sum, month) => {
-            const incentive = getMonthlyIncentive(month) || 0;
-            return sum + (incentive > 0 ? incentive * (holdbackPercentage / 100) : 0);
-          }, 0)
-        },
-        {
-          component: 'Net Incentives',
-          isSystem: true,
-          ...months.reduce((acc, month) => {
-            const monthKey = month.toLowerCase();
-            const incentive = getMonthlyIncentive(month) || 0;
-            const holdback = incentive > 0 ? -1 * incentive * (holdbackPercentage / 100) : 0;
-            return {
-              ...acc,
-              [monthKey]: incentive + holdback
-            };
-          }, {}),
-          ytd: months.reduce((sum, month) => {
-            const incentive = getMonthlyIncentive(month) || 0;
-            const holdback = incentive > 0 ? -1 * incentive * (holdbackPercentage / 100) : 0;
-            return sum + incentive + holdback;
-          }, 0)
-        }
-      );
+        });
+      }
+
+      // Add holdback for both standard and tiered models
+      baseData.push({
+        component: `Holdback (${holdbackPercentage}%)`,
+        isSystem: true,
+        ...months.reduce((acc, month) => {
+          const monthKey = month.toLowerCase();
+          const incentive = getMonthlyIncentive(month) || 0;
+          const holdback = incentive > 0 ? -1 * incentive * (holdbackPercentage / 100) : 0;
+          return { ...acc, [monthKey]: holdback };
+        }, {}),
+        ytd: -1 * months.reduce((sum, month) => {
+          const incentive = getMonthlyIncentive(month) || 0;
+          return sum + (incentive > 0 ? incentive * (holdbackPercentage / 100) : 0);
+        }, 0)
+      });
+
+      // Add net incentives
+      baseData.push({
+        component: 'Net Incentives',
+        isSystem: true,
+        ...months.reduce((acc, month) => {
+          const monthKey = month.toLowerCase();
+          const incentive = getMonthlyIncentive(month) || 0;
+          const holdback = incentive > 0 ? -1 * incentive * (holdbackPercentage / 100) : 0;
+          return {
+            ...acc,
+            [monthKey]: incentive + holdback
+          };
+        }, {}),
+        ytd: months.reduce((sum, month) => {
+          const incentive = getMonthlyIncentive(month) || 0;
+          const holdback = incentive > 0 ? -1 * incentive * (holdbackPercentage / 100) : 0;
+          return sum + incentive + holdback;
+        }, 0)
+      });
     }
+
+    // Rest of the existing logic for additional payments and totals remains unchanged
+    // ... existing code ...
 
     // Only add additional payments section if there are actual additional payments
     if (additionalPayments.length > 0) {
