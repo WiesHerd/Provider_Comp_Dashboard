@@ -6,7 +6,10 @@ import {
   ChartBarIcon,
   DocumentDuplicateIcon,
   BuildingOfficeIcon,
-  Cog6ToothIcon
+  Cog6ToothIcon,
+  PresentationChartLineIcon,
+  ChartBarSquareIcon,
+  AdjustmentsHorizontalIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 
@@ -22,6 +25,24 @@ const actions = [
     href: '/admin/providers',
     icon: UsersIcon,
     description: 'View and manage provider information'
+  },
+  {
+    name: 'Market Data',
+    href: '/admin/market-data',
+    icon: ChartBarSquareIcon,
+    description: 'Manage specialty-specific market data benchmarks'
+  },
+  {
+    name: 'wRVU Data',
+    href: '/admin/wrvu-data',
+    icon: PresentationChartLineIcon,
+    description: 'Manage provider wRVU data and performance metrics'
+  },
+  {
+    name: 'Tier CF Settings',
+    href: '/admin/compensation/tier-configs',
+    icon: AdjustmentsHorizontalIcon,
+    description: 'Configure tiered compensation factor settings'
   },
   {
     name: 'Departments',
