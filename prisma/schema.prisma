@@ -27,6 +27,7 @@ model Provider {
   clinicalSalary      Float                @default(0)
   nonClinicalSalary   Float                @default(0)
   targetWRVUs         Float                @default(0)
+  tieredCFConfigId    String?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   AdditionalPay       AdditionalPay[]
@@ -38,6 +39,7 @@ model Provider {
   targetAdjustments   TargetAdjustment[]
   wrvuAdjustments     WRVUAdjustment[]
   wrvuData            WRVUData[]
+  tieredCFConfig      TierConfig?          @relation(fields: [tieredCFConfigId], references: [id])
 
   @@map("providers")
 }
@@ -55,6 +57,8 @@ model CompensationChange {
   providerId               String
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
+  compensationModel        String?
+  tieredCFConfigId         String?
   provider                 Provider @relation(fields: [providerId], references: [id])
 
   @@index([providerId, effectiveDate])
@@ -236,4 +240,47 @@ model ProviderSettings {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   provider        Provider @relation(fields: [providerId], references: [id])
+}
+
+model TierConfig {
+  id                String              @id @default(cuid())
+  name              String
+  description       String?
+  thresholdType     String              @default("WRVU")
+  status            String              @default("Active")
+  effectiveDate     DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  isDefault         Boolean             @default(false)
+  Tier              Tier[]
+  TierConfigHistory TierConfigHistory[]
+  providers         Provider[]
+}
+
+model Tier {
+  id               String     @id @default(cuid())
+  name             String
+  wrvuThreshold    Float
+  conversionFactor Float
+  description      String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  configId         String
+  TierConfig       TierConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([configId])
+}
+
+model TierConfigHistory {
+  id         String     @id
+  configId   String
+  changeType String
+  fieldName  String
+  oldValue   String?
+  newValue   String?
+  changedAt  DateTime   @default(now())
+  changedBy  String?
+  TierConfig TierConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@index([changedAt])
+  @@index([configId])
 }

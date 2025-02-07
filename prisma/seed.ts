@@ -51,12 +51,14 @@ async function main() {
     // Add wRVU data for the last 3 months
     const currentDate = new Date();
     let ytdWRVUs = 0;
+    let ytdTargetWRVUs = 0;
     
     for (let i = 0; i < 3; i++) {
       const month = currentDate.getMonth() - i;
       const year = currentDate.getFullYear();
       const rawMonthlyWRVUs = Math.floor(Math.random() * 500) + 300;
       ytdWRVUs += rawMonthlyWRVUs;
+      ytdTargetWRVUs += provider.targetWRVUs / 12;
       
       await prisma.wRVUData.upsert({
         where: {
@@ -94,6 +96,7 @@ async function main() {
           actualWRVUs,
           rawMonthlyWRVUs,
           ytdWRVUs,
+          ytdTargetWRVUs,
           targetWRVUs: provider.targetWRVUs / 12,
           baseSalary: provider.baseSalary / 12,
           totalCompensation: (provider.baseSalary / 12) + Math.random() * 10000,
@@ -110,6 +113,7 @@ async function main() {
           actualWRVUs,
           rawMonthlyWRVUs,
           ytdWRVUs,
+          ytdTargetWRVUs,
           targetWRVUs: provider.targetWRVUs / 12,
           baseSalary: provider.baseSalary / 12,
           totalCompensation: (provider.baseSalary / 12) + Math.random() * 10000,

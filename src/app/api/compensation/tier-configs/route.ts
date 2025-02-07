@@ -4,13 +4,12 @@ import prisma from '@/lib/prisma';
 // GET /api/compensation/tier-configs - Get all tier configurations
 export async function GET() {
   try {
-    const configs = await prisma.tieredCFConfig.findMany({
+    const configs = await prisma.TierConfig.findMany({
       include: {
-        tiers: true,
-        history: true,
+        Tier: true,
         _count: {
           select: {
-            providers: true
+            Tier: true
           }
         }
       },
@@ -34,41 +33,34 @@ export async function POST(request: Request) {
   try {
     const data = await request.json();
 
-    // Validate required fields
-    if (!data.name || !data.thresholdType) {
+    // Validate the request body
+    if (!data.name) {
       return NextResponse.json(
-        { error: 'Name and threshold type are required' },
+        { error: 'Invalid request body. Required field: name' },
         { status: 400 }
       );
     }
 
-    // If this config is set as default, unset any existing default
+    // If this config is being set as default, unset any existing default
     if (data.isDefault) {
-      await prisma.tieredCFConfig.updateMany({
+      await prisma.TierConfig.updateMany({
         where: { isDefault: true },
         data: { isDefault: false }
       });
     }
 
-    // Create the new configuration
-    const config = await prisma.tieredCFConfig.create({
+    // Create the new tier configuration
+    const config = await prisma.TierConfig.create({
       data: {
         name: data.name,
-        description: data.description || null,
-        thresholdType: data.thresholdType,
-        isDefault: data.isDefault || false,
+        description: data.description || '',
+        thresholdType: data.thresholdType || 'WRVU',
         status: 'Active',
         effectiveDate: new Date(),
-        history: {
-          create: {
-            changeType: 'CREATE',
-            fieldName: 'all',
-            newValue: JSON.stringify(data)
-          }
-        }
+        isDefault: data.isDefault || false
       },
       include: {
-        tiers: true
+        Tier: true
       }
     });
 
@@ -83,17 +75,14 @@ export async function POST(request: Request) {
 }
 
 // PUT /api/compensation/tier-configs/[id] - Update a tier configuration
-export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: Request) {
   try {
     const data = await request.json();
-    const { id } = params;
+    const { id } = data;
 
     // If this config is being set as default, unset any existing default
     if (data.isDefault) {
-      await prisma.tieredCFConfig.updateMany({
+      await prisma.TierConfig.updateMany({
         where: { 
           isDefault: true,
           id: { not: id }
@@ -103,7 +92,7 @@ export async function PUT(
     }
 
     // Get the current config for history tracking
-    const currentConfig = await prisma.tieredCFConfig.findUnique({
+    const currentConfig = await prisma.TierConfig.findUnique({
       where: { id }
     });
 
@@ -115,22 +104,14 @@ export async function PUT(
     }
 
     // Update the configuration
-    const config = await prisma.tieredCFConfig.update({
+    const config = await prisma.TierConfig.update({
       where: { id },
       data: {
         name: data.name,
         description: data.description,
         thresholdType: data.thresholdType,
         isDefault: data.isDefault,
-        status: data.status,
-        history: {
-          create: {
-            changeType: 'UPDATE',
-            fieldName: 'all',
-            oldValue: JSON.stringify(currentConfig),
-            newValue: JSON.stringify(data)
-          }
-        }
+        status: data.status
       }
     });
 
@@ -145,19 +126,14 @@ export async function PUT(
 }
 
 // DELETE /api/compensation/tier-configs/[id] - Delete a tier configuration
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: Request) {
   try {
-    const { id } = params;
+    const data = await request.json();
+    const { id } = data;
 
-    // Check if the configuration is in use
-    const config = await prisma.tieredCFConfig.findUnique({
-      where: { id },
-      include: {
-        providers: true
-      }
+    // Check if the configuration exists
+    const config = await prisma.TierConfig.findUnique({
+      where: { id }
     });
 
     if (!config) {
@@ -167,15 +143,8 @@ export async function DELETE(
       );
     }
 
-    if (config.providers.length > 0) {
-      return NextResponse.json(
-        { error: 'Cannot delete configuration that is in use by providers' },
-        { status: 400 }
-      );
-    }
-
     // Delete the configuration
-    await prisma.tieredCFConfig.delete({
+    await prisma.TierConfig.delete({
       where: { id }
     });
 

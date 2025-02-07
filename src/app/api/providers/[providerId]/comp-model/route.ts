@@ -1,20 +1,23 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 
 export async function PATCH(
   request: Request,
   { params }: { params: { providerId: string } }
 ) {
   try {
-    const { compensationModel } = await request.json();
+    const { compensationModel, tieredCFConfigId } = await request.json();
     const { providerId } = params;
 
     const updatedProvider = await prisma.provider.update({
       where: {
-        employeeId: providerId,
+        id: providerId,
       },
       data: {
         compensationModel,
+        ...(compensationModel === 'Tiered CF' && tieredCFConfigId
+          ? { tieredCFConfigId }
+          : {}),
       },
     });
 

@@ -45,11 +45,37 @@ export async function POST(
     }
 
     // Validate required fields
-    if (!data.effectiveDate || !data.newSalary || !data.newFTE || !data.previousConversionFactor || !data.newConversionFactor) {
+    const baseRequiredFields = ['effectiveDate', 'newSalary', 'newFTE', 'reason'];
+    const missingBaseFields = baseRequiredFields.filter(field => !data[field]);
+
+    if (missingBaseFields.length > 0) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: `Missing required fields: ${missingBaseFields.join(', ')} are required` },
         { status: 400 }
       );
+    }
+
+    // Additional validation based on compensation model
+    if (data.compensationModel === 'Tiered CF') {
+      if (!data.tieredCFConfigId) {
+        return NextResponse.json(
+          { error: 'Tier configuration is required for Tiered CF model' },
+          { status: 400 }
+        );
+      }
+
+      // Verify the tier config exists
+      const tierConfig = await prisma.tierConfig.findUnique({
+        where: { id: data.tieredCFConfigId },
+        include: { Tier: true }
+      });
+
+      if (!tierConfig) {
+        return NextResponse.json(
+          { error: 'Tier configuration not found' },
+          { status: 404 }
+        );
+      }
     }
 
     // Create the compensation change
@@ -61,9 +87,11 @@ export async function POST(
         newSalary: data.newSalary,
         previousFTE: data.previousFTE,
         newFTE: data.newFTE,
-        previousConversionFactor: data.previousConversionFactor,
-        newConversionFactor: data.newConversionFactor,
-        reason: data.reason
+        previousConversionFactor: data.previousConversionFactor || 0,
+        newConversionFactor: data.newConversionFactor || 0,
+        reason: data.reason,
+        compensationModel: data.compensationModel,
+        tieredCFConfigId: data.tieredCFConfigId
       }
     });
 
@@ -73,7 +101,11 @@ export async function POST(
       data: {
         baseSalary: data.newSalary,
         clinicalFte: data.newFTE,
-        targetWRVUs: (data.newSalary / data.newConversionFactor) * data.newFTE
+        compensationModel: data.compensationModel,
+        tieredCFConfigId: data.tieredCFConfigId,
+        targetWRVUs: data.compensationModel === 'Tiered CF' 
+          ? 0 // For tiered CF, target WRVUs are determined by tiers
+          : (data.newSalary / data.newConversionFactor) * data.newFTE
       }
     });
 
@@ -90,8 +122,12 @@ export async function POST(
           year: currentYear,
           metrics: Array.from({ length: 12 }, (_, i) => ({
             month: i + 1,
-            targetWRVUs: (data.newSalary / data.newConversionFactor) * data.newFTE / 12,
-            cumulativeTarget: ((data.newSalary / data.newConversionFactor) * data.newFTE / 12) * (i + 1),
+            targetWRVUs: data.compensationModel === 'Tiered CF'
+              ? 0 // For tiered CF, target WRVUs are determined by tiers
+              : (data.newSalary / data.newConversionFactor) * data.newFTE / 12,
+            cumulativeTarget: data.compensationModel === 'Tiered CF'
+              ? 0 // For tiered CF, cumulative targets are determined by tiers
+              : ((data.newSalary / data.newConversionFactor) * data.newFTE / 12) * (i + 1),
             actualWRVUs: 0,
             cumulativeWRVUs: 0,
             baseSalary: data.newSalary,
@@ -116,6 +152,49 @@ export async function POST(
     console.error('Error creating compensation change:', error);
     return NextResponse.json(
       { error: 'Failed to create compensation change' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/providers/[providerId]/compensation-changes - Delete a compensation change
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { providerId: string } }
+) {
+  try {
+    const data = await request.json();
+    const { id } = data;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Compensation change ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Check if the compensation change exists
+    const existingChange = await prisma.compensationChange.findUnique({
+      where: { id }
+    });
+
+    if (!existingChange) {
+      return NextResponse.json(
+        { error: 'Compensation change not found' },
+        { status: 404 }
+      );
+    }
+
+    // Delete the compensation change
+    await prisma.compensationChange.delete({
+      where: { id }
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting compensation change:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete compensation change' },
       { status: 500 }
     );
   }

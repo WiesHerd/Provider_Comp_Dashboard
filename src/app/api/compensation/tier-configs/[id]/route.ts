@@ -1,21 +1,26 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
 // GET /api/compensation/tier-configs/[id] - Get a single tier configuration
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
+    const id = await params.id;
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Configuration ID is required' },
+        { status: 400 }
+      );
+    }
 
-    const config = await prisma.tieredCFConfig.findUnique({
+    const config = await prisma.tierConfig.findUnique({
       where: { id },
       include: {
-        tiers: true,
-        _count: {
-          select: {
-            providers: true
+        Tier: {
+          orderBy: {
+            wrvuThreshold: 'asc'
           }
         }
       }
@@ -28,7 +33,13 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(config);
+    // Transform the response to match the expected format
+    const transformedConfig = {
+      ...config,
+      tiers: config.Tier
+    };
+
+    return NextResponse.json(transformedConfig);
   } catch (error) {
     console.error('Error fetching tier configuration:', error);
     return NextResponse.json(
@@ -44,22 +55,18 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const data = await request.json();
-    const { id } = params;
-
-    // If this config is being set as default, unset any existing default
-    if (data.isDefault) {
-      await prisma.tieredCFConfig.updateMany({
-        where: { 
-          isDefault: true,
-          id: { not: id }
-        },
-        data: { isDefault: false }
-      });
+    const id = await params.id;
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Configuration ID is required' },
+        { status: 400 }
+      );
     }
 
-    // Get the current config for history tracking
-    const currentConfig = await prisma.tieredCFConfig.findUnique({
+    const data = await request.json();
+
+    // Get the current config for validation
+    const currentConfig = await prisma.tierConfig.findUnique({
       where: { id }
     });
 
@@ -71,22 +78,13 @@ export async function PUT(
     }
 
     // Update the configuration
-    const config = await prisma.tieredCFConfig.update({
+    const config = await prisma.tierConfig.update({
       where: { id },
       data: {
         name: data.name,
         description: data.description,
         thresholdType: data.thresholdType,
-        isDefault: data.isDefault,
-        status: data.status,
-        history: {
-          create: {
-            changeType: 'UPDATE',
-            fieldName: 'all',
-            oldValue: JSON.stringify(currentConfig),
-            newValue: JSON.stringify(data)
-          }
-        }
+        status: data.status
       }
     });
 
@@ -106,14 +104,17 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = params;
+    const id = await params.id;
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Configuration ID is required' },
+        { status: 400 }
+      );
+    }
 
-    // Check if the configuration is in use
-    const config = await prisma.tieredCFConfig.findUnique({
-      where: { id },
-      include: {
-        providers: true
-      }
+    // Check if the configuration exists
+    const config = await prisma.tierConfig.findUnique({
+      where: { id }
     });
 
     if (!config) {
@@ -123,15 +124,8 @@ export async function DELETE(
       );
     }
 
-    if (config.providers.length > 0) {
-      return NextResponse.json(
-        { error: 'Cannot delete configuration that is in use by providers' },
-        { status: 400 }
-      );
-    }
-
     // Delete the configuration
-    await prisma.tieredCFConfig.delete({
+    await prisma.tierConfig.delete({
       where: { id }
     });
 

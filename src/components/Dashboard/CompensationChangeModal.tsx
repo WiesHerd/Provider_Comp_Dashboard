@@ -152,6 +152,49 @@ export default function CompensationChangeModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate required fields
+    if (!formData.effectiveDate) {
+      toast.error('Please select an effective date');
+      return;
+    }
+
+    if (!formData.reason) {
+      toast.error('Please provide a reason for the compensation change');
+      return;
+    }
+
+    // Validate numeric fields
+    if (typeof formData.newSalary !== 'number' || formData.newSalary <= 0) {
+      toast.error('Please enter a valid salary');
+      return;
+    }
+
+    if (typeof formData.newFTE !== 'number' || formData.newFTE <= 0 || formData.newFTE > 1) {
+      toast.error('Please enter a valid FTE between 0 and 1');
+      return;
+    }
+
+    // Model-specific validation
+    if (formData.compensationModel === 'Standard') {
+      if (typeof formData.newConversionFactor !== 'number' || formData.newConversionFactor === 0) {
+        toast.error('Please enter a valid conversion factor');
+        return;
+      }
+    } else if (formData.compensationModel === 'Tiered CF') {
+      if (!formData.tieredCFConfigId) {
+        toast.error('Please select a tier configuration');
+        return;
+      }
+      if (!selectedTierDetails?.tiers?.length) {
+        toast.error('Selected tier configuration has no tiers defined');
+        return;
+      }
+      // Use the base tier's conversion factor
+      const baseTierCF = selectedTierDetails.tiers[0].conversionFactor;
+      formData.newConversionFactor = baseTierCF;
+    }
+
     onSave({
       effectiveDate: formData.effectiveDate,
       previousSalary: currentSalary,
@@ -164,6 +207,7 @@ export default function CompensationChangeModal({
       compensationModel: formData.compensationModel,
       tieredCFConfigId: formData.compensationModel === 'Tiered CF' ? formData.tieredCFConfigId : undefined
     });
+
     // Reset form
     setFormData({
       effectiveDate: '',

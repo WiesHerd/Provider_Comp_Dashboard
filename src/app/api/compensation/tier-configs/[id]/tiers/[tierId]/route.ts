@@ -11,7 +11,7 @@ export async function PUT(
     const { id, tierId } = params;
 
     // Update the tier
-    const tier = await prisma.tierLevel.update({
+    const tier = await prisma.tier.update({
       where: { id: tierId },
       data: {
         name: data.name,
@@ -39,7 +39,7 @@ export async function DELETE(
     const { id, tierId } = params;
 
     // Get the tier before deleting it
-    const tier = await prisma.tierLevel.findUnique({
+    const tier = await prisma.tier.findUnique({
       where: { id: tierId }
     });
 
@@ -51,7 +51,7 @@ export async function DELETE(
     }
 
     // Delete the tier
-    await prisma.tierLevel.delete({
+    await prisma.tier.delete({
       where: { id: tierId }
     });
 

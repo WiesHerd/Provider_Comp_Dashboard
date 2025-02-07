@@ -172,9 +172,7 @@ export default function UploadPage() {
         }`;
       } else if (previewData.type === 'market') {
         title = 'Market Data Upload Complete';
-        message = `Successfully processed ${result.successCount} out of ${result.totalRows} market data records${
-          result.errorCount > 0 ? `\n\nThere were ${result.errorCount} errors during upload.` : ''
-        } (${result.mode} mode)`;
+        message = `Successfully processed ${result.count} market data records (${previewData.mode} mode)`;
       } else if (previewData.type === 'wrvu') {
         title = 'wRVU Data Upload Complete';
         message = `Successfully processed ${result.successCount} providers with ${result.recordsCreated} monthly records${
@@ -406,7 +404,7 @@ export default function UploadPage() {
       )}
 
       <UploadAlert
-        open={alertOpen}
+        show={alertOpen}
         onClose={() => setAlertOpen(false)}
         title={alertConfig.title}
         message={alertConfig.message}

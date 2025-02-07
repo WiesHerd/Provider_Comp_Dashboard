@@ -99,6 +99,15 @@ export default function Sidebar({ isCollapsed, onCollapse }: SidebarProps) {
                 <PresentationChartLineIcon className="h-5 w-5" />
                 {!isCollapsed && <span>wRVU Data</span>}
               </Link>
+              <Link
+                href="/admin/compensation/tier-configs"
+                className={`flex items-center gap-3 px-2 py-2 text-sm font-medium transition-colors ${
+                  pathname.startsWith('/admin/compensation/tier-configs') ? 'text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <ChartBarIcon className="h-5 w-5" />
+                {!isCollapsed && <span>Tier Configurations</span>}
+              </Link>
             </div>
           </div>
 

@@ -30,7 +30,6 @@ interface TierConfig {
   description: string | null;
   thresholdType: string;
   status: string;
-  effectiveDate: string;
   updatedAt: string;
   tiers: Tier[];
 }
@@ -51,12 +50,16 @@ export default function TierConfigDetailsClient({ id }: { id: string }) {
   const loadConfig = async () => {
     try {
       const response = await fetch(`/api/compensation/tier-configs/${id}`);
-      if (!response.ok) throw new Error('Failed to load configuration');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to load configuration');
+      }
       const data = await response.json();
+      console.log('Loaded config:', data);
       setConfig(data);
     } catch (error) {
       console.error('Error loading config:', error);
-      toast.error('Failed to load configuration');
+      toast.error(error instanceof Error ? error.message : 'Failed to load configuration');
     } finally {
       setLoading(false);
     }
@@ -69,16 +72,34 @@ export default function TierConfigDetailsClient({ id }: { id: string }) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          name: data.name,
+          wrvuThreshold: Number(data.wrvuThreshold),
+          conversionFactor: Number(data.conversionFactor)
+        }),
       });
       
-      if (!response.ok) throw new Error('Failed to add tier');
+      if (!response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to add tier');
+        } else {
+          const text = await response.text();
+          console.error('Non-JSON error response:', text);
+          throw new Error('Server error: Failed to add tier');
+        }
+      }
+      
+      const newTier = await response.json();
+      console.log('Add successful:', newTier);
       
       toast.success('Tier added successfully');
       loadConfig();
+      setShowTierForm(false);
     } catch (error) {
       console.error('Error adding tier:', error);
-      toast.error('Failed to add tier');
+      toast.error(error instanceof Error ? error.message : 'Failed to add tier');
       throw error;
     }
   };
@@ -187,10 +208,6 @@ export default function TierConfigDetailsClient({ id }: { id: string }) {
               <span className="text-sm text-gray-900">{config.thresholdType}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-500">Effective</span>
-              <span className="text-sm text-gray-900">{new Date(config.effectiveDate).toLocaleDateString()}</span>
-            </div>
-            <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-gray-500">Modified</span>
               <span className="text-sm text-gray-900">{new Date(config.updatedAt).toLocaleDateString()}</span>
             </div>
@@ -224,9 +241,9 @@ export default function TierConfigDetailsClient({ id }: { id: string }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="py-4 px-6 text-sm font-medium text-[#6B7280]">Name</TableHead>
-                <TableHead className="py-4 px-6 text-sm font-medium text-[#6B7280]">wRVU Threshold</TableHead>
-                <TableHead className="py-4 px-6 text-sm font-medium text-[#6B7280]">Conversion Factor</TableHead>
+                <TableHead className="py-4 px-6 text-sm font-medium text-[#6B7280] text-left">Name</TableHead>
+                <TableHead className="py-4 px-6 text-sm font-medium text-[#6B7280] text-right">wRVU Threshold</TableHead>
+                <TableHead className="py-4 px-6 text-sm font-medium text-[#6B7280] text-right">Conversion Factor</TableHead>
                 <TableHead className="py-4 px-6 text-sm font-medium text-[#6B7280] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -258,11 +275,11 @@ export default function TierConfigDetailsClient({ id }: { id: string }) {
                     <TableCell className="py-4 px-6">
                       <span className="font-medium text-gray-900">{tier.name}</span>
                     </TableCell>
-                    <TableCell className="py-4 px-6">
+                    <TableCell className="py-4 px-6 text-right">
                       <span className="text-gray-900">{formatNumber(tier.wrvuThreshold)}</span>
                     </TableCell>
-                    <TableCell className="py-4 px-6">
-                      <span className="text-gray-900">{formatDollars(tier.conversionFactor)}</span>
+                    <TableCell className="py-4 px-6 text-right">
+                      <span className="text-gray-900">${tier.conversionFactor.toFixed(2)}</span>
                     </TableCell>
                     <TableCell className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-3">
